@@ -1,0 +1,110 @@
+
+.navbar.bg-body-tertiary {
+    background: #fff !important;
+    color: #212529;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border-bottom: 1px solid #eee;
+}
+
+
+.website-nav-link {
+    color: #212529;
+    text-decoration: none;
+    padding: 0.5rem 0.5rem;
+    background: none;
+    border: none;
+    transition: color 0.2s, border-bottom 0.2s;
+}
+
+.website-nav-link:hover {
+    color: #ff9800 !important; 
+}
+
+.website-nav-link.active,
+.website-nav-link:active {
+    color: #ff9800 !important;
+    border-bottom: 2px solid #ff9800;
+    text-decoration: none;
+}
+
+.form-control.border-orange {
+    border: 1.5px solid #ced4da;
+    box-shadow: none;
+    transition: border-color 0.2s;
+}
+.form-control.border-orange:focus {
+    border-color: #ff9800 !important;
+    box-shadow: 0 0 0 0.15rem rgba(255,152,0,0.15);
+}
+
+.btn-orange {
+    background: #ff9800 !important;
+    color: #fff !important;
+    border: 1.5px solid #ff9800 !important;
+    transition: background 0.2s, color 0.2s;
+}
+.btn-orange:hover, .btn-orange:focus {
+    background: #e67c00 !important;
+    color: #fff !important;
+    border-color: #e67c00 !important;
+}
+
+.dropdown-menu {
+    min-width: 210px;
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 0.5rem 0;
+    border: none;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    color: #212529;
+    transition: background 0.2s, color 0.2s;
+}
+
+.dropdown-item i {
+    color: #ff9800;
+    font-size: 1.1em;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    background: #ff9800 !important;
+    color: #fff !important;
+}
+.dropdown-item.active, 
+.dropdown-item:active {
+    background-color: #ffe5b4 !important;
+    color: #fff !important;
+}
+.dropdown-divider {
+    margin: 0.3rem 0;
+}
+.cart-icon-border {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ff9800;
+    border-radius: 50%;
+    transition: transform 0.5s cubic-bezier(0.4,0,0.2,1), border-color 0.2s;
+}
+
+.cart-icon-wrapper:hover .cart-icon-border {
+    transform: rotate(360deg) scale(1.08);
+    border-color: #e67c00;
+}
+
+.cart-icon-border i {
+    font-size: 1.3rem;
+    color: #ff9800;
+    transition: color 0.2s;
+}
+
+.cart-icon-wrapper:hover .cart-icon-border i {
+    color: #e67c00;
+}
