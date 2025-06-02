@@ -1,4 +1,4 @@
-import PasswordInput from "../components/PasswordInput";
+import PasswordInput from "../../components/PasswordInput";
 
 const Login = () => {
   return (

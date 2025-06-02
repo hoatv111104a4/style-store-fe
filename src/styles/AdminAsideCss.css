@@ -1,5 +1,5 @@
 
-.admin-nav-link {
+.admin-nav-link ,.admin-sub-nav-link{
     color: #333;
     padding: 0.5rem 1rem;
     border-radius: 6px;
@@ -10,7 +10,7 @@
     text-decoration: none;
 }
 
-.admin-nav-link:hover {
+.admin-nav-link:hover, .admin-sub-nav-link:hover {
     background: #ffe5b4; /* Cam nhạt */
     color: #d35400 !important;
     text-decoration: none;
@@ -21,4 +21,9 @@
     background: #ff9800 !important; /* Cam tươi */
     color: #fff !important;
     text-decoration: none;
+}
+.product-submenu-scroll {
+  max-height: 100px;      /* hoặc giá trị phù hợp với giao diện của bạn */
+  overflow-y: auto;
+  padding-right: 4px;     /* để không che mất thanh cuộn */
 }
