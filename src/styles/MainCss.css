@@ -1,4 +1,7 @@
-.form-control:focus,.form-check-input:focus {
-    border-color: #e3e1e1 !important;
-    box-shadow: 0 0 0 0.1rem rgba(0,0,0,0.05) !important;
+
+.MuiOutlinedInput-root {
+  border-radius: 20px !important;
+}
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #ff6600 !important;
 }

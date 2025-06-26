@@ -1,0 +1,48 @@
+.website-home {
+  font-family: 'Roboto', Arial, sans-serif;
+}
+.home-feature-list {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-top: 32px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.home-feature-box {
+  background: rgba(255,255,255,0.95);
+  border: 2px solid #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 28px 32px;
+  min-width: 200px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  max-width: 350px; /* Giới hạn tối đa mỗi box, có thể bỏ nếu muốn */
+  margin: 0;
+}
+
+.home-feature-box span {
+  color: #333;
+  font-weight: 700;
+  font-size: 20px;
+  margin-left: 12px;
+}
+
+@media (max-width: 900px) {
+  .home-feature-box {
+    max-width: 100%;
+    min-width: 160px;
+    padding: 18px 8px;
+    font-size: 16px;
+  }
+  .home-feature-list {
+    gap: 12px;
+  }
+  
+}
+

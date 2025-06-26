@@ -21,6 +21,7 @@ import MaterialPage  from "./pages/Admin/AttributeProduct/MaterialPage";
 import SizePage  from "./pages/Admin/AttributeProduct/SizePage";
 import OriginPage  from "./pages/Admin/AttributeProduct/OriginPage";
 import Products from "./pages/Admin/AttributeProduct/Products";
+import DetailProduct from "./pages/Website/DetailProduct";
 function App() {
     return (
         <BrowserRouter>
@@ -33,6 +34,8 @@ function App() {
                     <Route path="/lien-he" element={<ContactPage />} />
                     <Route path="/dang-ki" element={<Register />} />
                     <Route path="/dang-nhap" element={<Login />} />
+                    <Route path="/website/san-pham/chi-tiet-san-pham/:id" element={<DetailProduct />} />
+
                 </Route>
                 {/* Routes cho AdminLayout */}
                 <Route element={<AdminLayout />}>

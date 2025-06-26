@@ -1,0 +1,19 @@
+.detail-product-box {
+  min-height: 320px;
+  margin-bottom: 32px;
+}
+.detail-product-img-col {
+  min-width: 220px;
+  max-width: 400px;
+  flex: 1 1 350px;
+}
+@media (max-width: 767px) {
+  .detail-product-box {
+    flex-direction: column !important;
+    padding: 12px !important;
+  }
+  .detail-product-img-col {
+    max-width: 100%;
+    margin-bottom: 16px;
+  }
+}

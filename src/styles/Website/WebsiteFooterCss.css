@@ -1,0 +1,23 @@
+/* Footer custom style */
+.footer-custom {
+  font-family: 'Roboto', Arial, sans-serif;
+  background: #111 !important;
+  color: #fff;
+}
+
+.footer-title {
+  color: #ff6600;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+}
+
+.footer-link {
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-link:hover {
+  color: #ff6600;
+  text-decoration: underline;
+}

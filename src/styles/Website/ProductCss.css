@@ -1,0 +1,135 @@
+.product-container,
+.product-container * {
+  font-family: 'Roboto', Arial, sans-serif;
+  color: #333;
+  
+}
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1200px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Card sản phẩm */
+.card {
+  border: 1px solid #f4f3f3 !important;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: box-shadow 0.2s;
+  background: #ffffff;
+  overflow: hidden;
+  padding: 5px;
+  
+}
+.card:hover {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.16);
+}
+
+/* Tên sản phẩm */
+.product-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  height: 2.6em;              /* Giới hạn chiều cao cho 2 dòng */
+  line-height: 1.3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;      /* Hiển thị tối đa 2 dòng */
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  text-align: left;
+
+}
+
+/* Giá tiền */
+.product-price {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #e53935;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+/* Nút đặt hàng */
+.product-order-btn {
+  width: 100%;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 8px;
+  border-radius: 6px;
+}
+
+/* Thanh phân trang */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 32px 0 0 0;
+}
+
+.pagination button {
+  background: #fff;
+  border: 2px solid #ff6600; /* Cam đậm */
+  color: #ff6600;
+  padding: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  margin: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  cursor: pointer;
+}
+
+.pagination button.active {
+  background: #ff6600 !important;
+  color: #fff !important;
+  border: 2px solid #ff6600 !important;
+}
+.pagination button:not(:disabled):hover {
+  background: #ff6600;
+  color: #fff;
+  border: 2px solid #ff6600;
+}
+.product-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+/* Responsive grid spacing */
+@media (max-width: 767px) {
+  .product-container {
+    padding: 0 8px;
+  }
+}
+#product-list-title {
+  scroll-margin-top: 105px; /* hoặc đúng chiều cao navbar của bạn */
+}
