@@ -15,13 +15,15 @@ import AboutPage from "./pages/Website/AboutPage";
 import ContactPage from "./pages/Website/ContactPage";
 import Customer from "./pages/Admin/AttibuteAcount/CustomerPage";
 import StaffPage from "./pages/Admin/AttibuteAcount/StaffPage";
-import BrandPage  from "./pages/Admin/AttributeProduct/BrandPage";
-import ColorPage  from "./pages/Admin/AttributeProduct/ColorPage";
-import MaterialPage  from "./pages/Admin/AttributeProduct/MaterialPage";
-import SizePage  from "./pages/Admin/AttributeProduct/SizePage";
-import OriginPage  from "./pages/Admin/AttributeProduct/OriginPage";
+import BrandPage from "./pages/Admin/AttributeProduct/BrandPage";
+import ColorPage from "./pages/Admin/AttributeProduct/ColorPage";
+import MaterialPage from "./pages/Admin/AttributeProduct/MaterialPage";
+import SizePage from "./pages/Admin/AttributeProduct/SizePage";
+import OriginPage from "./pages/Admin/AttributeProduct/OriginPage";
 import Products from "./pages/Admin/AttributeProduct/Products";
 import DetailProduct from "./pages/Website/DetailProduct";
+import SanPhamCtPage from "./pages/Admin/AttributeProduct/SanPhamCtPage";
+import AddProductWithDetailsPage from "./pages/Admin/AttributeProduct/AddProductWithDetailsPage";
 function App() {
     return (
         <BrowserRouter>
@@ -46,13 +48,15 @@ function App() {
                     <Route path="/admin/quan-ly-tra-hang" element={<ReturnManagement />} />
                     <Route path="/dang-xuat" element={<Logout />} />
                     <Route path="/admin/tai-khoan/khach-hang" element={<Customer />} />
-                    <Route path="/admin/tai-khoan/nhan-vien" element={<StaffPage/>} />
-                    <Route path="/admin/quan-ly-sp/mau-sac" element={<ColorPage/>} />
-                    <Route path="/admin/quan-ly-sp/thuong-hieu" element={<BrandPage/>} />
-                    <Route path="/admin/quan-ly-sp/chat-lieu" element={<MaterialPage/>} />
-                    <Route path="/admin/quan-ly-sp/kich-thuoc" element={<SizePage/>} />
-                    <Route path="/admin/quan-ly-sp/xuat-xu" element={<OriginPage/>} />
-                    <Route path="/admin/quan-ly-sp/san-pham" element={<Products/>} />
+                    <Route path="/admin/tai-khoan/nhan-vien" element={<StaffPage />} />
+                    <Route path="/admin/quan-ly-sp/mau-sac" element={<ColorPage />} />
+                    <Route path="/admin/quan-ly-sp/thuong-hieu" element={<BrandPage />} />
+                    <Route path="/admin/quan-ly-sp/chat-lieu" element={<MaterialPage />} />
+                    <Route path="/admin/quan-ly-sp/kich-thuoc" element={<SizePage />} />
+                    <Route path="/admin/quan-ly-sp/xuat-xu" element={<OriginPage />} />
+                    <Route path="/admin/quan-ly-sp/san-pham" element={<Products />} />
+                    <Route path="/san-pham-chi-tiet/:id" element={<SanPhamCtPage />} />
+                    <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddProductWithDetailsPage />} />
                 </Route>
             </Routes>
         </BrowserRouter>
