@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getAllKichThuoc, addKichThuoc, updateKichThuoc, deleteKichThuoc } from '../../../services/Admin/KichThuocService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEye, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEye, faEdit,faSync, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 const Size = () => {
   const [sizes, setSizes] = useState([]);
@@ -263,7 +263,7 @@ const Size = () => {
                         title="Thay đổi trạng thái"
                         style={{ width: '30px', height: '30px', padding: '0' }}
                       >
-                        <FontAwesomeIcon icon={faTrash} />
+                        <FontAwesomeIcon icon={faSync} />
                       </button>
                     </div>
                   </td>

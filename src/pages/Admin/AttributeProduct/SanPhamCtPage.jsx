@@ -19,6 +19,7 @@ import {
   faFileExcel,
   faQrcode,
   faArrowLeft,
+  faSync,
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
@@ -517,7 +518,7 @@ const SanPhamCtPage = () => {
                         title="Xóa"
                         style={{ width: '30px', height: '30px', padding: '0' }}
                       >
-                        <FontAwesomeIcon icon={faTrash} />
+                        <FontAwesomeIcon icon={faSync} />
                       </button>
                     </div>
                   </td>

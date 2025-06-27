@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getAllThuongHieu, addThuongHieu, updateThuongHieu, deleteThuongHieu } from '../../../services/Admin/ThuongHieuService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEye, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEye, faEdit, faTrash,faSync, } from '@fortawesome/free-solid-svg-icons';
 
 const Brand = () => {
   const [brands, setBrands] = useState([]);
@@ -263,7 +263,7 @@ const Brand = () => {
                         title="Thay đổi trạng thái"
                         style={{ width: '30px', height: '30px', padding: '0' }}
                       >
-                        <FontAwesomeIcon icon={faTrash} />
+                        <FontAwesomeIcon icon={faSync} />
                       </button>
                     </div>
                   </td>

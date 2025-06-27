@@ -326,7 +326,7 @@ const AddProductWithDetailsPage = () => {
                 className={`form-control shadow-sm ${productErrors.ten ? 'is-invalid' : ''}`}
                 value={productData.ten}
                 onChange={(e) => setProductData({ ...productData, ten: e.target.value })}
-                placeholder="VD: Áo sơ mi nam"
+                placeholder="VD: Balo"
                 required
                 style={{ borderRadius: '8px', padding: '0.75rem' }}
                 aria-label="Tên sản phẩm"

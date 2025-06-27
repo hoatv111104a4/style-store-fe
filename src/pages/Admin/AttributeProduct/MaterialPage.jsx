@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addChatLieu, updateChatLieu, deleteChatLieu, searchChatLieuByName } from '../../../services/Admin/ChatLieuService';
+import { getAllChatLieu ,addChatLieu, updateChatLieu, deleteChatLieu, searchChatLieuByName } from '../../../services/Admin/ChatLieuService';
 
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEye, faEdit, faTrash, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEye, faEdit, faSync, faSearch } from '@fortawesome/free-solid-svg-icons';
 
 const MaterialPage = () => {
   const [materials, setMaterials] = useState([]);
@@ -374,7 +374,7 @@ const MaterialPage = () => {
                         title="Thay đổi trạng thái"
                         style={{ width: '30px', height: '30px', padding: '0' }}
                       >
-                        <FontAwesomeIcon icon={faTrash} />
+                        <FontAwesomeIcon icon={faSync} />
                       </button>
                     </div>
                   </td>

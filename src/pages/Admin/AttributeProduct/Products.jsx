@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { searchSPWithQuantity, deleteSP } from '../../../services/Admin/SanPhamAdminService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEye, faEdit, faRotateRight, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEye, faEdit, faRotateRight, faSearch,faSync, } from '@fortawesome/free-solid-svg-icons';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -247,7 +247,7 @@ const Products = () => {
                         title="Thay đổi trạng thái"
                         style={{ width: '30px', height: '30px', padding: '0' }}
                       >
-                        <FontAwesomeIcon icon={faRotateRight} />
+                        <FontAwesomeIcon icon={faSync} />
                       </button>
                     </div>
                   </td>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getAllMauSac, addMauSac, updateMauSac, deleteMauSac } from '../../../services/Admin/MauSacService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEye, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEye, faEdit, faTrash,faSync, } from '@fortawesome/free-solid-svg-icons';
 
 // Map common Vietnamese color names to hex codes
 const colorMap = {
@@ -322,7 +322,7 @@ const Color = () => {
                         title="Thay đổi trạng thái"
                         style={{ width: '30px', height: '30px', padding: '0' }}
                       >
-                        <FontAwesomeIcon icon={faTrash} />
+                        <FontAwesomeIcon icon={faSync} />
                       </button>
                     </div>
                   </td>
