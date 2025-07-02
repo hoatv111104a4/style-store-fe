@@ -4,9 +4,9 @@ import WebsiteFooter from "../components/WebsiteFooter";
 import { Outlet } from "react-router-dom";
 const WebsiteLayout = () => {
     return (
-        <div style={{ minHeight: "110vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
             <WebsiteNavbar />
-            <div className="container mt-3" style={{ flex: 1 }}>
+            <div className="container mt-3 " style={{ flex:1 ,paddingTop: "100px"}}>
                 <Outlet/>
             </div>
             <WebsiteFooter />

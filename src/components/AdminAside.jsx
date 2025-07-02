@@ -35,7 +35,17 @@ const AdminAside = () => {
   }, [isAccountRoute]);
 
   return (
-    <div className="bg-white border border-light shadow-sm p-4" style={{ position: "sticky", top: "0", minHeight: "100vh", zIndex: 1000 }}>
+    <div
+      className="bg-white border border-light shadow-sm p-4"
+      style={{
+        position: "sticky",
+        top: "0",
+        minHeight: "100vh",
+        maxHeight: "100vh",
+        zIndex: 1000,
+        overflowY: "auto", // Luôn có thanh trượt dọc
+      }}
+    >
       <h3 className="mb-4 text-dark mb-5">Style store</h3>
       <ul className="nav flex-column">
         <li className="nav-item mb-2">
@@ -66,7 +76,7 @@ const AdminAside = () => {
             <i className={`bi ms-2 ${openProduct ? "bi-chevron-up" : "bi-chevron-down"}`}></i>
           </div>
           {openProduct && (
-            <ul className="submenu list-unstyled ms-4 mt-2 product-submenu-scroll">
+            <ul className="submenu list-unstyled ms-4 mt-2" style={{ overflow: "visible" }}>
               {productSubLinks.map(link => (
                 <li key={link.to} className="nav-item mb-2">
                   <NavLink
@@ -107,7 +117,7 @@ const AdminAside = () => {
             <i className={`bi ms-2 ${openAccount ? "bi-chevron-up" : "bi-chevron-down"}`}></i>
           </div>
           {openAccount && (
-            <ul className="submenu list-unstyled ms-4 mt-2">
+            <ul className="submenu list-unstyled ms-4 mt-2" style={{ overflow: "visible" }}>
               {accountSubLinks.map(link => (
                 <li key={link.to} className="nav-item mb-2">
                   <NavLink

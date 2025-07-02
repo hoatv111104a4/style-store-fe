@@ -24,9 +24,16 @@ import Products from "./pages/Admin/AttributeProduct/Products";
 import DetailProduct from "./pages/Website/DetailProduct";
 import SanPhamCtPage from "./pages/Admin/AttributeProduct/SanPhamCtPage";
 import AddProductWithDetailsPage from "./pages/Admin/AttributeProduct/AddProductWithDetailsPage";
+import CheckOutPage from "./pages/Website/CheckOutPage";
+import ScrollToTop from "./components/ScrollToTop";
+import { ToastContainer } from "react-toastify";
+
 function App() {
     return (
         <BrowserRouter>
+         <ScrollToTop />
+        <ToastContainer position="top-right" autoClose={2000} />
+
             <Routes>
                 {/* Routes cho WebsiteLayout */}
                 <Route element={<WebsiteLayout />}>
@@ -37,7 +44,7 @@ function App() {
                     <Route path="/dang-ki" element={<Register />} />
                     <Route path="/dang-nhap" element={<Login />} />
                     <Route path="/website/san-pham/chi-tiet-san-pham/:id" element={<DetailProduct />} />
-
+                    <Route path="/website/dat-hang" element={<CheckOutPage />} />
                 </Route>
                 {/* Routes cho AdminLayout */}
                 <Route element={<AdminLayout />}>

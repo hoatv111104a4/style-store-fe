@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 import "rc-slider/assets/index.css";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getAllSanPham, listThuongHieu, listChatLieu, listMauSac, listKichCo ,listSanPham} from "../services/Website/ProductApis";
+import { getAllSanPham, listThuongHieu, listChatLieu, listMauSac, listKichCo, listSanPham } from "../services/Website/ProductApis";
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
@@ -114,7 +114,7 @@ const WebSiteSidebar = () => {
     }
   }, [tenSanPhamQuery]);
 
-    const fetchSanPham = async (page, tenSanPham) => {
+  const fetchSanPham = async (page, tenSanPham) => {
     try {
       setLoading(true);
       const data = await getAllSanPham({
@@ -122,7 +122,6 @@ const WebSiteSidebar = () => {
         page,
         tenSanPham: tenSanPham || filters.tenSanPham
       });
-      // Đảm bảo loading tối thiểu 400ms
       setTimeout(() => {
         setProducts(data.content || []);
         setTotalPages(data.totalPages || 0);
@@ -137,8 +136,9 @@ const WebSiteSidebar = () => {
   };
 
   useEffect(() => {
-  fetchSanPham(currentPage, tenSanPhamQuery);
-}, [currentPage, tenSanPhamQuery, filters.sortOrder]);
+    fetchSanPham(currentPage, tenSanPhamQuery);
+    // eslint-disable-next-line
+  }, [currentPage, tenSanPhamQuery, filters.sortOrder]);
 
   const scrollToProductList = () => {
     const el = document.getElementById("product-list-title");
@@ -172,34 +172,23 @@ const WebSiteSidebar = () => {
   const handleReset = () => {
     navigate("/san-pham", { replace: true });
     const newFilters = {
-        page: 0,
-        size: 12,
-        tenSanPham: "",
-        thuongHieuId: "",
-        mauSacId: "",
-        chatLieuId: "",
-        kichThuocId: "",
-        minPrice: 0,
-        maxPrice: 3000000,
-        sanPhamId: "",
-        sortOrder: ""
+      page: 0,
+      size: 12,
+      tenSanPham: "",
+      thuongHieuId: "",
+      mauSacId: "",
+      chatLieuId: "",
+      kichThuocId: "",
+      minPrice: 0,
+      maxPrice: 3000000,
+      sanPhamId: "",
+      sortOrder: ""
     };
     setFilters(newFilters);
     setCurrentPage(0);
     fetchSanPham(0, "");
     window.location.reload();
-};
-
-  if (loading) {
-  return (
-    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "300px" }}>
-      <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
-        <span className="visually-hidden">Loading...</span>
-      </div>
-      <span className="ms-3 fs-5">Đang tải dữ liệu...</span>
-    </div>
-  );
-}
+  };
 
   if (error) {
     return <div>{error}</div>;
@@ -213,8 +202,8 @@ const WebSiteSidebar = () => {
   const pageNumbers = Array.from({ length: totalPages }, (_, index) => index);
 
   return (
-    <div className="row gx-0 container-fluid">
-      <div className="col-12 col-md-4 col-lg-3 bg-white p-0" style={{ minHeight: "100vh" }}>
+    <div className="row gx-0 container-fluid" style={{ minHeight: "100vh" }}>
+      <div className="col-12 col-md-4 col-lg-3 bg-white p-0" >
         <div className="bg-white shadow-sm p-3 h-100">
           <h3 className="mb-4 page-title">Bộ lọc sản phẩm</h3>
           <form onSubmit={(e) => { e.preventDefault(); fetchSanPham(0); setCurrentPage(0); }}>
@@ -223,26 +212,26 @@ const WebSiteSidebar = () => {
                 Giá tiền
               </label>
               <Slider
-                  range
-                  min={0}
-                  max={3000000}
-                  step={50000}
-                  value={[Number(filters.minPrice) || 0, Number(filters.maxPrice) || 3000000]}
-                  onChange={([min, max]) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      minPrice: min,
-                      maxPrice: max,
-                      page: 0,
-                    }))
-                  }
-                  trackStyle={[{ backgroundColor: "#ff6600", height: 8 }]}
-                  handleStyle={[
-                    { borderColor: "#ff6600", backgroundColor: "#fff" },
-                    { borderColor: "#ff6600", backgroundColor: "#fff" },
-                  ]}
-                  railStyle={{ backgroundColor: "#eee", height: 8 }}
-                />
+                range
+                min={0}
+                max={3000000}
+                step={50000}
+                value={[Number(filters.minPrice) || 0, Number(filters.maxPrice) || 3000000]}
+                onChange={([min, max]) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    minPrice: min,
+                    maxPrice: max,
+                    page: 0,
+                  }))
+                }
+                trackStyle={[{ backgroundColor: "#ff6600", height: 8 }]}
+                handleStyle={[
+                  { borderColor: "#ff6600", backgroundColor: "#fff" },
+                  { borderColor: "#ff6600", backgroundColor: "#fff" },
+                ]}
+                railStyle={{ backgroundColor: "#eee", height: 8 }}
+              />
               <div className="d-flex justify-content-between mt-1" style={{ fontSize: 13 }}>
                 <span style={{ color: "#ff6600" }}>
                   {Number(filters.minPrice).toLocaleString()}đ
@@ -296,12 +285,12 @@ const WebSiteSidebar = () => {
               >
                 <MenuItem value="">Tất cả</MenuItem>
                 {mauSacList.map((ms) => (
-                  <MenuItem key={ms.id} value={ms.id}>{ms.ma}   
-                  <span
-                    style={{
-                      display: "inline-block",width: 18,height: 18,borderRadius: "50%",backgroundColor: ms.ma,border: "1px solid #ccc",verticalAlign: "middle",marginRight: 8
-                    }}
-                  />
+                  <MenuItem key={ms.id} value={ms.id}>{ms.ma}
+                    <span
+                      style={{
+                        display: "inline-block", width: 18, height: 18, borderRadius: "50%", backgroundColor: ms.ma, border: "1px solid #ccc", verticalAlign: "middle", marginRight: 8
+                      }}
+                    />
                   </MenuItem>
                 ))}
               </Select>
@@ -321,30 +310,30 @@ const WebSiteSidebar = () => {
                   <MenuItem key={kt.id} value={kt.id}> {kt.ten}</MenuItem>
                 ))}
               </Select>
-            </div>            
+            </div>
             <div className="d-flex gap-2 mt-3">
-            <Button
-              type="submit"
-              variant="contained"
-              color="warning"
-              startIcon={<SearchIcon />}
-              className="w-50"
-              sx={{ minWidth: 0, flex: 1 }}
-            >
-              Tìm kiếm
-            </Button>
-            <Button
-              type="button"
-              variant="outlined"
-              color="warning"
-              startIcon={<ReplayIcon />}
-              onClick={handleReset}
-              className="w-50"
-              sx={{ minWidth: 0, flex: 1 }}
-            >
-              Reset
-            </Button>
-          </div>            
+              <Button
+                type="submit"
+                variant="contained"
+                color="warning"
+                startIcon={<SearchIcon />}
+                className="w-50"
+                sx={{ minWidth: 0, flex: 1 }}
+              >
+                Tìm kiếm
+              </Button>
+              <Button
+                type="button"
+                variant="outlined"
+                color="warning"
+                startIcon={<ReplayIcon />}
+                onClick={handleReset}
+                className="w-50"
+                sx={{ minWidth: 0, flex: 1 }}
+              >
+                Reset
+              </Button>
+            </div>
           </form>
         </div>
       </div>
@@ -357,16 +346,16 @@ const WebSiteSidebar = () => {
               <li className="nav-item mx-2 d-flex align-items-center">
                 <span className="me-2 fw-semibold" style={{ whiteSpace: "nowrap" }}>Sắp xếp:</span>
                 <Select
-                value={filters.sortOrder}
-                onChange={(e) => setFilters((prev) => ({ ...prev, sortOrder: e.target.value, page: 0 }))}
-                displayEmpty
-                size="small"
-                sx={selectNoBorderSx}
-              >
-                <MenuItem value="">Mặc định</MenuItem>
-                <MenuItem value="asc">Tăng dần</MenuItem>
-                <MenuItem value="desc">Giảm dần</MenuItem>
-              </Select>
+                  value={filters.sortOrder}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, sortOrder: e.target.value, page: 0 }))}
+                  displayEmpty
+                  size="small"
+                  sx={selectNoBorderSx}
+                >
+                  <MenuItem value="">Mặc định</MenuItem>
+                  <MenuItem value="asc">Tăng dần</MenuItem>
+                  <MenuItem value="desc">Giảm dần</MenuItem>
+                </Select>
               </li>
             </ul>
           </div>
@@ -374,7 +363,6 @@ const WebSiteSidebar = () => {
           <div className="product-list">
             {products.length > 0 ? (
               <div className="row g-3">
-                {products.length > 0 ? (
                 <div className="row g-3">
                   {products.map((spct) => (
                     <div key={spct.id} className="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -394,7 +382,7 @@ const WebSiteSidebar = () => {
                               zIndex: 2,
                             }}
                           >
-                            -{Math.round(spct.giamGia*100)}%
+                            -{Math.round(spct.giamGia * 100)}%
                           </span>
                         )}
                         <img
@@ -440,16 +428,32 @@ const WebSiteSidebar = () => {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p>Không có sản phẩm nào</p>
-              )}
               </div>
             ) : (
-              <p>Không có sản phẩm nào</p>
+              !loading && <p>Không có sản phẩm nào</p>
             )}
           </div>
 
-          <div className="pagination d-flex justify-content-center align-items-center gap-1 mt-4 flex-wrap">
+          {/* Loading nhỏ, màu đen nhạt, chữ dưới spinner */}
+          {loading && (
+            <div className="d-flex flex-column justify-content-center align-items-center mt-4" style={{ minHeight: "60px" }}>
+              <div
+                className="spinner-border"
+                role="status"
+                style={{
+                  width: "1.5rem",
+                  height: "1.5rem",
+                  color: "#444", // màu đen nhạt
+                  borderWidth: "2px"
+                }}
+              >
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <div className="fs-6 mt-2" style={{ color: "#444" }}>Đang tải...</div>
+            </div>
+          )}
+          {!loading &&(
+            <div className="pagination d-flex justify-content-center align-items-center gap-1 mt-4 flex-wrap">
             <button
               onClick={handleFirstPage}
               disabled={currentPage === 0}
@@ -496,6 +500,8 @@ const WebSiteSidebar = () => {
               <i className="bi bi-chevron-double-right"></i>
             </button>
           </div>
+          )}
+          
         </div>
       </div>
     </div>

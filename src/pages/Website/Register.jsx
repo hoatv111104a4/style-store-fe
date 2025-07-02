@@ -1,79 +1,268 @@
-import PasswordInput from "../../components/PasswordInput";
+import React, { useState } from "react";
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Paper,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
+  Checkbox,
+  FormGroup,
+  IconButton,
+  InputAdornment
+} from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const Register = () => {
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    dob: "",
+    gender: "",
+    agree: false,
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Xử lý đăng ký ở đây
+  };
+
   return (
-    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
-      <div className="bg-white shadow p-4 rounded" style={{ border: "2px solid #fff", boxShadow: "0 0 16px #ddd", maxWidth: "450px", width: "100%",}}>
-        <h3 className="text-center mb-4 text-dark">Đăng ký tài khoản</h3>
-        <form>
-          <div className="row mb-3">
-            <label htmlFor="fullName" className="col-sm-4 col-form-label">Họ và tên</label>
-            <div className="col-sm-8">
-              <input type="text" className="form-control" id="fullName" />
-            </div>
-          </div>
-          <div className="row mb-3">
-            <label htmlFor="email" className="col-sm-4 col-form-label">Email</label>
-            <div className="col-sm-8">
-              <input type="email" className="form-control" id="email" />
-            </div>
-          </div>
-          <div className="row mb-3">
-            <label htmlFor="phone" className="col-sm-4 col-form-label">Số điện thoại</label>
-            <div className="col-sm-8">
-              <input type="tel" className="form-control" id="phone" />
-            </div>
-          </div>
-          <div className="row mb-3">
-            <label htmlFor="password" className="col-sm-4 col-form-label">Mật khẩu</label>
-            <div className="col-sm-8">
-              <PasswordInput type="password" className="form-control" id="password" />
-            </div>
-          </div>
-          <div className="row mb-3">
-            <label htmlFor="confirmPassword" className="col-sm-4 col-form-label">Xác nhận</label>
-            <div className="col-sm-8">
-              <PasswordInput type="password" className="form-control" id="confirmPassword" />
-            </div>
-          </div>
-          <div className="row mb-3">
-            <label htmlFor="dob" className="col-sm-4 col-form-label">Ngày sinh</label>
-            <div className="col-sm-8">
-              <input type="date" className="form-control" id="dob" />
-            </div>
-          </div>
-          <fieldset className="row mb-3">
-            <legend className="col-form-label col-sm-4 pt-0">Giới tính</legend>
-            <div className="col-sm-8">
-              <div className="form-check form-check-inline">
-                <input className="form-check-input" type="radio" name="gender" id="male" value="male" />
-                <label className="form-check-label" htmlFor="male">Nam</label>
-              </div>
-              <div className="form-check form-check-inline">
-                <input className="form-check-input" type="radio" name="gender" id="female" value="female" />
-                <label className="form-check-label" htmlFor="female">Nữ</label>
-              </div>
-              <div className="form-check form-check-inline">
-                <input className="form-check-input" type="radio" name="gender" id="other" value="other" />
-                <label className="form-check-label" htmlFor="other">Khác</label>
-              </div>
-            </div>
-          </fieldset>
-          <div className="row mb-3">
-            <div className="col-sm-8 offset-sm-4">
-              <div className="form-check">
-                <input className="form-check-input" type="checkbox" id="agree" />
-                <label className="form-check-label" htmlFor="agree">
-                  Tôi đồng ý với điều khoản
-                </label>
-              </div>
-            </div>
-          </div>
-          <button type="submit" className="btn btn-primary w-100">Đăng ký</button>
-        </form>
-      </div>
-    </div>
-  )
-}
+    <Box
+      minHeight="100vh"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      sx={{ background: "#fafafa" }}
+    >
+      <Paper
+        elevation={4}
+        sx={{
+          p: 4,
+          borderRadius: 3,
+          maxWidth: 420,
+          width: "100%",
+          border: "2px solid #fff",
+          boxShadow: "0 0 16px #ddd",
+        }}
+      >
+        <Typography
+          variant="h4"
+          align="center"
+          mb={3}
+          sx={{ color: "#ff6600", fontWeight: 700 }}
+        >
+          Đăng ký tài khoản
+        </Typography>
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            label="Họ và tên"
+            name="fullName"
+            fullWidth
+            required
+            margin="normal"
+            value={form.fullName}
+            onChange={handleChange}
+            sx={{
+              "& label": { color: "#222" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "#ff6600" },
+                "&:hover fieldset": { borderColor: "#222" },
+                "&.Mui-focused fieldset": { borderColor: "#222" },
+              },
+            }}
+          />
+          <TextField
+            label="Email"
+            name="email"
+            type="email"
+            fullWidth
+            required
+            margin="normal"
+            value={form.email}
+            onChange={handleChange}
+            sx={{
+              "& label": { color: "#222" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "#ff6600" },
+                "&:hover fieldset": { borderColor: "#222" },
+                "&.Mui-focused fieldset": { borderColor: "#222" },
+              },
+            }}
+          />
+          <TextField
+            label="Số điện thoại"
+            name="phone"
+            type="tel"
+            fullWidth
+            required
+            margin="normal"
+            value={form.phone}
+            onChange={handleChange}
+            sx={{
+              "& label": { color: "#222" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "#ff6600" },
+                "&:hover fieldset": { borderColor: "#222" },
+                "&.Mui-focused fieldset": { borderColor: "#222" },
+              },
+            }}
+          />
+          <TextField
+            label="Mật khẩu"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            fullWidth
+            required
+            margin="normal"
+            value={form.password}
+            onChange={handleChange}
+            sx={{
+              "& label": { color: "#222" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "#ff6600" },
+                "&:hover fieldset": { borderColor: "#222" },
+                "&.Mui-focused fieldset": { borderColor: "#222" },
+              },
+            }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={() => setShowPassword((show) => !show)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            label="Xác nhận mật khẩu"
+            name="confirmPassword"
+            type={showConfirm ? "text" : "password"}
+            fullWidth
+            required
+            margin="normal"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            sx={{
+              "& label": { color: "#222" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "#ff6600" },
+                "&:hover fieldset": { borderColor: "#222" },
+                "&.Mui-focused fieldset": { borderColor: "#222" },
+              },
+            }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle confirm password visibility"
+                    onClick={() => setShowConfirm((show) => !show)}
+                    edge="end"
+                  >
+                    {showConfirm ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            label="Ngày sinh"
+            name="dob"
+            type="date"
+            fullWidth
+            required
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
+            value={form.dob}
+            onChange={handleChange}
+            sx={{
+              "& label": { color: "#222" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "#ff6600" },
+                "&:hover fieldset": { borderColor: "#222" },
+                "&.Mui-focused fieldset": { borderColor: "#222" },
+              },
+            }}
+          />
+          <FormControl component="fieldset" margin="normal" sx={{ width: "100%" }}>
+            <FormLabel component="legend" sx={{ color: "#222" }}>
+              Giới tính
+            </FormLabel>
+            <RadioGroup
+              row
+              name="gender"
+              value={form.gender}
+              onChange={handleChange}
+            >
+              <FormControlLabel value="male" control={<Radio sx={{
+                color: "#ff6600", '&.Mui-checked': { color: "#222" }
+              }} />} label="Nam" />
+              <FormControlLabel value="female" control={<Radio sx={{
+                color: "#ff6600", '&.Mui-checked': { color: "#222" }
+              }} />} label="Nữ" />
+              <FormControlLabel value="other" control={<Radio sx={{
+                color: "#ff6600", '&.Mui-checked': { color: "#222" }
+              }} />} label="Khác" />
+            </RadioGroup>
+          </FormControl>
+          <FormGroup sx={{ mb: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={form.agree}
+                  onChange={handleChange}
+                  name="agree"
+                  sx={{
+                    color: "#ff6600",
+                    '&.Mui-checked': { color: "#222" }
+                  }}
+                />
+              }
+              label="Tôi đồng ý với điều khoản"
+            />
+          </FormGroup>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{
+              background: "#222",
+              color: "#fff",
+              fontWeight: 700,
+              "&:hover": { background: "#ff6600", color: "#fff" },
+              py: 1.2,
+              fontSize: 18,
+              borderRadius: 2,
+            }}
+          >
+            Đăng ký
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
+  );
+};
 
 export default Register;

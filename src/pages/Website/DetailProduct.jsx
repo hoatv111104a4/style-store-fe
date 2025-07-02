@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { getByIdSanPhamCt } from "../../services/Website/ProductApis";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../../styles/Website/DetailProductCss.css";
 import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button'
-
+import Button from '@mui/material/Button';
 
 const DetailProduct = () => {
   const { id } = useParams();
   const [productDetail, setProductDetail] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -28,23 +28,64 @@ const DetailProduct = () => {
     if (value < 1) value = 1;
     setQuantity(value);
   };
+
   const handleAddToCart = () => {
-  const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-  const existIndex = cart.findIndex(item => item.id === productDetail.id);
-  if (existIndex !== -1) {
-    cart[existIndex].quantity += quantity;
-  } else {
-    cart.push({
-      ...productDetail,
-      quantity,
-    });
-  }
-  localStorage.setItem("cart", JSON.stringify(cart));
-  toast.success("Đã thêm vào giỏ hàng!"); 
- };
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const existIndex = cart.findIndex(item => item.id === productDetail.id);
+    if (existIndex !== -1) {
+      cart[existIndex].quantity += quantity;
+    } else {
+      cart.push({
+        ...productDetail,
+        quantity,
+      });
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+    toast.success("Đã thêm vào giỏ hàng!");
+  };
+
+  const handleOrderNow = () => {
+    // Lấy giỏ hàng hiện tại
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const existIndex = cart.findIndex(item => item.id === productDetail.id);
+    if (existIndex !== -1) {
+      cart[existIndex].quantity += quantity;
+    } else {
+      cart.push({
+        ...productDetail,
+        quantity,
+      });
+    }
+    // Lưu lại giỏ hàng mới
+    localStorage.setItem("cart", JSON.stringify(cart));
+    // Lưu thông tin đặt hàng tạm thời 
+    localStorage.setItem("orderNow", JSON.stringify(cart));
+    // Chuyển sang trang đặt hàng
+    navigate("/website/dat-hang");
+  };
 
   return (
     <div className="container py-4">
+      {/* Breadcrumb */}
+      <nav aria-label="breadcrumb" style={{ marginBottom: 20 }}>
+        <ol className="breadcrumb bg-white px-0 py-2" style={{ background: "none" }}>
+          <li className="breadcrumb-item">
+            <Link to="/" style={{ color: "#222", textDecoration: "none", fontWeight: 500 }}>
+              Trang chủ
+            </Link>
+          </li>
+          <li className="breadcrumb-item">
+            <Link to="/san-pham" style={{ color: "#222", textDecoration: "none", fontWeight: 500 }}>
+              Sản phẩm
+            </Link>
+          </li>
+          <li className="breadcrumb-item active" aria-current="page" style={{ color: "#ff6600", fontWeight: 600 }}>
+            {productDetail?.sanPham?.ten ? `Chi tiết: ${productDetail.sanPham.ten}` : "Thông tin sản phẩm"}
+          </li>
+        </ol>
+      </nav>
+      {/* End Breadcrumb */}
+
       {productDetail ? (
         <div
           className="detail-product-box d-flex flex-column flex-md-row gap-4 align-items-stretch"
@@ -151,6 +192,7 @@ const DetailProduct = () => {
               <Button
                 variant="contained"
                 color="primary"
+                onClick={handleOrderNow}
                 sx={{ minWidth: 140, borderRadius: 2, fontWeight: 700 }}
               >
                 Đặt hàng ngay
@@ -171,7 +213,6 @@ const DetailProduct = () => {
       )}
       <ToastContainer />
     </div>
-    
   );
 };
 
