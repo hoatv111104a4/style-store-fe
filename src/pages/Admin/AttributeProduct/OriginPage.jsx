@@ -1,13 +1,62 @@
-import React, { useState, useEffect } from 'react';
-import { getAllXuatXu, addXuatXu, updateXuatXu, deleteXuatXu } from '../../../services/Admin/XuatXuService';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEye, faEdit, faTrash,faSync, } from '@fortawesome/free-solid-svg-icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Box,
+  Button,
+  Typography,
+  TextField,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  Grid,
+  useMediaQuery,
+  Pagination,
+} from '@mui/material';
+import { useTheme, styled } from '@mui/material/styles';
+import {
+  Add as AddIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Sync as SyncIcon,
+  Search as SearchIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
+import { getAllXuatXu, addXuatXu, updateXuatXu, deleteXuatXu, searchXuatXuByNameOrCode } from '../../../services/Admin/XuatXuService';
+
+const orange = '#ff8800';
+const black = '#222';
+const white = '#fff';
+
+const OrangeButton = styled(Button)(({ theme }) => ({
+  backgroundColor: orange,
+  color: white,
+  '&:hover': {
+    backgroundColor: '#ff9900',
+  },
+  borderRadius: 12,
+  textTransform: 'none',
+  fontWeight: 600,
+  boxShadow: '0 2px 8px rgba(255,136,0,0.08)',
+}));
 
 const XuatXu = () => {
   const [origins, setOrigins] = useState([]);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -29,10 +78,38 @@ const XuatXu = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [skipFetch, setSkipFetch] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const fetchData = useCallback(async (page, size, search = '') => {
+    try {
+      setLoading(true);
+      if (search) setSearchLoading(true);
+      setError(null);
+      let response;
+      if (search) {
+        response = await searchXuatXuByNameOrCode(search.trim(), page, size);
+      } else {
+        response = await getAllXuatXu(page, size);
+      }
+      setOrigins(response.content || []);
+      setTotalPages(response.totalPages || 0);
+      setTotalElements(response.totalElements || 0);
+    } catch (err) {
+      setError(err.message || 'Không thể tải dữ liệu từ server');
+    } finally {
+      setLoading(false);
+      if (search) setSearchLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchData(currentPage, pageSize, searchTerm);
-  }, [currentPage, pageSize, searchTerm]);
+    if (!skipFetch) {
+      fetchData(currentPage, pageSize, searchTerm);
+    }
+  }, [currentPage, pageSize, searchTerm, fetchData, skipFetch]);
 
   useEffect(() => {
     if (alertMessage) {
@@ -41,38 +118,44 @@ const XuatXu = () => {
     }
   }, [alertMessage]);
 
-  const fetchData = async (page, size, search) => {
-    try {
-      setLoading(true);
-      const response = await getAllXuatXu(page, size, search);
-      console.log('API Response:', response); // Debug dữ liệu API
-      setOrigins(response.content || []);
-      setTotalPages(response.totalPages || 0);
-      setTotalElements(response.totalElements || 0);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (skipFetch && currentPage === 0) {
+      setSkipFetch(false);
     }
-  };
+  }, [currentPage, skipFetch]);
 
-  const validateForm = () => {
+  const validateForm = useCallback(async () => {
     const errors = {};
     if (!formData.ten?.trim()) {
       errors.ten = 'Tên xuất xứ không được để trống';
     } else if (!formData.ten.trim().match(/^[\p{L}\s]+$/u)) {
       errors.ten = 'Tên chỉ được chứa chữ cái và khoảng trắng';
-    }else if (formData.ten.length > 50) {
+    } else if (formData.ten.length > 50) {
       errors.ten = 'Tên không được vượt quá 50 ký tự';
+    } else {
+      try {
+        const response = await searchXuatXuByNameOrCode(formData.ten.trim(), 0, 10);
+        const existingOrigins = response.content || [];
+        const isDuplicate = existingOrigins.some(
+          (origin) =>
+            origin.ten.toLowerCase() === formData.ten.trim().toLowerCase() &&
+            (!selectedOrigin || origin.id !== selectedOrigin.id)
+        );
+        if (isDuplicate) {
+          errors.ten = 'Tên xuất xứ đã tồn tại';
+        }
+      } catch (err) {
+        errors.ten = 'Không thể kiểm tra tên xuất xứ';
+      }
     }
     if (formData.moTa?.length > 255) {
       errors.moTa = 'Mô tả không được vượt quá 255 ký tự';
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  };
+  }, [formData, selectedOrigin]);
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     setFormData({
       ma: '',
       ten: '',
@@ -87,9 +170,9 @@ const XuatXu = () => {
     setSelectedOrigin(null);
     setIsViewMode(false);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleViewOrEdit = (origin, viewOnly = false) => {
+  const handleViewOrEdit = useCallback((origin, viewOnly = false) => {
     setFormData({
       ...origin,
       ngayTao: origin.ngayTao || '',
@@ -102,45 +185,49 @@ const XuatXu = () => {
     setSelectedOrigin(origin);
     setIsViewMode(viewOnly);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      setAlertMessage('Vui lòng kiểm tra lại thông tin nhập');
-      setAlertType('danger');
-      return;
-    }
-
-    try {
-      const now = new Date().toISOString();
-      const originToSave = {
-        ...formData,
-        ma: selectedOrigin ? formData.ma : `XX-${crypto.randomUUID().substring(0, 8)}`,
-        trangThai: 1,
-        ngayTao: selectedOrigin ? formData.ngayTao : now,
-        ngaySua: now,
-        ngayXoa: formData.trangThai === 0 ? now : null,
-      };
-
-      if (selectedOrigin) {
-        await updateXuatXu(selectedOrigin.id, originToSave);
-        setOrigins(origins.map((o) => (o.id === selectedOrigin.id ? { ...o, ...originToSave } : o)));
-        setAlertMessage(`Cập nhật xuất xứ "${originToSave.ten}" thành công`);
-      } else {
-        await addXuatXu(originToSave);
-        await fetchData(currentPage, pageSize, searchTerm);
-        setAlertMessage(`Thêm xuất xứ "${originToSave.ten}" thành công`);
+  const handleSave = useCallback(
+    async (e) => {
+      e.preventDefault();
+      const isValid = await validateForm();
+      if (!isValid) {
+        setAlertMessage('Vui lòng kiểm tra lại thông tin nhập');
+        setAlertType('error');
+        return;
       }
-      setAlertType('success');
-      setIsModalOpen(false);
-    } catch (err) {
-      setAlertMessage(`Thao tác thất bại: ${err.response?.data?.message || err.message}`);
-      setAlertType('danger');
-    }
-  };
+      try {
+        const now = new Date().toISOString();
+        const originToSave = {
+          ...formData,
+          ma: selectedOrigin ? formData.ma : `XX-${crypto.randomUUID().substring(0, 8)}`,
+          trangThai: 1,
+          ngayTao: selectedOrigin ? formData.ngayTao : now,
+          ngaySua: now,
+          ngayXoa: formData.trangThai === 0 ? now : null,
+        };
+        if (selectedOrigin) {
+          await updateXuatXu(selectedOrigin.id, originToSave);
+          setOrigins((prev) =>
+            prev.map((o) => (o.id === selectedOrigin.id ? { ...o, ...originToSave } : o))
+          );
+          setAlertMessage(`Cập nhật xuất xứ "${originToSave.ten}" thành công`);
+        } else {
+          await addXuatXu(originToSave);
+          await fetchData(currentPage, pageSize, searchTerm);
+          setAlertMessage(`Thêm xuất xứ "${originToSave.ten}" thành công`);
+        }
+        setAlertType('success');
+        setIsModalOpen(false);
+      } catch (err) {
+        setAlertMessage(`Thao tác thất bại: ${err.response?.data?.message || err.message}`);
+        setAlertType('error');
+      }
+    },
+    [formData, selectedOrigin, currentPage, pageSize, searchTerm, validateForm, fetchData]
+  );
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     try {
       await deleteXuatXu(confirmModal.id);
       await fetchData(currentPage, pageSize, searchTerm);
@@ -148,321 +235,384 @@ const XuatXu = () => {
       setAlertType('success');
     } catch (err) {
       setAlertMessage(`Cập nhật trạng thái thất bại: ${err.message}`);
-      setAlertType('danger');
+      setAlertType('error');
     } finally {
       setConfirmModal({ open: false, id: null });
     }
-  };
+  }, [confirmModal.id, currentPage, pageSize, searchTerm, fetchData]);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+  const handlePageChange = useCallback((event, value) => {
+    setCurrentPage(value - 1);
+  }, []);
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
+  const handleSearchInput = useCallback((e) => {
+    setSearchInput(e.target.value);
+    setError(null);
+  }, []);
+
+  const handleSearch = useCallback(() => {
+    setSearchTerm(searchInput);
     setCurrentPage(0);
-  };
+  }, [searchInput]);
 
-  if (loading) return <div className="text-center mt-5">Đang tải...</div>;
-  if (error) return <div className="alert alert-danger m-4">{error}</div>;
+  const handleClearSearch = useCallback(() => {
+    setSearchInput('');
+    setSearchTerm('');
+    setCurrentPage(0);
+    setError(null);
+  }, []);
+
+  const handleKeyPress = useCallback((e) => {
+    if (e.key === 'Enter' && searchInput.trim()) {
+      handleSearch();
+    }
+  }, [handleSearch]);
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress color="warning" size={60} />
+      </Box>
+    );
+  }
+  if (error && !origins.length) {
+    return (
+      <Box m={4}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
-    <div className="container-fluid p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-      <h1 className="mb-4 text-center text-black fw-bold" style={{ letterSpacing: '2px' }}>
+    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', p: isMobile ? 1 : 4 }}>
+      <Typography
+        variant={isMobile ? 'h5' : 'h4'}
+        fontWeight={700}
+        color={black}
+        align="center"
+        sx={{ letterSpacing: 2, mb: 3 }}
+      >
         QUẢN LÝ XUẤT XỨ
-      </h1>
-      <div className="d-flex justify-content-between mb-4 flex-wrap gap-3">
-        <input
-          type="text"
-          className="form-control w-auto shadow-sm"
-          placeholder="Tìm kiếm xuất xứ..."
-          value={searchTerm}
-          onChange={handleSearch}
-          style={{ borderRadius: '12px', borderColor: '#000000', padding: '0.5rem 1rem', maxWidth: '400px' }}
-        />
-        <div className="d-flex gap-2 flex-wrap">
-          <button className="btn btn-primary shadow-sm" onClick={handleAdd} title="Thêm Xuất Xứ">
-            <FontAwesomeIcon icon={faPlus} style={{ fontSize: '1rem' }} /> Thêm xuất xứ
-          </button>
-        </div>
-      </div>
-      <div className="table-responsive shadow-lg rounded-3 overflow-hidden border border-light">
-        <table className="table table-hover mb-0 align-middle" style={{ fontSize: '0.9rem' }}>
-          <thead className="table-dark text-uppercase" style={{ backgroundColor: '#343a40' }}>
-            <tr>
-              <th scope="col" className="py-2 px-3 text-center" style={{ width: '5%' }}>
-                #
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '15%' }}>
-                MÃ XUẤT XỨ
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '15%' }}>
-                TÊN XUẤT XỨ
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '15%' }}>
-                NGÀY TẠO
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '15%' }}>
-                NGÀY SỬA
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '15%' }}>
-                NGÀY XÓA
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '15%' }}>
-                MÔ TẢ
-              </th>
-              <th scope="col" className="py-2 px-3 text-center" style={{ width: '10%' }}>
-                TRẠNG THÁI
-              </th>
-              <th scope="col" className="py-2 px-3 text-center" style={{ width: '15%' }}>
-                HÀNH ĐỘNG
-              </th>
-            </tr>
-          </thead>
-          <tbody style={{ backgroundColor: '#ffffff' }}>
+      </Typography>
+      <Grid container spacing={2} alignItems="center" mb={3}>
+        <Grid item xs={12} md={7}>
+          <Box display="flex" gap={2} alignItems="center">
+            <TextField
+              variant="outlined"
+              size="small"
+              placeholder="Nhập tên hoặc mã xuất xứ..."
+              value={searchInput}
+              onChange={handleSearchInput}
+              onKeyPress={handleKeyPress}
+              error={!!error}
+              helperText={error}
+              sx={{
+                borderRadius: 2,
+                bgcolor: '#fafafa',
+                maxWidth: 350,
+                flex: 1,
+                '& .MuiOutlinedInput-root': { borderRadius: 2 },
+              }}
+              InputProps={{
+                endAdornment: (
+                  <>
+                    {searchInput && (
+                      <IconButton
+                        color="default"
+                        onClick={handleClearSearch}
+                        edge="end"
+                        size="small"
+                        sx={{ mr: searchLoading ? 1 : 0 }}
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    )}
+                    {searchLoading ? (
+                      <CircularProgress size={20} color="warning" />
+                    ) : (
+                      <IconButton
+                        color="warning"
+                        onClick={handleSearch}
+                        disabled={!!error || !searchInput.trim()}
+                        edge="end"
+                        size="small"
+                      >
+                        <SearchIcon />
+                      </IconButton>
+                    )}
+                  </>
+                ),
+              }}
+            />
+          </Box>
+        </Grid>
+        <Grid item xs={12} md={5} display="flex" justifyContent={isMobile ? 'flex-start' : 'flex-end'}>
+          <OrangeButton
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAdd}
+            sx={{ minWidth: 180, boxShadow: '0 2px 8px rgba(255,136,0,0.08)' }}
+          >
+            Thêm xuất xứ
+          </OrangeButton>
+        </Grid>
+      </Grid>
+      <TableContainer
+        component={Paper}
+        sx={{
+          borderRadius: 3,
+          boxShadow: 2,
+          border: '1px solid #ffe0b2',
+          mt: 1,
+        }}
+      >
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ bgcolor: orange }}>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '5%', border: 0 }}>#</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>MÃ XUẤT XỨ</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TÊN XUẤT XỨ</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY TẠO</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY SỬA</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY XÓA</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>MÔ TẢ</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>TRẠNG THÁI</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>HÀNH ĐỘNG</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {Array.isArray(origins) && origins.length > 0 ? (
               origins.map((origin, index) => (
-                <tr key={origin.id} className="align-middle">
-                  <td className="py-2 px-3 text-center">{index + 1 + currentPage * pageSize}</td>
-                  <td className="py-2 px-3 fw-semibold">{origin.ma}</td>
-                  <td className="py-2 px-3">{origin.ten}</td>
-                  <td className="py-2 px-3">{origin.ngayTao?.slice(0, 10) || '-'}</td>
-                  <td className="py-2 px-3">{origin.ngaySua?.slice(0, 10) || '-'}</td>
-                  <td className="py-2 px-3">{origin.ngayXoa?.slice(0, 10) || '-'}</td>
-                  <td className="py-2 px-3">{origin.moTa || '-'}</td>
-                  <td className="py-2 px-3 text-center">
-                    <span
-                      className={`badge ${
-                        origin.trangThai === 1 ? 'bg-success' : 'bg-secondary'
-                      } rounded-pill px-2 py-1`}
-                    >
-                      {origin.trangThai === 1 ? 'Đang Hoạt Động' : 'Ngừng Hoạt Động'}
-                    </span>
-                  </td>
-                  <td className="py-2 px-3 text-center">
-                    <div className="d-flex justify-content-center gap-2">
-                      <button
-                        className="btn btn-outline-primary btn-sm rounded-circle"
+                <TableRow
+                  key={origin.id}
+                  hover
+                  sx={{
+                    transition: 'background 0.2s',
+                    '&:hover': { backgroundColor: '#fffaf3' },
+                    borderBottom: '1px solid #ffe0b2',
+                  }}
+                >
+                  <TableCell align="center" sx={{ fontWeight: 600, color: black, border: 0 }}>
+                    {index + 1 + currentPage * pageSize}
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: black, letterSpacing: 1, border: 0 }}>
+                    {origin.ma}
+                  </TableCell>
+                  <TableCell sx={{ color: black, fontWeight: 500, border: 0 }}>
+                    {origin.ten}
+                  </TableCell>
+                  <TableCell sx={{ color: black, border: 0 }}>
+                    {origin.ngayTao?.slice(0, 10) || '-'}
+                  </TableCell>
+                  <TableCell sx={{ color: black, border: 0 }}>
+                    {origin.ngaySua?.slice(0, 10) || '-'}
+                  </TableCell>
+                  <TableCell sx={{ color: black, border: 0 }}>
+                    {origin.ngayXoa?.slice(0, 10) || '-'}
+                  </TableCell>
+                  <TableCell sx={{ color: black, border: 0 }}>
+                    {origin.moTa || '-'}
+                  </TableCell>
+                  <TableCell align="center" sx={{ border: 0 }}>
+                    <Chip
+                      label={origin.trangThai === 1 ? 'Đang Hoạt Động' : 'Ngừng Hoạt Động'}
+                      sx={{
+                        bgcolor: origin.trangThai === 1 ? '#a3e635' : '#6c757d',
+                        color: origin.trangThai === 1 ? '#1a2e05' : white,
+                        fontWeight: 600,
+                        px: 1.5,
+                        fontSize: 14,
+                        borderRadius: '16px',
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="center" sx={{ border: 0 }}>
+                    <Box display="flex" justifyContent="center" gap={0.5}>
+                      <IconButton
+                        sx={{
+                          color: '#1976d2',
+                          bgcolor: '#f4f8fd',
+                          borderRadius: '50%',
+                          width: 30,
+                          height: 30,
+                          transition: 'all 0.2s',
+                          '&:hover': { bgcolor: '#e3f2fd', color: '#0d47a1' },
+                        }}
                         onClick={() => handleViewOrEdit(origin, true)}
-                        title="Xem"
-                        style={{ width: '30px', height: '30px', padding: '0' }}
+                        size="small"
                       >
-                        <FontAwesomeIcon icon={faEye} />
-                      </button>
-                      <button
-                        className="btn btn-outline-warning btn-sm rounded-circle"
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        sx={{
+                          color: '#ffca28',
+                          bgcolor: '#fff7f0',
+                          borderRadius: '50%',
+                          width: 30,
+                          height: 30,
+                          transition: 'all 0.2s',
+                          '&:hover': { bgcolor: '#ffe0b2', color: '#ff6f00' },
+                        }}
                         onClick={() => handleViewOrEdit(origin, false)}
-                        title="Sửa"
-                        style={{ width: '30px', height: '30px', padding: '0' }}
+                        size="small"
                       >
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                      <button
-                        className="btn btn-outline-danger btn-sm rounded-circle"
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        sx={{
+                          color: '#e53935',
+                          bgcolor: '#fff6f6',
+                          borderRadius: '50%',
+                          width: 30,
+                          height: 30,
+                          transition: 'all 0.2s',
+                          '&:hover': { bgcolor: '#ffeaea', color: '#b71c1c' },
+                        }}
                         onClick={() => setConfirmModal({ open: true, id: origin.id })}
-                        title="Thay đổi trạng thái"
-                        style={{ width: '30px', height: '30px', padding: '0' }}
+                        size="small"
                       >
-                        <FontAwesomeIcon icon={faSync} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                        <SyncIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan="9" className="text-center text-muted py-3 fs-5">
-                  Không tìm thấy xuất xứ phù hợp
-                </td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={9} align="center">
+                  <Typography color="text.secondary" fontSize={18}>
+                    {searchTerm ? `Không tìm thấy xuất xứ với tên hoặc mã "${searchTerm}"` : 'Không có xuất xứ nào'}
+                  </Typography>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
-      <div className="d-flex justify-content-between align-items-center mt-3 text-secondary">
-        <nav>
-          <ul className="pagination mb-0">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <li key={i} className={`page-item ${currentPage === i ? 'active' : ''}`}>
-                <button
-                  className="page-link"
-                  onClick={() => handlePageChange(i)}
-                  disabled={currentPage === i}
-                >
-                  {i + 1}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <span>
-          Trang {totalPages > 0 ? currentPage + 1 : 0} / {totalPages} ({totalElements} bản ghi)
-        </span>
-      </div>
-      {alertMessage && (
-        <div
-          className={`alert alert-${alertType} alert-dismissible fade show`}
-          role="alert"
-          style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            zIndex: 1050,
-            minWidth: '300px',
-            maxWidth: '400px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            animation: 'slideIn 0.3s ease-in-out',
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mt={3} flexWrap="wrap" gap={2}>
+        <Pagination
+          count={totalPages}
+          page={currentPage + 1}
+          onChange={handlePageChange}
+          color="warning"
+          shape="rounded"
+        />
+        <Typography>
+          Trang {totalPages > 0 ? currentPage + 1 : 0} / {totalPages} ({totalElements} xuất xứ)
+        </Typography>
+      </Box>
+      <Snackbar
+        open={!!alertMessage}
+        autoHideDuration={4000}
+        onClose={() => setAlertMessage('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setAlertMessage('')}
+          severity={alertType}
+          sx={{
+            bgcolor: alertType === 'success' ? orange : '#e53935',
+            color: white,
+            fontWeight: 600,
+            borderRadius: 2,
+            boxShadow: 3,
           }}
         >
           {alertMessage}
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setAlertMessage('')}
-            aria-label="Close"
-          />
-          <style>
-            {`
-              @keyframes slideIn {
-                from {
-                  transform: translateX(100%);
-                  opacity: 0;
-                }
-                to {
-                  transform: translateX(0);
-                  opacity: 1;
-                }
-              }
-              .alert-success {
-                background-color: #a3e635; /* Brighter green */
-                color: #1a2e05; /* Darker text for contrast */
-                border-color: #84cc16;
-              }
-              .alert-danger {
-                background-color: #f87171; /* Brighter red */
-                color: #2a0404; /* Darker text for contrast */
-                border-color: #ef4444;
-              }
-            `}
-          </style>
-        </div>
-      )}
-      {isModalOpen && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered" style={{ maxWidth: '600px' }}>
-            <div className="modal-content shadow-lg rounded-3 border-0" style={{ backgroundColor: '#ffffff' }}>
-              <div className="modal-header border-bottom-0 px-4 py-3" style={{ backgroundColor: '#f1f5f9' }}>
-                <h4 className="modal-title fw-bold text-dark">
-                  {isViewMode ? 'Xem Xuất Xứ' : selectedOrigin ? 'Chỉnh sửa Xuất Xứ' : 'Thêm mới Xuất Xứ'}
-                </h4>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setIsModalOpen(false)}
-                  aria-label="Close"
-                />
-              </div>
-              <div className="modal-body p-4">
-                <form onSubmit={handleSave}>
-                  {selectedOrigin && (
-                    <div className="mb-4">
-                      <label className="form-label fw-semibold text-dark">Mã Xuất Xứ</label>
-                      <input
-                        type="text"
-                        className="form-control shadow-sm"
-                        value={formData.ma}
-                        readOnly
-                        style={{ borderRadius: '8px', padding: '0.75rem', backgroundColor: '#f8f9fa' }}
-                      />
-                    </div>
-                  )}
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold text-dark">
-                      Tên Xuất Xứ <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`form-control shadow-sm ${formErrors.ten ? 'is-invalid' : ''}`}
-                      value={formData.ten}
-                      onChange={(e) => !isViewMode && setFormData({ ...formData, ten: e.target.value })}
-                      readOnly={isViewMode}
-                      placeholder="VD: Việt Nam"
-                      required={!isViewMode}
-                      style={{ borderRadius: '8px', padding: '0.75rem' }}
-                    />
-                    {formErrors.ten && <div className="invalid-feedback">{formErrors.ten}</div>}
-                  </div>
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold text-dark">Mô Tả</label>
-                    <textarea
-                      className={`form-control shadow-sm ${formErrors.moTa ? 'is-invalid' : ''}`}
-                      rows="4"
-                      value={formData.moTa}
-                      onChange={(e) => !isViewMode && setFormData({ ...formData, moTa: e.target.value })}
-                      readOnly={isViewMode}
-                      placeholder="Mô tả thêm về xuất xứ"
-                      style={{ borderRadius: '8px', padding: '0.75rem' }}
-                    />
-                    {formErrors.moTa && <div className="invalid-feedback">{formErrors.moTa}</div>}
-                  </div>
-                  <div className="d-flex justify-content-end gap-3">
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary"
-                      onClick={() => setIsModalOpen(false)}
-                      style={{ borderRadius: '8px', padding: '8px 20px' }}
-                    >
-                      {isViewMode ? 'Đóng' : 'Hủy'}
-                    </button>
-                    {!isViewMode && (
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        style={{ borderRadius: '8px', padding: '8px 20px' }}
-                      >
-                        {selectedOrigin ? 'Cập nhật' : 'Thêm mới'}
-                      </button>
-                    )}
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {confirmModal.open && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
-          <div className="modal-dialog modal-sm modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Xác nhận</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setConfirmModal({ open: false, id: null })}
-                />
-              </div>
-              <div className="modal-body">
-                Bạn có chắc muốn thay đổi trạng thái xuất xứ này?
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setConfirmModal({ open: false, id: null })}
-                >
-                  Hủy
-                </button>
-                <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                  Xác nhận
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+        </Alert>
+      </Snackbar>
+      <Dialog
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ bgcolor: '#f1f5f9', fontWeight: 700 }}>
+          {isViewMode ? 'Xem Xuất Xứ' : selectedOrigin ? 'Chỉnh sửa Xuất Xứ' : 'Thêm mới Xuất Xứ'}
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Box component="form" onSubmit={handleSave}>
+            {selectedOrigin && (
+              <TextField
+                label="Mã Xuất Xứ"
+                value={formData.ma}
+                fullWidth
+                margin="normal"
+                InputProps={{ readOnly: true }}
+                sx={{ bgcolor: '#f8f9fa', '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            )}
+            <TextField
+              label="Tên Xuất Xứ"
+              value={formData.ten}
+              onChange={(e) => !isViewMode && setFormData({ ...formData, ten: e.target.value })}
+              fullWidth
+              margin="normal"
+              required={!isViewMode}
+              error={!!formErrors.ten}
+              helperText={formErrors.ten}
+              InputProps={{ readOnly: isViewMode }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+            <TextField
+              label="Mô Tả"
+              value={formData.moTa}
+              onChange={(e) => !isViewMode && setFormData({ ...formData, moTa: e.target.value })}
+              fullWidth
+              margin="normal"
+              multiline
+              rows={4}
+              error={!!formErrors.moTa}
+              helperText={formErrors.moTa}
+              InputProps={{ readOnly: isViewMode }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+            <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
+              <Button
+                variant="outlined"
+                onClick={() => setIsModalOpen(false)}
+                sx={{ borderRadius: 2 }}
+              >
+                {isViewMode ? 'Đóng' : 'Hủy'}
+              </Button>
+              {!isViewMode && (
+                <OrangeButton type="submit" variant="contained">
+                  {selectedOrigin ? 'Cập nhật' : 'Thêm mới'}
+                </OrangeButton>
+              )}
+            </Box>
+          </Box>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, id: null })}
+        maxWidth="xs"
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle>Xác nhận</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc muốn thay đổi trạng thái xuất xứ này?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            onClick={() => setConfirmModal({ open: false, id: null })}
+            sx={{ borderRadius: 2 }}
+          >
+            Hủy
+          </Button>
+          <OrangeButton variant="contained" onClick={handleDelete}>
+            Xác nhận
+          </OrangeButton>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 

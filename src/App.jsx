@@ -6,7 +6,7 @@ import Register from "./pages/Website/Register";
 import Login from "./pages/Website/Login";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
-import CounterSales from "./pages/Admin/CounterSales";
+import CounterSales from "./pages/Admin/AttibuteSales/CounterSales";
 import Discounts from "./pages/Admin/Discounts";
 import OrderManagement from "./pages/Admin/OrderManagement";
 import ReturnManagement from "./pages/Admin/ReturnManagement";

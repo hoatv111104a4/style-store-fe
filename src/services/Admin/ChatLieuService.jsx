@@ -61,7 +61,7 @@ export const deleteChatLieu = async (id) => {
     if (!id) {
       throw new Error('ID không hợp lệ');
     }
-    await axiosInstance.delete(`/${id}`);
+   const response = await axiosInstance.put(`/toggle-status/${id}`);
     return { success: true, message: 'Xóa chất liệu thành công' };
   } catch (error) {
     throw new Error(
@@ -69,6 +69,8 @@ export const deleteChatLieu = async (id) => {
     );
   }
 };
+
+// Tìm kiếm chất liệu theo tên
 export const searchChatLieuByName = async (ten, page = 0, size = 10) => {
   try {
     if (!ten || typeof ten !== 'string' || ten.trim() === '') {
@@ -76,6 +78,23 @@ export const searchChatLieuByName = async (ten, page = 0, size = 10) => {
     }
     const response = await axiosInstance.get('/search', {
       params: { ten, page, size },
+    });
+    return response.data; // Trả về dữ liệu phân trang từ server
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || 'Tìm kiếm chất liệu thất bại'
+    );
+  }
+};
+
+// Tìm kiếm chất liệu theo tên hoặc mã
+export const searchChatLieuByNameOrCode = async (keyword, page = 0, size = 10) => {
+  try {
+    if (!keyword || typeof keyword !== 'string' || keyword.trim() === '') {
+      throw new Error('Từ khóa tìm kiếm không hợp lệ');
+    }
+    const response = await axiosInstance.get('/search-by-name-or-code', {
+      params: { keyword, page, size },
     });
     return response.data; // Trả về dữ liệu phân trang từ server
   } catch (error) {

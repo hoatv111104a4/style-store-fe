@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -23,7 +22,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8080/api';
+// Định nghĩa BASE_URL và STATIC_URL riêng
+const BASE_URL = 'http://localhost:8080/api'; // Dành cho API endpoint
+const STATIC_URL = 'http://localhost:8080'; // Dành cho tài nguyên tĩnh (hình ảnh)
 
 const SanPhamCtPage = () => {
   const { id } = useParams();
@@ -98,13 +99,18 @@ const SanPhamCtPage = () => {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         }),
       ]);
+      // Điều chỉnh URL hình ảnh
+      const adjustedHinhAnhMauSac = hinhAnhRes.data.content.map((item) => ({
+        ...item,
+        hinhAnh: item.hinhAnh.startsWith('http') ? item.hinhAnh : `${STATIC_URL}${item.hinhAnh}`,
+      }));
       setDropdownData({
         mauSac: mauSacRes.data.content || [],
         thuongHieu: thuongHieuRes.data.content || [],
         kichThuoc: kichThuocRes.data.content || [],
         xuatXu: xuatXuRes.data.content || [],
         chatLieu: chatLieuRes.data.content || [],
-        hinhAnhMauSac: hinhAnhRes.data.content || [],
+        hinhAnhMauSac: adjustedHinhAnhMauSac || [],
       });
     } catch (err) {
       console.error('Error fetching dropdown data:', err);
@@ -292,7 +298,7 @@ const SanPhamCtPage = () => {
   const handleDelete = async () => {
     try {
       await deleteSanPhamCt(confirmModal.id);
-      setAlertMessage('Xóa sản phẩm chi tiết thành công');
+      setAlertMessage('Cập nhật trạng thái thành công');
       setAlertType('success');
       await fetchData(currentPage, pageSize);
     } catch (err) {
@@ -462,7 +468,9 @@ const SanPhamCtPage = () => {
               sanPhamCts.map((spct, index) => (
                 <tr key={spct.id} className="align-middle">
                   <td className="py-2 px-3 text-center">{index + 1 + currentPage * pageSize}</td>
-                  <td className="py-2 px-3 fw-semibold">{spct.tenSanPham || 'N/A'}</td>
+                  <td className="py-2 px-3 fw-semibold">
+                    {spct.tenSanPham && spct.tenMauSac ? `${spct.tenSanPham} màu ${spct.tenMauSac}` : 'N/A'}
+                  </td>
                   <td className="py-2 px-3">{spct.ma || 'N/A'}</td>
                   <td className="py-2 px-3">
                     <span
@@ -491,7 +499,7 @@ const SanPhamCtPage = () => {
                         spct.trangThai === 1 ? 'bg-success' : 'bg-warning'
                       } rounded-pill px-2 py-1`}
                     >
-                      {spct.trangThai === 1 ? 'Đang bán' : 'Hết hàng'}
+                      {spct.trangThai === 1 ? 'Còn Hàng' : 'Hết hàng'}
                     </span>
                   </td>
                   <td className="py-2 px-3 text-center">
@@ -518,7 +526,7 @@ const SanPhamCtPage = () => {
                         title="Xóa"
                         style={{ width: '30px', height: '30px', padding: '0' }}
                       >
-                        <FontAwesomeIcon icon={faSync} />
+                        <FontAwesomeIcon icon={faTrash} />
                       </button>
                     </div>
                   </td>
@@ -653,7 +661,7 @@ const SanPhamCtPage = () => {
                           !isViewMode && setFormData({ ...formData, giaNhap: e.target.value })
                         }
                         readOnly={isViewMode}
-                        placeholder="VD: 400000"
+                        placeholder=""
                         style={{ borderRadius: '8px', padding: '0.75rem' }}
                       />
                       {formErrors.giaNhap && <div className="invalid-feedback">{formErrors.giaNhap}</div>}
@@ -670,7 +678,7 @@ const SanPhamCtPage = () => {
                           !isViewMode && setFormData({ ...formData, giaBan: e.target.value })
                         }
                         readOnly={isViewMode}
-                        placeholder="VD: 500000"
+                        placeholder=""
                         required={!isViewMode}
                         style={{ borderRadius: '8px', padding: '0.75rem' }}
                       />
@@ -690,7 +698,7 @@ const SanPhamCtPage = () => {
                           !isViewMode && setFormData({ ...formData, soLuong: e.target.value })
                         }
                         readOnly={isViewMode}
-                        placeholder="VD: 100"
+                        placeholder=""
                         required={!isViewMode}
                         style={{ borderRadius: '8px', padding: '0.75rem' }}
                       />
