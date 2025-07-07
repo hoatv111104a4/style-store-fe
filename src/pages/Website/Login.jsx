@@ -1,45 +1,75 @@
 import React, { useState } from "react";
-import { Box, TextField, Button, Typography, Link, Paper, IconButton, InputAdornment } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { Box, TextField, Button, Typography, Link, Paper, IconButton, InputAdornment, Modal } from "@mui/material";
+import { Visibility, VisibilityOff, Close } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { jwtDecode } from "jwt-decode";
 import { login } from "../../services/Website/UserApi";
 import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
 
-const Login = () => {
+const Login = ({ open, onClose }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const data = await login(email, password);
-      if (data.code === 0 && data.result?.authenticated) {
-        // Lấy token và decode thông tin user
-        const token = data.result.token;
-        const userInfo = jwtDecode(token); // userInfo chứa id, hoTen, email, ...
-        Cookies.set("token", token, { expires: 7 });
+  e.preventDefault();
+  try {
+    const data = await login(email, password);
+    if (data.code === 0 && data.result?.authenticated) {
+      const token = data.result.token;
+      const userInfo = jwtDecode(token);
+      Cookies.set("token", token, { expires: 7 });
       Cookies.set("user", JSON.stringify(userInfo), { expires: 7 });
-      toast.success("Đăng nhập thành công!");
-        // TODO: cập nhật icon tài khoản theo userInfo.email hoặc userInfo.hoTen
-        // Chuyển hướng hoặc reload nếu cần
-        window.location.reload();
-      } else {
-        toast.error("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!");
-      }
-    } catch (err) {
-      toast.error("Đăng nhập thất bại. Vui lòng thử lại!");
+      
+      
+      onClose();
+      
+      toast.success("Đăng nhập thành công!", {
+        onClose: () => {
+          setTimeout(() => {
+            window.location.reload();
+          }, 500); // Small delay to ensure toast is fully closed
+        },
+      });
+    } else {
+      toast.error("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!");
     }
-  };
+  } catch (err) {
+    toast.error(err.message || "Đăng nhập thất bại. Vui lòng thử lại!");
+  }
+};
 
   return (
-    <Box minHeight="60vh" display="flex" alignItems="center" justifyContent="center" sx={{ background: "#fafafa" }}>
-      <Paper elevation={4} sx={{ p: 3, borderRadius: 3, maxWidth: 400, width: "100%", border: "2px solid #fff", boxShadow: "0 0 16px #ddd" }}>
-        <Typography variant="h4" align="center" mb={3} sx={{ color: "#ff6600", fontWeight: 700 }}>
-          Đăng nhập
-        </Typography>
+    <Modal
+      open={open}
+      onClose={onClose}
+      aria-labelledby="login-modal-title"
+      aria-describedby="login-modal-description"
+      disableScrollLock
+    >
+      <Box
+        sx={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: { xs: "90vw", sm: "400px" },
+          bgcolor: "background.paper",
+          boxShadow: 24,
+          p: 3,
+          borderRadius: 2,
+          outline: "none",
+        }}
+      >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5" id="login-modal-title" sx={{ color: "#ff6600", fontWeight: 700 }}>
+            Đăng nhập
+          </Typography>
+          <IconButton onClick={onClose} sx={{ color: "#888" }}>
+            <Close />
+          </IconButton>
+        </Box>
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             label="Gmail"
@@ -110,8 +140,8 @@ const Login = () => {
             Đăng nhập
           </Button>
         </Box>
-      </Paper>
-    </Box>
+      </Box>
+    </Modal>
   );
 };
 

@@ -29,45 +29,44 @@ import ScrollToTop from "./components/ScrollToTop";
 import { ToastContainer } from "react-toastify";
 
 function App() {
-    return (
-        <BrowserRouter>
-         <ScrollToTop />
-        <ToastContainer position="top-right" autoClose={2000} />
+  return (
+    <BrowserRouter>
+      <ScrollToTop />
+      <ToastContainer position="top-right" autoClose={2000} />
 
-            <Routes>
-                {/* Routes cho WebsiteLayout */}
-                <Route element={<WebsiteLayout />}>
-                    <Route path="/" element={<WebsiteHome />} />
-                    <Route path="/san-pham" element={<WebSiteSidebar />} />
-                    <Route path="/gioi-thieu" element={<AboutPage />} />
-                    <Route path="/lien-he" element={<ContactPage />} />
-                    <Route path="/dang-ki" element={<Register />} />
-                    <Route path="/dang-nhap" element={<Login />} />
-                    <Route path="/website/san-pham/chi-tiet-san-pham/:id" element={<DetailProduct />} />
-                    <Route path="/website/dat-hang" element={<CheckOutPage />} />
-                </Route>
-                {/* Routes cho AdminLayout */}
-                <Route element={<AdminLayout />}>
-                    <Route path="/admin/thong-ke" element={<AdminDashboard />} />
-                    <Route path="/admin/ban-hang-tai-quay" element={<CounterSales />} />
-                    <Route path="/admin/quan-ly-don-hang" element={<OrderManagement />} />
-                    <Route path="/admin/giam-gia" element={<Discounts />} />
-                    <Route path="/admin/quan-ly-tra-hang" element={<ReturnManagement />} />
-                    <Route path="/dang-xuat" element={<Logout />} />
-                    <Route path="/admin/tai-khoan/khach-hang" element={<Customer />} />
-                    <Route path="/admin/tai-khoan/nhan-vien" element={<StaffPage />} />
-                    <Route path="/admin/quan-ly-sp/mau-sac" element={<ColorPage />} />
-                    <Route path="/admin/quan-ly-sp/thuong-hieu" element={<BrandPage />} />
-                    <Route path="/admin/quan-ly-sp/chat-lieu" element={<MaterialPage />} />
-                    <Route path="/admin/quan-ly-sp/kich-thuoc" element={<SizePage />} />
-                    <Route path="/admin/quan-ly-sp/xuat-xu" element={<OriginPage />} />
-                    <Route path="/admin/quan-ly-sp/san-pham" element={<Products />} />
-                    <Route path="/san-pham-chi-tiet/:id" element={<SanPhamCtPage />} />
-                    <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddProductWithDetailsPage />} />
-                </Route>
-            </Routes>
-        </BrowserRouter>
-    );
+      <Routes>
+        {/* Routes cho WebsiteLayout */}
+        <Route element={<WebsiteLayout />}>
+          <Route path="/" element={<WebsiteHome />} />
+          <Route path="/san-pham" element={<WebSiteSidebar />} />
+          <Route path="/gioi-thieu" element={<AboutPage />} />
+          <Route path="/lien-he" element={<ContactPage />} />
+          <Route path="/website/san-pham/chi-tiet-san-pham/:id" element={<DetailProduct />} />
+          <Route path="/website/dat-hang" element={<CheckOutPage />} />
+        </Route>
+
+        {/* Routes cho AdminLayout */}
+        <Route element={<AdminLayout />}>
+          <Route path="/admin/thong-ke" element={<AdminDashboard />} />
+          <Route path="/admin/ban-hang-tai-quay" element={<CounterSales />} />
+          <Route path="/admin/quan-ly-don-hang" element={<OrderManagement />} />
+          <Route path="/admin/giam-gia" element={<Discounts />} />
+          <Route path="/admin/quan-ly-tra-hang" element={<ReturnManagement />} />
+          <Route path="/dang-xuat" element={<Logout />} />
+          <Route path="/admin/tai-khoan/khach-hang" element={<Customer />} />
+          <Route path="/admin/tai-khoan/nhan-vien" element={<StaffPage />} />
+          <Route path="/admin/quan-ly-sp/mau-sac" element={<ColorPage />} />
+          <Route path="/admin/quan-ly-sp/thuong-hieu" element={<BrandPage />} />
+          <Route path="/admin/quan-ly-sp/chat-lieu" element={<MaterialPage />} />
+          <Route path="/admin/quan-ly-sp/kich-thuoc" element={<SizePage />} />
+          <Route path="/admin/quan-ly-sp/xuat-xu" element={<OriginPage />} />
+          <Route path="/admin/quan-ly-sp/san-pham" element={<Products />} />
+          <Route path="/admin/san-pham-chi-tiet/:id" element={<SanPhamCtPage />} />
+          <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddProductWithDetailsPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

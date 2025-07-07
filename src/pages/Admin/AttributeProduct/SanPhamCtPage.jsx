@@ -108,12 +108,7 @@ const SanPhamCtPage = () => {
       });
     } catch (err) {
       console.error('Error fetching dropdown data:', err);
-      if (err.response?.status === 401) {
-        setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-        navigate('/login');
-      } else {
-        setError('Không thể tải dữ liệu dropdown. Vui lòng kiểm tra kết nối hoặc liên hệ admin.');
-      }
+      
     }
   }, [navigate]);
 

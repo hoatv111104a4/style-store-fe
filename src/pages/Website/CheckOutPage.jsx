@@ -9,11 +9,20 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CircularProgress from "@mui/material/CircularProgress"; // Added for loading indicator
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
+import { createOder } from "../../services/Website/OrderApi";
 
 const API_PROVINCE = "https://provinces.open-api.vn/api/";
+
+// Dữ liệu địa phương làm fallback khi API không hoạt động
+const fallbackProvinces = [
+  { code: "01", name: "Hà Nội" },
+  { code: "02", name: "Hồ Chí Minh" },
+  // Thêm các tỉnh/thành khác khi cần (tạm thời chỉ làm ví dụ)
+];
 
 const CheckOutPage = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -30,28 +39,70 @@ const CheckOutPage = () => {
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [wards, setWards] = useState([]);
-  const [shippingFee] = useState(30000); // phí vận chuyển cố định
+  const [provinceNames, setProvinceNames] = useState({});
+  const [districtNames, setDistrictNames] = useState({});
+  const [wardNames, setWardNames] = useState({});
+  const [shippingFee] = useState(30000);
   const [expectedDate, setExpectedDate] = useState("");
+  const [isLoading, setIsLoading] = useState(false); // Added loading state
   const navigate = useNavigate();
 
   useEffect(() => {
     setCartItems(JSON.parse(localStorage.getItem("cart") || "[]"));
-    // Ngày nhận dự kiến: +3 ngày
     const date = new Date();
     date.setDate(date.getDate() + 3);
     setExpectedDate(date.toLocaleDateString("vi-VN"));
-    // Lấy tỉnh
+
+    // Thử gọi API trước
     fetch(API_PROVINCE + "?depth=1")
-      .then((res) => res.json())
-      .then(setProvinces);
+      .then((res) => {
+        if (!res.ok) throw new Error("Không thể tải dữ liệu từ API");
+        return res.json();
+      })
+      .then((data) => {
+        const names = {};
+        data.forEach((p) => (names[p.code] = p.name));
+        setProvinces(data);
+        setProvinceNames(names);
+      })
+      .catch((error) => {
+        console.error("Lỗi khi gọi API tỉnh thành:", error);
+        toast.error("Không thể tải dữ liệu từ API. Sử dụng dữ liệu địa phương.");
+        // Fallback sang dữ liệu địa phương khi API thất bại
+        const names = {};
+        fallbackProvinces.forEach((p) => (names[p.code] = p.name));
+        setProvinces(fallbackProvinces);
+        setProvinceNames(names);
+      });
   }, []);
 
-  // Lấy quận/huyện khi chọn tỉnh
   useEffect(() => {
     if (form.province) {
+      // Thử gọi API cho quận huyện
       fetch(`${API_PROVINCE}p/${form.province}?depth=2`)
-        .then((res) => res.json())
-        .then((data) => setDistricts(data.districts || []));
+        .then((res) => {
+          if (!res.ok) throw new Error("Không thể tải dữ liệu quận huyện");
+          return res.json();
+        })
+        .then((data) => {
+          const names = {};
+          data.districts.forEach((d) => (names[d.code] = d.name));
+          setDistricts(data.districts || []);
+          setDistrictNames(names);
+        })
+        .catch((error) => {
+          console.error("Lỗi khi gọi API quận huyện:", error);
+          toast.error("Không thể tải dữ liệu quận huyện. Sử dụng dữ liệu mẫu.");
+          // Fallback dữ liệu mẫu cho quận huyện (thay bằng dữ liệu thực tế khi cần)
+          const sampleDistricts = [
+            { code: "001", name: "Quận 1" },
+            { code: "002", name: "Quận 2" },
+          ];
+          const names = {};
+          sampleDistricts.forEach((d) => (names[d.code] = d.name));
+          setDistricts(sampleDistricts);
+          setDistrictNames(names);
+        });
     } else {
       setDistricts([]);
       setWards([]);
@@ -59,12 +110,33 @@ const CheckOutPage = () => {
     }
   }, [form.province]);
 
-  // Lấy xã/phường khi chọn quận/huyện
   useEffect(() => {
     if (form.district) {
+      // Thử gọi API cho phường xã
       fetch(`${API_PROVINCE}d/${form.district}?depth=2`)
-        .then((res) => res.json())
-        .then((data) => setWards(data.wards || []));
+        .then((res) => {
+          if (!res.ok) throw new Error("Không thể tải dữ liệu phường xã");
+          return res.json();
+        })
+        .then((data) => {
+          const names = {};
+          data.wards.forEach((w) => (names[w.code] = w.name));
+          setWards(data.wards || []);
+          setWardNames(names);
+        })
+        .catch((error) => {
+          console.error("Lỗi khi gọi API phường xã:", error);
+          toast.error("Không thể tải dữ liệu phường xã. Sử dụng dữ liệu mẫu.");
+          // Fallback dữ liệu mẫu cho phường xã (thay bằng dữ liệu thực tế khi cần)
+          const sampleWards = [
+            { code: "0001", name: "Phường 1" },
+            { code: "0002", name: "Phường 2" },
+          ];
+          const names = {};
+          sampleWards.forEach((w) => (names[w.code] = w.name));
+          setWards(sampleWards);
+          setWardNames(names);
+        });
     } else {
       setWards([]);
       setForm((f) => ({ ...f, ward: "" }));
@@ -76,7 +148,6 @@ const CheckOutPage = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Sửa số lượng sản phẩm trong hóa đơn
   const handleQuantityChange = (id, value) => {
     let quantity = Number(value);
     if (quantity < 1) quantity = 1;
@@ -87,14 +158,13 @@ const CheckOutPage = () => {
     localStorage.setItem("cart", JSON.stringify(newCart));
   };
 
-  // Xoá sản phẩm khỏi hóa đơn
   const handleRemoveItem = (id) => {
     const newCart = cartItems.filter((item) => item.id !== id);
     setCartItems(newCart);
     localStorage.setItem("cart", JSON.stringify(newCart));
   };
 
-  const handleOrder = (e) => {
+  const handleOrder = async (e) => {
     e.preventDefault();
     // Validate
     if (
@@ -112,11 +182,52 @@ const CheckOutPage = () => {
       toast.error("Giỏ hàng trống!");
       return;
     }
-    // Xử lý đặt hàng ở đây (gửi API...)
-    toast.success("Đặt hàng thành công!");
-    // Xoá giỏ hàng
-    localStorage.removeItem("cart");
-    setCartItems([]);
+    if (form.payment !== "cod") {
+      toast.error("Hiện tại chỉ hỗ trợ thanh toán khi nhận hàng!");
+      return;
+    }
+
+    setIsLoading(true); // Set loading state to true
+
+    // Tạo dữ liệu JSON theo định dạng DonHangRequest
+    const donHangData = {
+      nguoiDatHang: form.phone,
+      nguoiNhanHang: form.name,
+      diaChiNhanHang: `${form.address}, ${wardNames[form.ward] || ''}, ${districtNames[form.district] || ''}, ${provinceNames[form.province] || ''}`,
+      tongSoLuongSp: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      tongTien: total + shippingFee,
+      tienThue: shippingFee,
+      moTa: form.note,
+      chiTietDonHang: cartItems.map((item) => ({
+        sanPhamctId: item.id,
+        tenSanPham: item.sanPham?.ten || '',
+        giaTien: item.giaBan,
+        soLuong: item.quantity,
+        thanhTien: item.quantity * item.giaBan,
+      })),
+    };
+    console.log("Dữ liệu gửi lên:", donHangData);
+    try {
+      const result = await createOder(donHangData);
+      toast.success("Đặt hàng thành công!");
+      localStorage.removeItem("cart");
+      setCartItems([]);
+      setForm({
+        name: "",
+        phone: "",
+        province: "",
+        district: "",
+        ward: "",
+        address: "",
+        note: "",
+        payment: "cod",
+      });
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi tạo đơn hàng!");
+      console.error(error);
+    } finally {
+      setIsLoading(false); // Reset loading state
+    }
   };
 
   const total = cartItems.reduce(
@@ -126,7 +237,6 @@ const CheckOutPage = () => {
 
   return (
     <div className="container py-4">
-      {/* Breadcrumb */}
       <nav aria-label="breadcrumb" style={{ marginBottom: 24 }}>
         <ol className="breadcrumb bg-white px-0 py-2" style={{ background: "none" }}>
           <li className="breadcrumb-item">
@@ -142,7 +252,6 @@ const CheckOutPage = () => {
           </li>
         </ol>
       </nav>
-      {/* End Breadcrumb */}
       <h3 className="mb-4 fw-bold" style={{ color: "#ff6600" }}>
         Đặt hàng
       </h3>
@@ -150,7 +259,6 @@ const CheckOutPage = () => {
         className="d-flex flex-column flex-md-row gap-4"
         sx={{ background: "#fff", borderRadius: 2, boxShadow: 2, p: { xs: 2, md: 4 } }}
       >
-        {/* Thông tin người đặt */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <h5 className="mb-3 fw-bold">Thông tin người nhận</h5>
           <form onSubmit={handleOrder}>
@@ -274,14 +382,14 @@ const CheckOutPage = () => {
               color="primary"
               fullWidth
               sx={{ fontWeight: 700, py: 1.2, mt: 2 }}
-              disabled={cartItems.length === 0}
+              disabled={cartItems.length === 0 || isLoading} 
+              startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
             >
-              Đặt hàng
+              {isLoading ? "Đang xử lý..." : "Đặt hàng"}
             </Button>
           </form>
         </Box>
         <Divider orientation="vertical" flexItem sx={{ display: { xs: "none", md: "block" } }} />
-        {/* Hóa đơn */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <h5 className="mb-3 fw-bold">Hóa đơn</h5>
           {cartItems.length === 0 ? (

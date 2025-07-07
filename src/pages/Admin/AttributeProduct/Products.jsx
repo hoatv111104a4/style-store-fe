@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { searchSPWithQuantity, deleteSP } from '../../../services/Admin/SanPhamAdminService';
 
 import {
@@ -111,7 +111,15 @@ const Products = () => {
   }, [alertMessage]);
 
   const handleViewOrEdit = (product, viewOnly = false) => {
-    navigate(`/san-pham-chi-tiet/${product.id}`, {
+    if (!product || !product.id) {
+      setAlertMessage('Sản phẩm không hợp lệ');
+      setAlertType('error');
+      return;
+    }
+    const path = viewOnly
+      ? `/admin/san-pham-chi-tiet/${product.id}`
+      : `/admin/san-pham-chi-tiet/${product.id}`;
+    navigate(path, {
       state: { isViewMode: viewOnly, product },
     });
   };

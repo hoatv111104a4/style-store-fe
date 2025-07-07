@@ -13,11 +13,12 @@ import {
   Checkbox,
   FormGroup,
   IconButton,
-  InputAdornment
+  InputAdornment,
+  Modal,
 } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { Visibility, VisibilityOff, Close } from "@mui/icons-material";
 
-const Register = () => {
+const Register = ({ open, onClose }) => {
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -42,35 +43,40 @@ const Register = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Xử lý đăng ký ở đây
+    // Ví dụ: Thêm logic API hoặc thông báo thành công
+    onClose(); // Đóng modal sau khi submit (có thể thêm điều kiện thành công)
   };
 
   return (
-    <Box
-      minHeight="100vh"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      sx={{ background: "#fafafa" }}
+    <Modal
+      open={open}
+      onClose={onClose}
+      aria-labelledby="register-modal-title"
+      aria-describedby="register-modal-description"
+      disableScrollLock
     >
-      <Paper
-        elevation={4}
+      <Box
         sx={{
-          p: 4,
-          borderRadius: 3,
-          maxWidth: 420,
-          width: "100%",
-          border: "2px solid #fff",
-          boxShadow: "0 0 16px #ddd",
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: { xs: "90vw", sm: "420px" },
+          bgcolor: "background.paper",
+          boxShadow: 24,
+          p: 3,
+          borderRadius: 2,
+          outline: "none",
         }}
       >
-        <Typography
-          variant="h4"
-          align="center"
-          mb={3}
-          sx={{ color: "#ff6600", fontWeight: 700 }}
-        >
-          Đăng ký tài khoản
-        </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5" id="register-modal-title" sx={{ color: "#ff6600", fontWeight: 700 }}>
+            Đăng ký tài khoản
+          </Typography>
+          <IconButton onClick={onClose} sx={{ color: "#888" }}>
+            <Close />
+          </IconButton>
+        </Box>
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             label="Họ và tên"
@@ -260,8 +266,8 @@ const Register = () => {
             Đăng ký
           </Button>
         </Box>
-      </Paper>
-    </Box>
+      </Box>
+    </Modal>
   );
 };
 
