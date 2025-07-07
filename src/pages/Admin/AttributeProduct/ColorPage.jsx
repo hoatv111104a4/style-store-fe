@@ -34,6 +34,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { getAllMauSac, addMauSac, updateMauSac, deleteMauSac, searchMauSacByKeyword } from '../../../services/Admin/MauSacService';
+import HinhAnhMauSacService from '../../../services/Admin/HinhAnhMauSacService';
 
 // Map common Vietnamese color names to hex codes
 const colorMap = {
@@ -90,6 +91,8 @@ const OrangeButton = styled(Button)(({ theme }) => ({
 }));
 
 const Color = () => {
+  const [hinhAnhList, setHinhAnhList] = useState([]);
+  const [imageLoading, setImageLoading] = useState(false);
   const [colors, setColors] = useState([]);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -117,9 +120,33 @@ const Color = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [skipFetch, setSkipFetch] = useState(false);
+  const [formSaving, setFormSaving] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const handleDeleteImage = async (imageId) => {
+    if (!selectedColor) {
+      setAlertMessage('Không thể xóa hình ảnh: Màu sắc chưa được chọn');
+      setAlertType('error');
+      return;
+    }
+    try {
+      setImageLoading(true);
+      console.log('Xóa hình ảnh với ID:', imageId); // Debug
+      await HinhAnhMauSacService.deleteHinhAnhMauSac(imageId);
+      const updatedImages = await HinhAnhMauSacService.getHinhAnhByMauSacId(selectedColor.id);
+      setHinhAnhList(updatedImages);
+      setAlertMessage('Xóa hình ảnh thành công');
+      setAlertType('success');
+    } catch (err) {
+      console.error('Lỗi xóa hình ảnh:', err.response?.data || err.message);
+      setAlertMessage(`Xóa ảnh thất bại: ${err.response?.data?.message || err.message || 'Lỗi không xác định'}`);
+      setAlertType('error');
+    } finally {
+      setImageLoading(false);
+    }
+  };
 
   const fetchData = useCallback(async (page, size, keyword = '') => {
     try {
@@ -132,9 +159,25 @@ const Color = () => {
       setTotalElements(response.totalElements || 0);
     } catch (err) {
       setError(err.message || 'Không thể tải dữ liệu từ server');
+      setAlertMessage(err.message || 'Không thể tải dữ liệu');
+      setAlertType('error');
     } finally {
       setLoading(false);
       if (keyword) setSearchLoading(false);
+    }
+  }, []);
+
+  const fetchImages = useCallback(async (mauSacId) => {
+    try {
+      setImageLoading(true);
+      const images = await HinhAnhMauSacService.getHinhAnhByMauSacId(mauSacId);
+      setHinhAnhList(images);
+    } catch (err) {
+      setHinhAnhList([]);
+      setAlertMessage(`Không thể tải hình ảnh: ${err.message}`);
+      setAlertType('error');
+    } finally {
+      setImageLoading(false);
     }
   }, []);
 
@@ -186,10 +229,15 @@ const Color = () => {
     }
     if (!formData.ma || !isValidHex(formData.ma)) {
       errors.ma = 'Mã màu phải là mã hex hợp lệ (VD: #FF0000)';
+    } else {
+      const existingCodes = colors.map((c) => c.ma);
+      if (selectedColor && existingCodes.includes(formData.ma) && existingCodes.indexOf(formData.ma) !== colors.findIndex((c) => c.id === selectedColor.id)) {
+        errors.ma = 'Mã hex đã tồn tại';
+      }
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [formData, selectedColor]);
+  }, [formData, selectedColor, colors]);
 
   const handleAdd = useCallback(() => {
     const existingCodes = colors.map((c) => c.ma);
@@ -210,7 +258,26 @@ const Color = () => {
     setIsModalOpen(true);
   }, [colors]);
 
-  const handleViewOrEdit = useCallback((color, viewOnly = false) => {
+  const handleUploadImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedColor) return;
+
+    try {
+      setImageLoading(true);
+      const result = await HinhAnhMauSacService.uploadHinhAnhMauSac(file, selectedColor.id);
+      await fetchImages(selectedColor.id);
+      setAlertMessage('Tải ảnh thành công');
+      setAlertType('success');
+    } catch (err) {
+      setAlertMessage(`Tải ảnh thất bại: ${err.message}`);
+      setAlertType('error');
+      console.error('Upload thất bại', err);
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  const handleViewOrEdit = useCallback(async (color, viewOnly = false) => {
     setFormData({
       ...color,
       ngayTao: color.ngayTao || '',
@@ -223,7 +290,8 @@ const Color = () => {
     setSelectedColor(color);
     setIsViewMode(viewOnly);
     setIsModalOpen(true);
-  }, []);
+    await fetchImages(color.id);
+  }, [fetchImages]);
 
   const handleSave = useCallback(
     async (e) => {
@@ -235,6 +303,7 @@ const Color = () => {
         return;
       }
       try {
+        setFormSaving(true);
         const now = new Date().toISOString();
         const colorToSave = {
           ...formData,
@@ -252,18 +321,21 @@ const Color = () => {
           );
           setAlertMessage(`Cập nhật màu sắc "${colorToSave.ten}" thành công`);
         } else {
-          await addMauSac(colorToSave);
-          await fetchData(currentPage, pageSize, searchTerm);
+          const newColor = await addMauSac(colorToSave);
+          setColors((prev) => [...prev, newColor]);
           setAlertMessage(`Thêm màu sắc "${colorToSave.ten}" thành công`);
+          await fetchImages(newColor.id); // Làm mới hình ảnh cho màu mới
         }
         setAlertType('success');
         setIsModalOpen(false);
       } catch (err) {
         setAlertMessage(`Thao tác thất bại: ${err.response?.data?.message || err.message}`);
         setAlertType('error');
+      } finally {
+        setFormSaving(false);
       }
     },
-    [formData, selectedColor, currentPage, pageSize, searchTerm, validateForm, fetchData]
+    [formData, selectedColor, validateForm]
   );
 
   const handleDelete = useCallback(async () => {
@@ -305,7 +377,7 @@ const Color = () => {
     if (e.key === 'Enter' && searchInput.trim()) {
       handleSearch();
     }
-  }, [handleSearch]);
+  }, [handleSearch, searchInput]);
 
   const handleTenChange = useCallback((e) => {
     const newTen = e.target.value;
@@ -426,10 +498,9 @@ const Color = () => {
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TÊN MÀU SẮC</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY TẠO</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY SỬA</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY XÓA</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>MÔ TẢ</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>TRẠNG THÁI</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>HÀNH ĐỘNG</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TRẠNG THÁI</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '20%', border: 0 }}>HÀNH ĐỘNG</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -471,9 +542,6 @@ const Color = () => {
                   </TableCell>
                   <TableCell sx={{ color: black, border: 0 }}>
                     {color.ngaySua?.slice(0, 10) || '-'}
-                  </TableCell>
-                  <TableCell sx={{ color: black, border: 0 }}>
-                    {color.ngayXoa?.slice(0, 10) || '-'}
                   </TableCell>
                   <TableCell sx={{ color: black, border: 0 }}>
                     {color.moTa || '-'}
@@ -544,7 +612,7 @@ const Color = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} align="center">
+                <TableCell colSpan={8} align="center">
                   <Typography color="text.secondary" fontSize={18}>
                     {searchTerm ? `Không tìm thấy màu sắc với tên hoặc mã "${searchTerm}"` : 'Không có màu sắc nào'}
                   </Typography>
@@ -663,6 +731,60 @@ const Color = () => {
               InputProps={{ readOnly: isViewMode }}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
+            {selectedColor && (
+              <>
+                <Typography mt={3} mb={1} fontWeight={600}>Danh sách hình ảnh:</Typography>
+                <Box display="flex" gap={2} flexWrap="wrap">
+                  {imageLoading ? (
+                    <CircularProgress size={24} color="warning" />
+                  ) : hinhAnhList.length > 0 ? (
+                    hinhAnhList.map((img) => (
+                      <Box key={img.id} position="relative">
+                        <img
+                          src={img.hinhAnh}
+                          alt={img.hinhAnh}
+                          width={80}
+                          height={80}
+                          style={{
+                            objectFit: 'cover',
+                            borderRadius: 8,
+                            border: '1px solid #ddd',
+                          }}
+                        />
+                        {!isViewMode && (
+                          <IconButton
+                            onClick={() => handleDeleteImage(img.id)}
+                            size="small"
+                            sx={{
+                              position: 'absolute',
+                              top: -8,
+                              right: -8,
+                              bgcolor: '#f44336',
+                              color: '#fff',
+                              width: 20,
+                              height: 20,
+                              '&:hover': { bgcolor: '#d32f2f' },
+                            }}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Box>
+                    ))
+                  ) : (
+                    <Typography color="text.secondary">Chưa có ảnh nào</Typography>
+                  )}
+                </Box>
+                {!isViewMode && (
+                  <Box mt={2}>
+                    <Button variant="outlined" component="label" sx={{ borderRadius: 2 }}>
+                      Tải ảnh lên
+                      <input type="file" hidden accept="image/*" onChange={handleUploadImage} />
+                    </Button>
+                  </Box>
+                )}
+              </>
+            )}
             <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
               <Button
                 variant="outlined"
@@ -672,8 +794,8 @@ const Color = () => {
                 {isViewMode ? 'Đóng' : 'Hủy'}
               </Button>
               {!isViewMode && (
-                <OrangeButton type="submit" variant="contained">
-                  {selectedColor ? 'Cập nhật' : 'Thêm mới'}
+                <OrangeButton type="submit" variant="contained" disabled={formSaving}>
+                  {formSaving ? <CircularProgress size={24} color="inherit" /> : selectedColor ? 'Cập nhật' : 'Thêm mới'}
                 </OrangeButton>
               )}
             </Box>

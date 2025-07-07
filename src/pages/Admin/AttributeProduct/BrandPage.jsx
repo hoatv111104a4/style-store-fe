@@ -376,10 +376,9 @@ const Brand = () => {
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TÊN THƯƠNG HIỆU</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY TẠO</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY SỬA</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY XÓA</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>MÔ TẢ</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>TRẠNG THÁI</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>HÀNH ĐỘNG</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TRẠNG THÁI</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '20%', border: 0 }}>HÀNH ĐỘNG</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -408,9 +407,6 @@ const Brand = () => {
                   </TableCell>
                   <TableCell sx={{ color: black, border: 0 }}>
                     {brand.ngaySua?.slice(0, 10) || '-'}
-                  </TableCell>
-                  <TableCell sx={{ color: black, border: 0 }}>
-                    {brand.ngayXoa?.slice(0, 10) || '-'}
                   </TableCell>
                   <TableCell sx={{ color: black, border: 0 }}>
                     {brand.moTa || '-'}
@@ -481,7 +477,7 @@ const Brand = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} align="center">
+                <TableCell colSpan={8} align="center">
                   <Typography color="text.secondary" fontSize={18}>
                     {searchTerm ? `Không tìm thấy thương hiệu với tên hoặc mã "${searchTerm}"` : 'Không có thương hiệu nào'}
                   </Typography>

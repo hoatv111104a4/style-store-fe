@@ -378,10 +378,9 @@ const MaterialPage = () => {
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TÊN CHẤT LIỆU</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY TẠO</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY SỬA</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY XÓA</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>MÔ TẢ</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>TRẠNG THÁI</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>HÀNH ĐỘNG</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TRẠNG THÁI</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '20%', border: 0 }}>HÀNH ĐỘNG</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -410,9 +409,6 @@ const MaterialPage = () => {
                   </TableCell>
                   <TableCell sx={{ color: black, border: 0 }}>
                     {material.ngaySua?.slice(0, 10) || '-'}
-                  </TableCell>
-                  <TableCell sx={{ color: black, border: 0 }}>
-                    {material.ngayXoa?.slice(0, 10) || '-'}
                   </TableCell>
                   <TableCell sx={{ color: black, border: 0 }}>
                     {material.moTa || '-'}
@@ -483,7 +479,7 @@ const MaterialPage = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} align="center">
+                <TableCell colSpan={8} align="center">
                   <Typography color="text.secondary" fontSize={18}>
                     {searchTerm ? `Không tìm thấy chất liệu phù hợp với "${searchTerm}"` : 'Không có chất liệu nào'}
                   </Typography>

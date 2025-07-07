@@ -294,9 +294,8 @@ const Products = () => {
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TỔNG SỐ LƯỢNG</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY TẠO</TableCell>
               <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY SỬA</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY XÓA</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>TRẠNG THÁI</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>HÀNH ĐỘNG</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TRẠNG THÁI</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '20%', border: 0 }}>HÀNH ĐỘNG</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -304,7 +303,7 @@ const Products = () => {
               products.map((product, index) => (
                 <TableRow
                   key={product.id}
-                  hover
+                  hover及时
                   sx={{
                     transition: 'background 0.2s',
                     '&:hover': { backgroundColor: '#fffaf3' },
@@ -336,9 +335,6 @@ const Products = () => {
                   </TableCell>
                   <TableCell sx={{ color: black, border: 0 }}>
                     {product.ngaySua?.slice(0, 10) || '-'}
-                  </TableCell>
-                  <TableCell sx={{ color: black, border: 0 }}>
-                    {product.ngayXoa?.slice(0, 10) || '-'}
                   </TableCell>
                   <TableCell align="center" sx={{ border: 0 }}>
                     <Chip
@@ -383,7 +379,7 @@ const Products = () => {
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Sửa" arrow>
+                      {/* <Tooltip title="Sửa" arrow>
                         <IconButton
                           sx={{
                             color: '#ffca28',
@@ -399,7 +395,7 @@ const Products = () => {
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
-                      </Tooltip>
+                      </Tooltip> */}
                       <Tooltip title={product.totalQuantity === 0 ? 'Không thể chuyển đổi trạng thái' : (product.trangThai === 1 ? 'Tạm ngưng' : 'Đang kinh doanh')} arrow>
                         <span>
                           <IconButton
@@ -433,7 +429,7 @@ const Products = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} align="center">
+                <TableCell colSpan={8} align="center">
                   <Typography color="text.secondary" fontSize={18}>
                     {searchTerm
                       ? `Không tìm thấy sản phẩm phù hợp với "${searchTerm}"`
