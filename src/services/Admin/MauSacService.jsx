@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:8080/api/mau-sac';
 
-// Cấu hình axios với timeout và baseURL
+// Cấu hình axios với timeout, baseURL và xử lý lỗi chung
 const axiosInstance = axios.create({
   baseURL: API_URL,
   timeout: 10000, // Timeout 10 giây
@@ -11,7 +11,13 @@ const axiosInstance = axios.create({
   },
 });
 
+// Hàm xử lý lỗi chung
+const handleError = (error) => {
+  const message = error.response?.data?.message || error.message || 'Lỗi không xác định từ server';
+  throw new Error(message);
+};
 
+// Lấy tất cả màu sắc với phân trang
 export const getAllMauSac = async (page = 0, size = 10) => {
   try {
     const response = await axiosInstance.get('/all', {
@@ -19,53 +25,57 @@ export const getAllMauSac = async (page = 0, size = 10) => {
     });
     return response.data; // Trả về dữ liệu phân trang từ server
   } catch (error) {
-    throw new Error(
-      error.response?.data?.message || 'Không thể tải dữ liệu từ server'
-    );
+    handleError(error);
   }
 };
 
-// Thêm chất liệu mới
+// Thêm màu sắc mới
 export const addMauSac = async (mauSac) => {
   try {
-    if (!mauSac || typeof mauSac !== 'object') {
-      throw new Error('Dữ liệu Màu Sắc không hợp lệ');
+    if (!mauSac || typeof mauSac !== 'object' || !mauSac.ma || !mauSac.ten) {
+      throw new Error('Dữ liệu Màu Sắc không hợp lệ. Vui lòng cung cấp mã và tên.');
     }
     const response = await axiosInstance.post('', mauSac);
-    return response.data;
+    return response.data; // Trả về dữ liệu từ server
   } catch (error) {
-    throw new Error(
-      error.response?.data?.message || 'Thêm thất bại'
-    );
+    handleError(error);
   }
 };
 
-// Cập nhật chất liệu
+// Cập nhật màu sắc
 export const updateMauSac = async (id, mauSac) => {
   try {
-    if (!id || !mauSac || typeof mauSac !== 'object') {
-      throw new Error('ID hoặc dữ liệu Màu Sắc không hợp lệ');
+    if (!id || !mauSac || typeof mauSac !== 'object' || !mauSac.ma || !mauSac.ten) {
+      throw new Error('ID hoặc dữ liệu Màu Sắc không hợp lệ. Vui lòng cung cấp mã và tên.');
     }
     const response = await axiosInstance.put(`/${id}`, mauSac);
-    return response.data; // Trả về dữ liệu từ server (nếu backend có trả về)
+    return response.data; // Trả về dữ liệu từ server
   } catch (error) {
-    throw new Error(
-      error.response?.data?.message || 'Cập nhật Màu Sắc thất bại'
-    );
+    handleError(error);
   }
 };
 
-// Xóa chất liệu
+// Xóa màu sắc
 export const deleteMauSac = async (id) => {
   try {
     if (!id) {
       throw new Error('ID không hợp lệ');
     }
-    await axiosInstance.delete(`/${id}`);
+   const response = await axiosInstance.put(`/toggle-status/${id}`);
     return { success: true, message: 'Xóa Màu Sắc thành công' };
   } catch (error) {
-    throw new Error(
-      error.response?.data?.message || 'Xóa Màu Sắc thất bại'
-    );
+    handleError(error);
+  }
+};
+
+// Tìm kiếm màu sắc theo từ khóa (khớp với tên hoặc mã)
+export const searchMauSacByKeyword = async (keyword = '', page = 0, size = 10) => {
+  try {
+    const response = await axiosInstance.get('/search', {
+      params: { keyword: keyword.trim(), page, size },
+    });
+    return response.data; // Trả về dữ liệu phân trang từ server
+  } catch (error) {
+    handleError(error);
   }
 };

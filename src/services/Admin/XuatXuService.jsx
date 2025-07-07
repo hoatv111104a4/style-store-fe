@@ -44,13 +44,13 @@ export const addXuatXu = async (xuatXu) => {
 export const updateXuatXu = async (id, xuatXu) => {
   try {
     if (!id || !xuatXu || typeof xuatXu !== 'object') {
-      throw new Error('ID hoặc dữ liệu không hợp lệ');
+      throw new Error('ID hoặc dữ liệu chất liệu không hợp lệ');
     }
     const response = await axiosInstance.put(`/${id}`, xuatXu);
     return response.data; // Trả về dữ liệu từ server (nếu backend có trả về)
   } catch (error) {
     throw new Error(
-      error.response?.data?.message || 'Cập nhật thất bại'
+      error.response?.data?.message || 'Cập nhật chất liệu thất bại'
     );
   }
 };
@@ -61,11 +61,45 @@ export const deleteXuatXu = async (id) => {
     if (!id) {
       throw new Error('ID không hợp lệ');
     }
-    await axiosInstance.delete(`/${id}`);
+   const response = await axiosInstance.put(`/toggle-status/${id}`);
     return { success: true, message: 'Xóa thành công' };
   } catch (error) {
     throw new Error(
       error.response?.data?.message || 'Xóa thất bại'
+    );
+  }
+};
+
+
+export const searchXuatXuByName = async (ten, page = 0, size = 10) => {
+  try {
+    if (!ten || typeof ten !== 'string' || ten.trim() === '') {
+      throw new Error('Tên xuất xứ tìm kiếm không hợp lệ');
+    }
+    const response = await axiosInstance.get('/search', {
+      params: { ten, page, size },
+    });
+    return response.data; // Trả về dữ liệu phân trang từ server
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || 'Tìm kiếm xuất xứ thất bại'
+    );
+  }
+};
+
+// Tìm kiếm xuất xứ theo tên hoặc mã
+export const searchXuatXuByNameOrCode = async (keyword, page = 0, size = 10) => {
+  try {
+    if (!keyword || typeof keyword !== 'string' || keyword.trim() === '') {
+      throw new Error('Từ khóa tìm kiếm không hợp lệ');
+    }
+    const response = await axiosInstance.get('/search-by-name-or-code', {
+      params: { keyword, page, size },
+    });
+    return response.data; // Trả về dữ liệu phân trang từ server
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || 'Tìm kiếm xuất xứ thất bại'
     );
   }
 };

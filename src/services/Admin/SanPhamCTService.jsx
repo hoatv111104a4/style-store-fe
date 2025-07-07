@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL = 'http://localhost:8080/api/admin-san-pham-chi-tiet';
+const HINH_ANH_BASE_URL = 'http://localhost:8080/api/hinh-anh-mau-sac';
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -27,7 +28,6 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Chuyển hướng đến trang đăng nhập hoặc làm mới token
       throw new Error('Phiên đăng nhập đã hết hạn');
     }
     return Promise.reject(error);
@@ -46,6 +46,23 @@ const retry = async (fn, retries = 2, delay = 1000) => {
   }
 };
 
+// Lấy danh sách hình ảnh theo mauSacId
+export const getHinhAnhByMauSacId = async (mauSacId) => {
+  try {
+    if (!mauSacId || mauSacId <= 0) {
+      throw new Error('ID màu sắc không hợp lệ');
+    }
+    const response = await retry(() =>
+      axiosInstance.get(`${HINH_ANH_BASE_URL}/mau-sac/${mauSacId}`)
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.error || 'Không thể lấy danh sách hình ảnh theo màu sắc'
+    );
+  }
+};
+
 export const getAllSanPhamCt = async (page = 0, size = 10) => {
   try {
     if (page < 0 || size <= 0) {
@@ -56,7 +73,7 @@ export const getAllSanPhamCt = async (page = 0, size = 10) => {
         params: { page, size },
       })
     );
-    return response.data; // Cập nhật nếu backend trả về Map
+    return response.data;
   } catch (error) {
     throw new Error(
       error.response?.data?.error || 'Không thể tải danh sách sản phẩm chi tiết'
@@ -172,7 +189,6 @@ export const addSanPhamCt = async (sanPhamCtDTO) => {
     if (!sanPhamCtDTO || typeof sanPhamCtDTO !== 'object') {
       throw new Error('Dữ liệu sản phẩm chi tiết không hợp lệ');
     }
-    // Validation chi tiết cho SanPhamCtDTO
     if (!sanPhamCtDTO.sanPhamId || sanPhamCtDTO.sanPhamId <= 0) {
       throw new Error('ID sản phẩm không hợp lệ');
     }
@@ -217,7 +233,6 @@ export const updateSanPhamCt = async (id, sanPhamCtDTO) => {
     if (!id || id <= 0 || !sanPhamCtDTO || typeof sanPhamCtDTO !== 'object') {
       throw new Error('ID hoặc dữ liệu sản phẩm chi tiết không hợp lệ');
     }
-    // Validation chi tiết cho SanPhamCtDTO
     if (!sanPhamCtDTO.sanPhamId || sanPhamCtDTO.sanPhamId <= 0) {
       throw new Error('ID sản phẩm không hợp lệ');
     }
@@ -262,7 +277,7 @@ export const deleteSanPhamCt = async (id) => {
     if (!id || id <= 0) {
       throw new Error('ID không hợp lệ');
     }
-    await retry(() => axiosInstance.delete(`/${id}`));
+    const response = await axiosInstance.put(`/toggle-status/${id}`);
     return { success: true, message: 'Xóa sản phẩm chi tiết thành công' };
   } catch (error) {
     throw new Error(

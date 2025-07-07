@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addSP, searchSPWithQuantity } from '../../../services/Admin/SanPhamAdminService';
-import { addSanPhamCt } from '../../../services/Admin/SanPhamCTService';
+import { addSP } from '../../../services/Admin/SanPhamAdminService';
+import { addSanPhamCt, getHinhAnhByMauSacId } from '../../../services/Admin/SanPhamCTService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faArrowLeft, faCheck } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
+// Định nghĩa BASE_URL và STATIC_URL riêng
 const BASE_URL = 'http://localhost:8080/api';
+const STATIC_URL = 'http://localhost:8080';
 
 const DropdownField = ({ label, name, value, options, onChange, error, disabled, required }) => (
   <div className="mb-3">
@@ -70,18 +72,26 @@ const AddProductWithDetailsPage = () => {
   const [loading, setLoading] = useState(false);
   const [dropdownLoading, setDropdownLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState({ open: false });
+  const [addAttributeModal, setAddAttributeModal] = useState({ open: false });
+  const [newAttribute, setNewAttribute] = useState({
+    mauSac: '',
+    thuongHieu: '',
+    kichThuoc: '',
+    xuatXu: '',
+    chatLieu: '',
+  });
+  const [attributeErrors, setAttributeErrors] = useState({});
 
   const fetchDropdownData = useCallback(async (signal) => {
-    console.log('Fetching dropdown data...'); // Debug
+    console.log('Fetching dropdown data...');
     try {
       setDropdownLoading(true);
-      const [mauSacRes, thuongHieuRes, kichThuocRes, xuatXuRes, chatLieuRes, hinhAnhRes] = await Promise.all([
-        axios.get(`${BASE_URL}/mau-sac/all`, { params: { page: 0, size: 100 }, signal }),
+      const [mauSacRes, thuongHieuRes, kichThuocRes, xuatXuRes, chatLieuRes] = await Promise.all([
+        axios.get(`${BASE_URL}/mau-sac/active`, { params: { page: 0, size: 100 }, signal }),
         axios.get(`${BASE_URL}/thuong-hieu/all`, { params: { page: 0, size: 100 }, signal }),
         axios.get(`${BASE_URL}/kich-thuoc/all`, { params: { page: 0, size: 100 }, signal }),
         axios.get(`${BASE_URL}/xuat-xu/all`, { params: { page: 0, size: 100 }, signal }),
         axios.get(`${BASE_URL}/chat-lieu/all`, { params: { page: 0, size: 100 }, signal }),
-        axios.get(`${BASE_URL}/hinh-anh-mau-sac/all`, { params: { page: 0, size: 100 }, signal }),
       ]);
       setDropdownData({
         mauSac: mauSacRes.data.content || [],
@@ -89,28 +99,65 @@ const AddProductWithDetailsPage = () => {
         kichThuoc: kichThuocRes.data.content || [],
         xuatXu: xuatXuRes.data.content || [],
         chatLieu: chatLieuRes.data.content || [],
-        hinhAnh: hinhAnhRes.data.content || [],
+        hinhAnh: [],
       });
     } catch (err) {
       if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
-        // Không hiển thị lỗi nếu là bị hủy do AbortController hoặc Axios cancel
         console.log('Request bị hủy do AbortController hoặc Axios cancel');
         return;
       }
-      console.error('Dropdown fetch error:', err); // Debug
+      console.error('Dropdown fetch error:', err);
       setAlertMessage(`Không thể tải dữ liệu dropdown: ${err.message}`);
       setAlertType('danger');
-    }
-    finally {
+    } finally {
       setDropdownLoading(false);
-      console.log('dropdownLoading set to false'); // Debug
+      console.log('dropdownLoading set to false');
+    }
+  }, []);
+
+  const fetchHinhAnhByMauSacId = useCallback(async (mauSacId, detailIndex) => {
+    if (!mauSacId) {
+      setDropdownData((prev) => {
+        const newHinhAnh = [...prev.hinhAnh];
+        newHinhAnh[detailIndex] = [];
+        return { ...prev, hinhAnh: newHinhAnh };
+      });
+      return;
+    }
+    try {
+      const response = await getHinhAnhByMauSacId(mauSacId);
+      const hinhAnhList = response.map((hinhAnh) => ({
+        ...hinhAnh,
+        hinhAnh: hinhAnh.hinhAnh.startsWith('http') ? hinhAnh.hinhAnh : `${STATIC_URL}${hinhAnh.hinhAnh}`,
+      }));
+      setDropdownData((prev) => {
+        const newHinhAnh = [...prev.hinhAnh];
+        newHinhAnh[detailIndex] = hinhAnhList;
+        return { ...prev, hinhAnh: newHinhAnh };
+      });
+      setProductDetails((prev) => {
+        const newDetails = [...prev];
+        if (!hinhAnhList.some((hinhAnh) => hinhAnh.id === newDetails[detailIndex].hinhAnhMauSacId)) {
+          newDetails[detailIndex] = { ...newDetails[detailIndex], hinhAnhMauSacId: null };
+        }
+        return newDetails;
+      });
+    } catch (err) {
+      console.error('Fetch hinh anh error:', err);
+      setAlertMessage(`Không thể tải hình ảnh cho màu sắc: ${err.message}`);
+      setAlertType('danger');
+      setDropdownData((prev) => {
+        const newHinhAnh = [...prev.hinhAnh];
+        newHinhAnh[detailIndex] = [];
+        return { ...prev, hinhAnh: newHinhAnh };
+      });
     }
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
     fetchDropdownData(controller.signal);
-    return () => controller.abort(); // Hủy yêu cầu khi component unmount
+    return () => controller.abort();
   }, [fetchDropdownData]);
 
   useEffect(() => {
@@ -120,64 +167,131 @@ const AddProductWithDetailsPage = () => {
     }
   }, [alertMessage]);
 
- const validateProduct = async () => {
-  const errors = {};
+  const validateProduct = async () => {
+    const errors = {};
+    const trimmedName = productData.ten?.trim() || '';
 
-  if (!productData.ten?.trim()) {
-    errors.ten = 'Tên sản phẩm không được để trống';
-  } else if (!/^[\p{L}\s]+$/u.test(productData.ten.trim())) {
-    errors.ten = 'Tên chỉ được chứa chữ cái và khoảng trắng';
-  } else if (productData.ten.length > 50) {
-    errors.ten = 'Tên không được vượt quá 50 ký tự';
-  } else {
-    try {
-      const response = await searchSPWithQuantity(productData.ten.trim(), 0, 10);
-      const existingProducts = response.content || [];
-      if (
-        existingProducts.some(
-          p =>
-            p.sanPham.ten.toLowerCase() === productData.ten.trim().toLowerCase() &&
-            p.sanPham.id !== productData.id
-        )
-      ) {
-        errors.ten = 'Tên sản phẩm đã tồn tại';
-      }
-    } catch (err) {
-      console.error('Product validation error:', err);
-      errors.ten = 'Không thể kiểm tra tên sản phẩm';
+    if (!trimmedName) {
+      errors.ten = 'Tên sản phẩm không được để trống';
+    } else if (!/^[\p{L}\s-]+$/u.test(trimmedName)) {
+      errors.ten = 'Tên chỉ được chứa chữ cái, khoảng trắng hoặc dấu gạch ngang';
+    } else if (trimmedName.length > 50) {
+      errors.ten = 'Tên không được vượt quá 50 ký tự';
     }
-  }
 
-  setProductErrors(errors);
-  return Object.keys(errors).length === 0;
-};
+    setProductErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const validateDetail = (detail, index) => {
     const errors = {};
+
     if (!detail.mauSacId) errors.mauSacId = 'Màu sắc không được để trống';
     if (!detail.thuongHieuId) errors.thuongHieuId = 'Thương hiệu không được để trống';
     if (!detail.kichThuocId) errors.kichThuocId = 'Kích thước không được để trống';
     if (!detail.xuatXuId) errors.xuatXuId = 'Xuất xứ không được để trống';
     if (!detail.chatLieuId) errors.chatLieuId = 'Chất liệu không được để trống';
-    if (!detail.giaBan || detail.giaBan <= 0) errors.giaBan = 'Giá bán phải lớn hơn 0';
-    if (detail.soLuong === null || detail.soLuong < 0) errors.soLuong = 'Số lượng không được nhỏ hơn 0';
-    if (detail.moTa && detail.moTa.length > 255) errors.moTa = 'Mô tả không được vượt quá 255 ký tự';
+    // if (!detail.hinhAnhMauSacId) errors.hinhAnhMauSacId = 'Hình ảnh màu sắc không được để trống';
 
-    const key = `${detail.mauSacId}-${detail.thuongHieuId}-${detail.kichThuocId}`;
-    const duplicates = productDetails
-      .map((d, i) => ({ ...d, index: i }))
-      .filter((d, i) => i !== index && `${d.mauSacId}-${d.thuongHieuId}-${d.kichThuocId}` === key);
-    if (duplicates.length > 0) {
-      errors.combination = `Kết hợp màu sắc, thương hiệu, kích thước đã tồn tại ở chi tiết #${duplicates[0].index + 1}`;
+    if (!detail.giaNhap || isNaN(detail.giaNhap) || detail.giaNhap <= 0) {
+      errors.giaNhap = 'Giá nhập phải lớn hơn 0';
     }
 
-    console.log(`Detail ${index} errors:`, errors); // Debug
+    if (!detail.giaBan || isNaN(detail.giaBan) || detail.giaBan <= 0) {
+      errors.giaBan = 'Giá bán phải lớn hơn 0';
+    }
+
+    if (detail.soLuong === null || isNaN(detail.soLuong) || detail.soLuong < 0) {
+      errors.soLuong = 'Số lượng không được nhỏ hơn 0';
+    }
+
+    if (detail.moTa && detail.moTa.length > 255) {
+      errors.moTa = 'Mô tả không được vượt quá 255 ký tự';
+    }
+
+    if (detail.mauSacId && detail.thuongHieuId && detail.kichThuocId) {
+      const key = `${detail.mauSacId}-${detail.thuongHieuId}-${detail.kichThuocId}`;
+      const duplicates = productDetails
+        .map((d, i) => ({ ...d, index: i }))
+        .filter((d, i) => i !== index && `${d.mauSacId}-${d.thuongHieuId}-${d.kichThuocId}` === key);
+      if (duplicates.length > 0) {
+        errors.combination = `Kết hợp màu sắc, thương hiệu, kích thước đã tồn tại ở chi tiết #${duplicates[0].index + 1}`;
+      }
+    }
+
     setDetailErrors((prev) => {
       const newErrors = [...prev];
       newErrors[index] = errors;
       return newErrors;
     });
     return Object.keys(errors).length === 0;
+  };
+
+  const validateNewAttribute = () => {
+    const errors = {};
+    if (newAttribute.mauSac && newAttribute.mauSac.length > 50) {
+      errors.mauSac = 'Tên màu sắc không được vượt quá 50 ký tự';
+    }
+    if (newAttribute.thuongHieu && newAttribute.thuongHieu.length > 50) {
+      errors.thuongHieu = 'Tên thương hiệu không được vượt quá 50 ký tự';
+    }
+    if (newAttribute.kichThuoc && newAttribute.kichThuoc.length > 50) {
+      errors.kichThuoc = 'Tên kích thước không được vượt quá 50 ký tự';
+    }
+    if (newAttribute.xuatXu && newAttribute.xuatXu.length > 50) {
+      errors.xuatXu = 'Tên xuất xứ không được vượt quá 50 ký tự';
+    }
+    if (newAttribute.chatLieu && newAttribute.chatLieu.length > 50) {
+      errors.chatLieu = 'Tên chất liệu không được vượt quá 50 ký tự';
+    }
+    setAttributeErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAddAttribute = async () => {
+    if (!validateNewAttribute()) {
+      setAlertMessage('Vui lòng kiểm tra lại thông tin thuộc tính');
+      setAlertType('danger');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const promises = [];
+      if (newAttribute.mauSac) {
+        promises.push(axios.post(`${BASE_URL}/mau-sac`, { ten: newAttribute.mauSac }));
+      }
+      if (newAttribute.thuongHieu) {
+        promises.push(axios.post(`${BASE_URL}/thuong-hieu`, { ten: newAttribute.thuongHieu }));
+      }
+      if (newAttribute.kichThuoc) {
+        promises.push(axios.post(`${BASE_URL}/kich-thuoc`, { ten: newAttribute.kichThuoc }));
+      }
+      if (newAttribute.xuatXu) {
+        promises.push(axios.post(`${BASE_URL}/xuat-xu`, { ten: newAttribute.xuatXu }));
+      }
+      if (newAttribute.chatLieu) {
+        promises.push(axios.post(`${BASE_URL}/chat-lieu`, { ten: newAttribute.chatLieu }));
+      }
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        setAlertMessage('Thêm thuộc tính thành công');
+        setAlertType('success');
+        await fetchDropdownData(new AbortController().signal);
+        setNewAttribute({ mauSac: '', thuongHieu: '', kichThuoc: '', xuatXu: '', chatLieu: '' });
+        setAddAttributeModal({ open: false });
+      } else {
+        setAlertMessage('Vui lòng nhập ít nhất một thuộc tính để thêm');
+        setAlertType('warning');
+      }
+    } catch (err) {
+      console.error('Add attribute error:', err);
+      setAlertMessage(`Thêm thuộc tính thất bại: ${err.response?.data?.message || err.message}`);
+      setAlertType('danger');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddDetail = () => {
@@ -198,29 +312,52 @@ const AddProductWithDetailsPage = () => {
       },
     ]);
     setDetailErrors((prev) => [...prev, {}]);
+    setDropdownData((prev) => ({
+      ...prev,
+      hinhAnh: [...prev.hinhAnh, []],
+    }));
   };
 
   const handleRemoveDetail = (index) => {
     setProductDetails((prev) => prev.filter((_, i) => i !== index));
     setDetailErrors((prev) => prev.filter((_, i) => i !== index));
+    setDropdownData((prev) => ({
+      ...prev,
+      hinhAnh: prev.hinhAnh.filter((_, i) => i !== index),
+    }));
   };
 
   const handleDetailChange = (index, field, value) => {
     setProductDetails((prev) => {
       const newDetails = [...prev];
-      const parsedValue = ['giaNhap', 'giaBan', 'soLuong'].includes(field) ? (value ? parseFloat(value) : null) : value;
+      let parsedValue = value;
+      if (['giaNhap', 'giaBan', 'soLuong'].includes(field)) {
+        parsedValue = value && !isNaN(value) ? parseFloat(value) : null;
+      } else if (['mauSacId', 'thuongHieuId', 'kichThuocId', 'xuatXuId', 'chatLieuId', 'hinhAnhMauSacId'].includes(field)) {
+        parsedValue = value ? parseInt(value) : null;
+      } else {
+        parsedValue = value || '';
+      }
       newDetails[index] = { ...newDetails[index], [field]: parsedValue };
+      if (field === 'mauSacId') {
+        fetchHinhAnhByMauSacId(parsedValue, index);
+      }
+      return newDetails;
+    });
+  };
+
+  const handleImageSelect = (index, hinhAnhId) => {
+    setProductDetails((prev) => {
+      const newDetails = [...prev];
+      newDetails[index] = { ...newDetails[index], hinhAnhMauSacId: hinhAnhId };
       return newDetails;
     });
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    console.log('handleSave triggered'); // Debug
     const isProductValid = await validateProduct();
-    console.log('isProductValid:', isProductValid); // Debug
     const areDetailsValid = productDetails.every((detail, index) => validateDetail(detail, index));
-    console.log('areDetailsValid:', areDetailsValid); // Debug
 
     if (!isProductValid || !areDetailsValid) {
       setAlertMessage('Vui lòng kiểm tra lại thông tin nhập');
@@ -232,14 +369,12 @@ const AddProductWithDetailsPage = () => {
       return;
     }
 
-    console.log('Opening confirm modal'); // Debug
     setConfirmModal({ open: true });
   };
 
   const confirmSave = async () => {
     try {
       setLoading(true);
-      console.log('Starting save process'); // Debug
       const now = new Date().toISOString();
       const productToSave = {
         ...productData,
@@ -249,9 +384,7 @@ const AddProductWithDetailsPage = () => {
         ngayXoa: null,
       };
 
-      console.log('Sending product data:', productToSave); // Debug
       const productResponse = await addSP(productToSave);
-      console.log('Product response:', productResponse); // Debug
       const sanPhamId = productResponse?.id || productResponse?.data?.id;
       if (!sanPhamId) {
         throw new Error('Không nhận được ID sản phẩm từ server');
@@ -265,10 +398,9 @@ const AddProductWithDetailsPage = () => {
           ngaySua: now,
           ngayXoa: detail.trangThai === 0 ? now : null,
           giaNhap: detail.giaNhap || 0,
+          ma: `CT-${crypto.randomUUID().substring(0, 8)}`,
         };
-        console.log('Sending detail data:', detailToSave); // Debug
-        const detailResponse = await addSanPhamCt(detailToSave);
-        console.log('Detail response:', detailResponse); // Debug
+        await addSanPhamCt(detailToSave);
       }
 
       setAlertMessage('Thêm sản phẩm và chi tiết thành công');
@@ -276,7 +408,7 @@ const AddProductWithDetailsPage = () => {
       setConfirmModal({ open: false });
       setTimeout(() => navigate('/admin/quan-ly-sp/san-pham'), 2000);
     } catch (err) {
-      console.error('Save error:', err); // Debug
+      console.error('Save error:', err);
       setAlertMessage(`Thao tác thất bại: ${err.response?.data?.message || err.message || 'Lỗi không xác định'}`);
       setAlertType('danger');
       setConfirmModal({ open: false });
@@ -285,7 +417,6 @@ const AddProductWithDetailsPage = () => {
     }
   };
 
-  console.log('dropdownLoading:', dropdownLoading); // Debug
   if (dropdownLoading) {
     return (
       <div className="text-center mt-5">
@@ -310,6 +441,15 @@ const AddProductWithDetailsPage = () => {
         <h1 className="text-center text-black fw-bold flex-grow-1" style={{ letterSpacing: '2px' }}>
           THÊM SẢN PHẨM
         </h1>
+        <button
+          className="btn btn-outline-primary ms-3"
+          onClick={() => setAddAttributeModal({ open: true })}
+          title="Thêm nhanh thuộc tính"
+          aria-label="Thêm nhanh thuộc tính"
+          style={{ borderRadius: '8px', padding: '0.5rem 1rem' }}
+        >
+          <FontAwesomeIcon icon={faPlus} /> Thêm thuộc tính
+        </button>
       </div>
       <form onSubmit={handleSave} noValidate>
         <div className="card shadow-lg mb-4">
@@ -326,7 +466,7 @@ const AddProductWithDetailsPage = () => {
                 className={`form-control shadow-sm ${productErrors.ten ? 'is-invalid' : ''}`}
                 value={productData.ten}
                 onChange={(e) => setProductData({ ...productData, ten: e.target.value })}
-                placeholder="VD: Balo"
+                placeholder=""
                 required
                 style={{ borderRadius: '8px', padding: '0.75rem' }}
                 aria-label="Tên sản phẩm"
@@ -375,18 +515,23 @@ const AddProductWithDetailsPage = () => {
                 <div className="row">
                   <div className="col-md-6">
                     <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">Giá Nhập</label>
+                      <label className="form-label fw-semibold text-dark">
+                        Giá Nhập <span className="text-danger">*</span>
+                      </label>
                       <input
                         type="number"
-                        className="form-control shadow-sm"
+                        className={`form-control shadow-sm ${detailErrors[index]?.giaNhap ? 'is-invalid' : ''}`}
                         value={detail.giaNhap || ''}
                         onChange={(e) => handleDetailChange(index, 'giaNhap', e.target.value)}
-                        placeholder="VD: 400000"
+                        placeholder=""
                         min="0"
                         step="1000"
                         style={{ borderRadius: '8px', padding: '0.75rem' }}
                         aria-label="Giá nhập"
                       />
+                      {detailErrors[index]?.giaNhap && (
+                        <div className="invalid-feedback">{detailErrors[index].giaNhap}</div>
+                      )}
                     </div>
                   </div>
                   <div className="col-md-6">
@@ -399,7 +544,7 @@ const AddProductWithDetailsPage = () => {
                         className={`form-control shadow-sm ${detailErrors[index]?.giaBan ? 'is-invalid' : ''}`}
                         value={detail.giaBan || ''}
                         onChange={(e) => handleDetailChange(index, 'giaBan', e.target.value)}
-                        placeholder="VD: 500000"
+                        placeholder=""
                         min="0"
                         step="1000"
                         required
@@ -421,7 +566,7 @@ const AddProductWithDetailsPage = () => {
                         className={`form-control shadow-sm ${detailErrors[index]?.soLuong ? 'is-invalid' : ''}`}
                         value={detail.soLuong || ''}
                         onChange={(e) => handleDetailChange(index, 'soLuong', e.target.value)}
-                        placeholder="VD: 100"
+                        placeholder=""
                         min="0"
                         required
                         style={{ borderRadius: '8px', padding: '0.75rem' }}
@@ -438,7 +583,7 @@ const AddProductWithDetailsPage = () => {
                       name="mauSacId"
                       value={detail.mauSacId}
                       options={dropdownData.mauSac}
-                      onChange={(e) => handleDetailChange(index, 'mauSacId', parseInt(e.target.value) || null)}
+                      onChange={(e) => handleDetailChange(index, 'mauSacId', e.target.value)}
                       error={detailErrors[index]?.mauSacId}
                       required
                     />
@@ -449,7 +594,7 @@ const AddProductWithDetailsPage = () => {
                       name="thuongHieuId"
                       value={detail.thuongHieuId}
                       options={dropdownData.thuongHieu}
-                      onChange={(e) => handleDetailChange(index, 'thuongHieuId', parseInt(e.target.value) || null)}
+                      onChange={(e) => handleDetailChange(index, 'thuongHieuId', e.target.value)}
                       error={detailErrors[index]?.thuongHieuId}
                       required
                     />
@@ -460,7 +605,7 @@ const AddProductWithDetailsPage = () => {
                       name="kichThuocId"
                       value={detail.kichThuocId}
                       options={dropdownData.kichThuoc}
-                      onChange={(e) => handleDetailChange(index, 'kichThuocId', parseInt(e.target.value) || null)}
+                      onChange={(e) => handleDetailChange(index, 'kichThuocId', e.target.value)}
                       error={detailErrors[index]?.kichThuocId}
                       required
                     />
@@ -471,7 +616,7 @@ const AddProductWithDetailsPage = () => {
                       name="xuatXuId"
                       value={detail.xuatXuId}
                       options={dropdownData.xuatXu}
-                      onChange={(e) => handleDetailChange(index, 'xuatXuId', parseInt(e.target.value) || null)}
+                      onChange={(e) => handleDetailChange(index, 'xuatXuId', e.target.value)}
                       error={detailErrors[index]?.xuatXuId}
                       required
                     />
@@ -482,7 +627,7 @@ const AddProductWithDetailsPage = () => {
                       name="chatLieuId"
                       value={detail.chatLieuId}
                       options={dropdownData.chatLieu}
-                      onChange={(e) => handleDetailChange(index, 'chatLieuId', parseInt(e.target.value) || null)}
+                      onChange={(e) => handleDetailChange(index, 'chatLieuId', e.target.value)}
                       error={detailErrors[index]?.chatLieuId}
                       required
                     />
@@ -492,24 +637,33 @@ const AddProductWithDetailsPage = () => {
                       label="Hình Ảnh Màu Sắc"
                       name="hinhAnhMauSacId"
                       value={detail.hinhAnhMauSacId}
-                      options={dropdownData.hinhAnh}
-                      onChange={(e) => handleDetailChange(index, 'hinhAnhMauSacId', parseInt(e.target.value) || null)}
+                      options={dropdownData.hinhAnh[index] || []}
+                      onChange={(e) => handleDetailChange(index, 'hinhAnhMauSacId', e.target.value)}
                       error={detailErrors[index]?.hinhAnhMauSacId}
                     />
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-md-12">
                     <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">Trạng Thái</label>
-                      <select
-                        className="form-select shadow-sm"
-                        value={detail.trangThai}
-                        onChange={(e) => handleDetailChange(index, 'trangThai', parseInt(e.target.value))}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                        aria-label="Trạng thái sản phẩm chi tiết"
-                      >
-                        <option value={1}>Đang bán</option>
-                        <option value={0}>Hết hàng</option>
-                      </select>
+                      <label className="form-label fw-semibold text-dark">Xem trước hình ảnh</label>
+                      <div className="d-flex flex-wrap gap-2">
+                        {(dropdownData.hinhAnh[index] || []).map((hinhAnh) => (
+                          <div
+                            key={hinhAnh.id}
+                            className={`border p-1 rounded ${detail.hinhAnhMauSacId === hinhAnh.id ? 'border-primary' : ''}`}
+                            style={{ cursor: 'pointer', maxWidth: '100px' }}
+                            onClick={() => handleImageSelect(index, hinhAnh.id)}
+                          >
+                            <img
+                              src={hinhAnh.hinhAnh}
+                              alt={hinhAnh.tenMauSac}
+                              style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
+                            />
+                          </div>
+                        ))}
+                        {(!dropdownData.hinhAnh[index] || dropdownData.hinhAnh[index].length === 0) && (
+                          <p className="text-muted">Không có hình ảnh cho màu sắc này</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="col-md-12">
@@ -644,6 +798,113 @@ const AddProductWithDetailsPage = () => {
                     <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
                   ) : (
                     <><FontAwesomeIcon icon={faCheck} /> Xác nhận</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {addAttributeModal.open && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Thêm nhanh thuộc tính</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setAddAttributeModal({ open: false })}
+                  aria-label="Đóng"
+                />
+              </div>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label fw-semibold text-dark">Màu Sắc</label>
+                  <input
+                    type="text"
+                    className={`form-control shadow-sm ${attributeErrors.mauSac ? 'is-invalid' : ''}`}
+                    value={newAttribute.mauSac}
+                    onChange={(e) => setNewAttribute({ ...newAttribute, mauSac: e.target.value })}
+                    placeholder="Nhập tên màu sắc..."
+                    style={{ borderRadius: '8px', padding: '0.75rem' }}
+                    aria-label="Tên màu sắc"
+                  />
+                  {attributeErrors.mauSac && <div className="invalid-feedback">{attributeErrors.mauSac}</div>}
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold text-dark">Thương Hiệu</label>
+                  <input
+                    type="text"
+                    className={`form-control shadow-sm ${attributeErrors.thuongHieu ? 'is-invalid' : ''}`}
+                    value={newAttribute.thuongHieu}
+                    onChange={(e) => setNewAttribute({ ...newAttribute, thuongHieu: e.target.value })}
+                    placeholder="Nhập tên thương hiệu..."
+                    style={{ borderRadius: '8px', padding: '0.75rem' }}
+                    aria-label="Tên thương hiệu"
+                  />
+                  {attributeErrors.thuongHieu && <div className="invalid-feedback">{attributeErrors.thuongHieu}</div>}
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold text-dark">Kích Thước</label>
+                  <input
+                    type="text"
+                    className={`form-control shadow-sm ${attributeErrors.kichThuoc ? 'is-invalid' : ''}`}
+                    value={newAttribute.kichThuoc}
+                    onChange={(e) => setNewAttribute({ ...newAttribute, kichThuoc: e.target.value })}
+                    placeholder="Nhập tên kích thước..."
+                    style={{ borderRadius: '8px', padding: '0.75rem' }}
+                    aria-label="Tên kích thước"
+                  />
+                  {attributeErrors.kichThuoc && <div className="invalid-feedback">{attributeErrors.kichThuoc}</div>}
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold text-dark">Xuất Xứ</label>
+                  <input
+                    type="text"
+                    className={`form-control shadow-sm ${attributeErrors.xuatXu ? 'is-invalid' : ''}`}
+                    value={newAttribute.xuatXu}
+                    onChange={(e) => setNewAttribute({ ...newAttribute, xuatXu: e.target.value })}
+                    placeholder="Nhập tên xuất xứ..."
+                    style={{ borderRadius: '8px', padding: '0.75rem' }}
+                    aria-label="Tên xuất xứ"
+                  />
+                  {attributeErrors.xuatXu && <div className="invalid-feedback">{attributeErrors.xuatXu}</div>}
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold text-dark">Chất Liệu</label>
+                  <input
+                    type="text"
+                    className={`form-control shadow-sm ${attributeErrors.chatLieu ? 'is-invalid' : ''}`}
+                    value={newAttribute.chatLieu}
+                    onChange={(e) => setNewAttribute({ ...newAttribute, chatLieu: e.target.value })}
+                    placeholder="Nhập tên chất liệu..."
+                    style={{ borderRadius: '8px', padding: '0.75rem' }}
+                    aria-label="Tên chất liệu"
+                  />
+                  {attributeErrors.chatLieu && <div className="invalid-feedback">{attributeErrors.chatLieu}</div>}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setAddAttributeModal({ open: false })}
+                  style={{ borderRadius: '8px' }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleAddAttribute}
+                  disabled={loading}
+                  style={{ borderRadius: '8px' }}
+                >
+                  {loading ? (
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                  ) : (
+                    <><FontAwesomeIcon icon={faCheck} /> Thêm</>
                   )}
                 </button>
               </div>

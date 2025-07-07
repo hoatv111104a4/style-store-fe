@@ -61,11 +61,44 @@ export const deleteThuongHieu = async (id) => {
     if (!id) {
       throw new Error('ID không hợp lệ');
     }
-    await axiosInstance.delete(`/${id}`);
+   const response = await axiosInstance.put(`/toggle-status/${id}`);
     return { success: true, message: 'Xóa thành công' };
   } catch (error) {
     throw new Error(
       error.response?.data?.message || 'Xóa thất bại'
+    );
+  }
+};
+
+export const searchThuongHieuByName = async (ten, page = 0, size = 10) => {
+  try {
+    if (!ten || typeof ten !== 'string' || ten.trim() === '') {
+      throw new Error('Tên xuất xứ tìm kiếm không hợp lệ');
+    }
+    const response = await axiosInstance.get('/search', {
+      params: { ten, page, size },
+    });
+    return response.data; // Trả về dữ liệu phân trang từ server
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || 'Tìm kiếm xuất xứ thất bại'
+    );
+  }
+};
+
+// Tìm kiếm xuất xứ theo tên hoặc mã
+export const searchThuongHieuByNameOrCode = async (keyword, page = 0, size = 10) => {
+  try {
+    if (!keyword || typeof keyword !== 'string' || keyword.trim() === '') {
+      throw new Error('Từ khóa tìm kiếm không hợp lệ');
+    }
+    const response = await axiosInstance.get('/search-by-name-or-code', {
+      params: { keyword, page, size },
+    });
+    return response.data; // Trả về dữ liệu phân trang từ server
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || 'Tìm kiếm xuất xứ thất bại'
     );
   }
 };
