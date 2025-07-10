@@ -36,16 +36,33 @@ const WebsiteNavbar = () => {
   });
   const [openCart, setOpenCart] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  const [selectedCartItems, setSelectedCartItems] = useState([]); // State để theo dõi sản phẩm được chọn
+  const [selectedCartItems, setSelectedCartItems] = useState([]);
   const [openLogin, setOpenLogin] = useState(false);
   const [openRegister, setOpenRegister] = useState(false);
-
   const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
+
+  // Lấy vai trò từ token
+  const getUserRole = () => {
+    const token = Cookies.get("token");
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        // Tách scope thành mảng dựa trên khoảng trắng
+        const scopes = decoded.scope ? decoded.scope.split(" ") : [];
+        return scopes.length > 0 ? scopes : [decoded.role || ""];
+      } catch (err) {
+        console.error("Lỗi giải mã token:", err);
+        return [];
+      }
+    }
+    return [];
+  };
 
   const handleMenuClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
+
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
@@ -53,9 +70,10 @@ const WebsiteNavbar = () => {
   const handleOpenCart = () => {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     setCartItems(cart);
-    setSelectedCartItems([]); // Reset danh sách chọn khi mở giỏ hàng
+    setSelectedCartItems([]);
     setOpenCart(true);
   };
+
   const handleCloseCart = () => setOpenCart(false);
 
   const handleSearch = (e) => {
@@ -72,7 +90,7 @@ const WebsiteNavbar = () => {
       const response = await logout();
       setUser(null);
       setCartItems([]);
-      setSelectedCartItems([]); // Reset danh sách chọn khi đăng xuất
+      setSelectedCartItems([]);
       localStorage.removeItem("cart");
       toast.success(response.message || "Đăng xuất thành công!", {
         onClose: () => {
@@ -88,14 +106,13 @@ const WebsiteNavbar = () => {
       toast.error(err.message);
       setUser(null);
       setCartItems([]);
-      setSelectedCartItems([]); // Reset danh sách chọn khi đăng xuất
+      setSelectedCartItems([]);
       localStorage.removeItem("cart");
       handleMenuClose();
       navigate("/");
     }
   };
 
-  // Xử lý chọn checkbox
   const handleCheckboxChange = (itemId) => {
     setSelectedCartItems((prev) =>
       prev.includes(itemId)
@@ -104,7 +121,6 @@ const WebsiteNavbar = () => {
     );
   };
 
-  // Xử lý nút "Đặt hàng"
   const handleOrderClick = () => {
     if (selectedCartItems.length === 0) {
       toast.error("Vui lòng chọn ít nhất một sản phẩm để đặt hàng!");
@@ -120,7 +136,6 @@ const WebsiteNavbar = () => {
     });
   };
 
-  // Kiểm tra token hết hạn định kỳ
   useEffect(() => {
     const checkToken = () => {
       const token = Cookies.get("token");
@@ -140,7 +155,7 @@ const WebsiteNavbar = () => {
               Cookies.remove("token");
               Cookies.remove("user");
               setUser(null);
-              setSelectedCartItems([]); // Reset danh sách chọn khi token hết hạn
+              setSelectedCartItems([]);
               navigate("/dang-nhap");
             });
         }
@@ -150,6 +165,10 @@ const WebsiteNavbar = () => {
     const interval = setInterval(checkToken, 60000);
     return () => clearInterval(interval);
   }, [navigate]);
+
+  // Kiểm tra vai trò để hiển thị nút "Cửa hàng của tôi"
+  const userRole = getUserRole();
+  const isAdminOrStaff = user && (Array.isArray(userRole) ? userRole.includes("ROLE_ADMIN") || userRole.includes("ROLE_STAFF") : false);
 
   return (
     <div>
@@ -186,11 +205,6 @@ const WebsiteNavbar = () => {
               <li className="nav-item mx-2">
                 <NavLink className="website-nav-link text-dark" to="/san-pham">
                   Sản phẩm
-                </NavLink>
-              </li>
-              <li className="nav-item mx-2">
-                <NavLink className="website-nav-link text-dark" to="/gioi-thieu">
-                  Giới thiệu
                 </NavLink>
               </li>
               <li className="nav-item mx-2">
@@ -286,19 +300,35 @@ const WebsiteNavbar = () => {
                       </MenuItem>
                     </>
                   ) : (
-                    <MenuItem onClick={handleLogout}>
-                      <ListItemIcon>
-                        <LoginIcon fontSize="small" sx={{ color: "#ff6600" }} />
-                      </ListItemIcon>
-                      Đăng xuất
-                    </MenuItem>
+                    <>
+                      <MenuItem onClick={handleLogout}>
+                        <ListItemIcon>
+                          <LoginIcon fontSize="small" sx={{ color: "#ff6600" }} />
+                        </ListItemIcon>
+                        Đăng xuất
+                      </MenuItem>
+                      {isAdminOrStaff && (
+                        <MenuItem component={NavLink} to="/admin/thong-ke">
+                          <ListItemIcon>
+                            <StoreIcon fontSize="small" sx={{ color: "#ff6600" }} />
+                          </ListItemIcon>
+                          Cửa hàng của tôi
+                        </MenuItem>
+                      )}
+                      <MenuItem component={NavLink} to="/website/dat-hang/lich-su-dat-hang">
+                        <ListItemIcon>
+                          <StoreIcon fontSize="small" sx={{ color: "#ff6600" }} />
+                        </ListItemIcon>
+                        Thông tin đơn hàng
+                      </MenuItem>
+                      <MenuItem component={NavLink} to="/thong-tin-ca-nhan">
+                        <ListItemIcon>
+                          <AccountCircleIcon fontSize="small" sx={{ color: "#ff6600" }} />
+                        </ListItemIcon>
+                        Thông tin cá nhân
+                      </MenuItem>
+                    </>
                   )}
-                  <MenuItem component={NavLink} to="/admin/thong-ke">
-                    <ListItemIcon>
-                      <StoreIcon fontSize="small" sx={{ color: "#ff6600" }} />
-                    </ListItemIcon>
-                    Cửa hàng của tôi
-                  </MenuItem>
                 </Menu>
               </li>
             </ul>
@@ -422,7 +452,7 @@ const WebsiteNavbar = () => {
                           onClick={() => {
                             const newCart = cartItems.filter((sp) => sp.id !== item.id);
                             setCartItems(newCart);
-                            setSelectedCartItems((prev) => prev.filter((id) => id !== item.id)); // Xóa khỏi danh sách chọn
+                            setSelectedCartItems((prev) => prev.filter((id) => id !== item.id));
                             localStorage.setItem("cart", JSON.stringify(newCart));
                           }}
                         >

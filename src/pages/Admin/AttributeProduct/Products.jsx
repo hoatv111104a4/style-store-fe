@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { searchSPWithQuantity, deleteSP } from '../../../services/Admin/SanPhamAdminService';
+import { searchSPWithQuantity, getDeletedSP } from '../../../services/Admin/SanPhamAdminService';
 
 import {
   Box,
@@ -130,7 +130,7 @@ const Products = () => {
 
   const handleDelete = async () => {
     try {
-      await deleteSP(confirmModal.id);
+      await getDeletedSP(confirmModal.id);
       await fetchData(currentPage, pageSize, searchTerm);
       const newStatus = confirmModal.currentStatus === 1 ? 'Hết Hàng' : 'Đang Bán';
       setAlertMessage(`Đã thay đổi trạng thái sản phẩm sang "${newStatus}"`);

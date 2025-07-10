@@ -99,3 +99,40 @@ export const listSanPham = async (id) =>{
     }
 };
 
+export const getPageSanPham = async(page = 0,size = 5)=>{
+    try {
+        const response = await apiClient.get("/page-san-pham",{
+            params:{
+                page:page,
+                size:size
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi gọi API phân trang",error);
+        throw error;
+    }
+};
+
+
+export const getListSanPhamGiamGia = async (filters = {}) => {
+    try {
+        const response = await apiClient.get("/hien-thi-san-pham-giam-gia", {
+            params: {
+                tenSanPham: filters.tenSanPham || null,
+                thuongHieuId: filters.thuongHieuId || null,
+                mauSacId: filters.mauSacId || null,
+                chatLieuId: filters.chatLieuId || null,
+                kichThuocId: filters.kichThuocId || null,
+                minPrice: filters.minPrice || null,
+                maxPrice: filters.maxPrice || null,
+                sortOrder: filters.sortOrder || "",  
+                sanPhamId: filters.sanPhamId || null,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi gọi API sản phẩm giảm giá:", error);
+        throw error;
+    }
+};

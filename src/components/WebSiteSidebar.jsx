@@ -382,7 +382,7 @@ const WebSiteSidebar = () => {
                               zIndex: 2,
                             }}
                           >
-                            -{Math.round(spct.giamGia * 100)}%
+                            -{Math.round(spct.giamGia * 1)}%
                           </span>
                         )}
                         <img

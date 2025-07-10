@@ -1,0 +1,92 @@
+
+/* Vùng bọc bảng */
+.table-container {
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+  overflow: hidden;
+}
+
+/* Bảng */
+.table-custom {
+  width: 100%;
+  text-align: center;
+  vertical-align: middle;
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  background-color: #fff;
+}
+
+/* Header */
+.table-custom thead {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+}
+
+.table-custom th,
+.table-custom td {
+  padding: 12px 16px;
+  border: none;
+}
+
+/* Hover từng dòng */
+.table-custom tbody tr {
+  transition: background-color 0.2s ease-in-out;
+}
+
+.table-custom tbody tr:hover {
+  background-color: #f2f2f2;
+}
+
+/* STT cột đầu */
+.table-custom th:first-child,
+.table-custom td:first-child {
+  width: 60px;
+  font-weight: 500;
+}
+
+/* Nút trạng thái */
+.status-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-applied {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.status-cancelled {
+  background-color: #f8d7da;
+  color: #842029;
+}
+
+.status-waiting {
+  background-color: #fff3cd;
+  color: #664d03;
+}
+
+.status-future {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+
+/* Nút hành động */
+.action-button {
+  background-color: #212529;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.action-button:hover {
+  background-color: #343a40;
+}

@@ -27,7 +27,8 @@ import AddProductWithDetailsPage from "./pages/Admin/AttributeProduct/AddProduct
 import CheckOutPage from "./pages/Website/CheckOutPage";
 import ScrollToTop from "./components/ScrollToTop";
 import { ToastContainer } from "react-toastify";
-
+import HistoryOrder from "./pages/Website/HistoryOrder";
+import AddVoucher from "./pages/Website/AddVocher";
 function App() {
   return (
     <BrowserRouter>
@@ -39,10 +40,10 @@ function App() {
         <Route element={<WebsiteLayout />}>
           <Route path="/" element={<WebsiteHome />} />
           <Route path="/san-pham" element={<WebSiteSidebar />} />
-          <Route path="/gioi-thieu" element={<AboutPage />} />
           <Route path="/lien-he" element={<ContactPage />} />
           <Route path="/website/san-pham/chi-tiet-san-pham/:id" element={<DetailProduct />} />
           <Route path="/website/dat-hang" element={<CheckOutPage />} />
+          <Route path="/website/dat-hang/lich-su-dat-hang" element={<HistoryOrder />} />
         </Route>
 
         {/* Routes cho AdminLayout */}
@@ -63,6 +64,8 @@ function App() {
           <Route path="/admin/quan-ly-sp/san-pham" element={<Products />} />
           <Route path="/admin/san-pham-chi-tiet/:id" element={<SanPhamCtPage />} />
           <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddProductWithDetailsPage />} />
+          <Route path="/admin/giam-gia/them-phieu-giam-gia" element={<AddVoucher />} />
+
         </Route>
       </Routes>
     </BrowserRouter>

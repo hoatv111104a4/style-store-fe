@@ -110,7 +110,7 @@ const WebsiteHome = () => {
                         zIndex: 2,
                       }}
                     >
-                      -{Math.round(spct.giamGia * 100)}%
+                      -{Math.round(spct.giamGia * 1)}%
                     </span>
                     <img
                       src={spct.tenHinhAnhSp ? `http://localhost:8080/uploads/${spct.tenHinhAnhSp}` : "/placeholder-image.png"}
