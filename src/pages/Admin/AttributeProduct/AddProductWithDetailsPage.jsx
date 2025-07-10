@@ -4,35 +4,152 @@ import { addSP } from '../../../services/Admin/SanPhamAdminService';
 import { addSanPhamCt, getHinhAnhByMauSacId } from '../../../services/Admin/SanPhamCTService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faTrash, faArrowLeft, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faTrash, faArrowLeft, faCheck, faImage } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
+import CreatableSelect from 'react-select';
 
-// Định nghĩa BASE_URL và STATIC_URL riêng
+// Định nghĩa BASE_URL và STATIC_URL
 const BASE_URL = 'http://localhost:8080/api';
 const STATIC_URL = 'http://localhost:8080';
 
-const DropdownField = ({ label, name, value, options, onChange, error, disabled, required }) => (
-  <div className="mb-3">
+// Hàm định dạng tiền tệ VND
+const formatVND = (value) => {
+  if (!value || isNaN(value)) return '';
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    minimumFractionDigits: 0,
+  }).format(value);
+};
+
+// Hàm chuyển đổi chuỗi VND thành số
+const parseVND = (value) => {
+  if (!value) return null;
+  const cleanedValue = value.replace(/[^0-9]/g, '');
+  return cleanedValue ? parseFloat(cleanedValue) : null;
+};
+
+const DropdownField = ({
+  label,
+  name,
+  value,
+  options,
+  onChange,
+  onCreateOption,
+  error,
+  disabled,
+  required,
+  showImageButton,
+  onImageButtonClick,
+  onPlusButtonClick,
+}) => (
+  <div className="mb-3 position-relative" style={{ minWidth: '300px', width: '100%' }}>
     <label className="form-label fw-semibold text-dark">
       {label} {required && <span className="text-danger">*</span>}
     </label>
-    <select
-      className={`form-select shadow-sm ${error ? 'is-invalid' : ''}`}
-      name={name}
-      value={value || ''}
-      onChange={onChange}
-      disabled={disabled}
-      aria-label={`Chọn ${label.toLowerCase()}`}
-      style={{ borderRadius: '8px', padding: '0.75rem' }}
-    >
-      <option value="">Chọn {label.toLowerCase()}...</option>
-      {options.map((option) => (
-        <option key={option.id} value={option.id}>
-          {option.ten || `Hình ${option.id}`}
-        </option>
-      ))}
-    </select>
-    {error && <div className="invalid-feedback">{error}</div>}
+    <div className="d-flex align-items-center" style={{ width: '100%', overflow: 'visible' }}>
+      <CreatableSelect
+        isClearable
+        isDisabled={disabled}
+        value={
+          value && options.find((opt) => opt.id === value)
+            ? { value, label: options.find((opt) => opt.id === value).ten || '' }
+            : null
+        }
+        onChange={(selectedOption) => {
+          console.log('DropdownField onChange:', { name, value: selectedOption ? selectedOption.value : '' }); // Debug
+          onChange({ target: { name, value: selectedOption ? selectedOption.value : '' } });
+        }}
+        onCreateOption={(inputValue) => {
+          console.log('onCreateOption triggered:', inputValue); // Debug
+          onCreateOption(inputValue);
+        }}
+        options={options.map((option) => ({
+          value: option.id,
+          label: option.ten || `Hình ${option.id}`,
+        }))}
+        placeholder={options.length > 0 ? `Chọn hoặc nhập ${label.toLowerCase()}...` : `Không có ${label.toLowerCase()} khả dụng`}
+        className={error ? 'is-invalid' : ''}
+        isValidNewOption={(inputValue, selectValue, selectOptions) => {
+          const isValid =
+            inputValue.trim().length > 0 &&
+            !selectOptions.some((option) => {
+              const isMatch = option.label.toLowerCase() === inputValue.trim().toLowerCase();
+              console.log('Checking option:', { label: option.label, inputValue, isMatch }); // Debug
+              return isMatch;
+            });
+          console.log('isValidNewOption:', { inputValue, isValid, selectOptions: selectOptions.map(opt => opt.label) }); // Debug
+          return isValid;
+        }}
+        formatCreateLabel={(inputValue) => `Thêm nhanh "${inputValue.trim()}"`}
+        styles={{
+          control: (base) => ({
+            ...base,
+            borderRadius: '8px',
+            padding: '0.25rem',
+            boxShadow: error ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : 'none',
+            borderColor: error ? '#dc3545' : base.borderColor,
+            minWidth: '250px',
+            flex: '1 1 auto',
+            minHeight: '38px',
+            whiteSpace: 'normal !important',
+            wordBreak: 'break-word !important',
+            overflow: 'visible !important',
+          }),
+          menu: (base) => ({
+            ...base,
+            zIndex: 1050,
+            width: 'auto',
+            minWidth: '250px',
+            whiteSpace: 'normal !important',
+            wordBreak: 'break-word !important',
+          }),
+          option: (base) => ({
+            ...base,
+            whiteSpace: 'normal !important',
+            wordBreak: 'break-word !important',
+            padding: '8px 12px',
+          }),
+          singleValue: (base) => ({
+            ...base,
+            whiteSpace: 'normal !important',
+            wordBreak: 'break-word !important',
+            maxWidth: 'none !important',
+            overflow: 'visible !important',
+            display: 'block',
+          }),
+          input: (base) => ({
+            ...base,
+            whiteSpace: 'normal !important',
+            wordBreak: 'break-word !important',
+          }),
+        }}
+      />
+      {showImageButton && (
+        <button
+          type="button"
+          className="btn btn-outline-primary ms-2"
+          onClick={onImageButtonClick}
+          disabled={!value}
+          title="Chọn hình ảnh"
+          aria-label="Chọn hình ảnh cho màu sắc"
+          style={{ borderRadius: '8px', padding: '0.5rem' }}
+        >
+          <FontAwesomeIcon icon={faImage} />
+        </button>
+      )}
+      <button
+        type="button"
+        className="btn btn-outline-success ms-2"
+        onClick={onPlusButtonClick}
+        title={`Thêm nhanh ${label.toLowerCase()}`}
+        aria-label={`Thêm nhanh ${label.toLowerCase()}`}
+        style={{ borderRadius: '8px', padding: '0.5rem' }}
+      >
+        <FontAwesomeIcon icon={faPlus} />
+      </button>
+    </div>
+    {error && <div className="invalid-feedback" style={{ display: 'block' }}>{error}</div>}
   </div>
 );
 
@@ -41,6 +158,7 @@ const AddProductWithDetailsPage = () => {
   const [productData, setProductData] = useState({
     ten: '',
     trangThai: 1,
+    id: null,
   });
   const [productErrors, setProductErrors] = useState({});
   const [productDetails, setProductDetails] = useState([
@@ -60,6 +178,7 @@ const AddProductWithDetailsPage = () => {
   ]);
   const [detailErrors, setDetailErrors] = useState([{}]);
   const [dropdownData, setDropdownData] = useState({
+    sanPham: [],
     mauSac: [],
     thuongHieu: [],
     kichThuoc: [],
@@ -72,42 +191,69 @@ const AddProductWithDetailsPage = () => {
   const [loading, setLoading] = useState(false);
   const [dropdownLoading, setDropdownLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState({ open: false });
-  const [addAttributeModal, setAddAttributeModal] = useState({ open: false });
-  const [newAttribute, setNewAttribute] = useState({
-    mauSac: '',
-    thuongHieu: '',
-    kichThuoc: '',
-    xuatXu: '',
-    chatLieu: '',
+  const [imageModal, setImageModal] = useState({ open: false, detailIndex: null });
+  const [newAttributeModal, setNewAttributeModal] = useState({
+    open: false,
+    attributeType: '',
+    inputValue: '',
+    moTa: '',
+    detailIndex: null,
   });
-  const [attributeErrors, setAttributeErrors] = useState({});
 
   const fetchDropdownData = useCallback(async (signal) => {
     console.log('Fetching dropdown data...');
     try {
       setDropdownLoading(true);
-      const [mauSacRes, thuongHieuRes, kichThuocRes, xuatXuRes, chatLieuRes] = await Promise.all([
+      const [sanPhamRes, mauSacRes, thuongHieuRes, kichThuocRes, xuatXuRes, chatLieuRes] = await Promise.all([
+        axios.get(`${BASE_URL}/admin-san-pham/all`, { params: { page: 0, size: 100 }, signal }),
         axios.get(`${BASE_URL}/mau-sac/active`, { params: { page: 0, size: 100 }, signal }),
         axios.get(`${BASE_URL}/thuong-hieu/all`, { params: { page: 0, size: 100 }, signal }),
         axios.get(`${BASE_URL}/kich-thuoc/all`, { params: { page: 0, size: 100 }, signal }),
         axios.get(`${BASE_URL}/xuat-xu/all`, { params: { page: 0, size: 100 }, signal }),
         axios.get(`${BASE_URL}/chat-lieu/all`, { params: { page: 0, size: 100 }, signal }),
       ]);
-      setDropdownData({
+
+      const newDropdownData = {
+        sanPham: sanPhamRes.data.content || [],
         mauSac: mauSacRes.data.content || [],
         thuongHieu: thuongHieuRes.data.content || [],
         kichThuoc: kichThuocRes.data.content || [],
         xuatXu: xuatXuRes.data.content || [],
         chatLieu: chatLieuRes.data.content || [],
         hinhAnh: [],
+      };
+
+      // Kiểm tra dữ liệu trùng lặp
+      Object.keys(newDropdownData).forEach((key) => {
+        if (key !== 'hinhAnh') {
+          const duplicates = newDropdownData[key].filter(
+            (item, index, self) => self.findIndex((i) => i.ten.toLowerCase() === item.ten.toLowerCase()) !== index
+          );
+          if (duplicates.length > 0) {
+            console.warn(`Duplicate entries in ${key}:`, duplicates);
+            setAlertMessage(`Danh sách ${key} chứa các mục trùng lặp: ${duplicates.map(d => d.ten).join(', ')}`);
+            setAlertType('warning');
+          }
+        }
+      });
+
+      console.log('Dropdown data:', newDropdownData);
+      setDropdownData(newDropdownData);
+
+      // Kiểm tra danh sách rỗng
+      Object.keys(newDropdownData).forEach((key) => {
+        if (key !== 'hinhAnh' && newDropdownData[key].length === 0) {
+          setAlertMessage(`Danh sách ${key} trống. Vui lòng kiểm tra API hoặc thêm mới.`);
+          setAlertType('warning');
+        }
       });
     } catch (err) {
       if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
         console.log('Request bị hủy do AbortController hoặc Axios cancel');
         return;
       }
-      console.error('Dropdown fetch error:', err);
-      setAlertMessage(`Không thể tải dữ liệu dropdown: ${err.message}`);
+      console.error('Dropdown fetch error:', err.response?.data || err.message);
+      setAlertMessage(`Không thể tải dữ liệu dropdown: ${err.response?.data?.message || err.message}`);
       setAlertType('danger');
     } finally {
       setDropdownLoading(false);
@@ -161,6 +307,15 @@ const AddProductWithDetailsPage = () => {
   }, [fetchDropdownData]);
 
   useEffect(() => {
+    if (window.bootstrap && window.bootstrap.Tooltip) {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      tooltipTriggerList.forEach((tooltipTriggerEl) => {
+        new window.bootstrap.Tooltip(tooltipTriggerEl);
+      });
+    }
+  }, [dropdownData, productDetails]);
+
+  useEffect(() => {
     if (alertMessage) {
       const timer = setTimeout(() => setAlertMessage(''), 5000);
       return () => clearTimeout(timer);
@@ -191,7 +346,6 @@ const AddProductWithDetailsPage = () => {
     if (!detail.kichThuocId) errors.kichThuocId = 'Kích thước không được để trống';
     if (!detail.xuatXuId) errors.xuatXuId = 'Xuất xứ không được để trống';
     if (!detail.chatLieuId) errors.chatLieuId = 'Chất liệu không được để trống';
-    // if (!detail.hinhAnhMauSacId) errors.hinhAnhMauSacId = 'Hình ảnh màu sắc không được để trống';
 
     if (!detail.giaNhap || isNaN(detail.giaNhap) || detail.giaNhap <= 0) {
       errors.giaNhap = 'Giá nhập phải lớn hơn 0';
@@ -227,67 +381,93 @@ const AddProductWithDetailsPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const validateNewAttribute = () => {
+  const validateNewAttributeModal = () => {
     const errors = {};
-    if (newAttribute.mauSac && newAttribute.mauSac.length > 50) {
-      errors.mauSac = 'Tên màu sắc không được vượt quá 50 ký tự';
+    if (!newAttributeModal.inputValue || newAttributeModal.inputValue.trim().length > 50) {
+      errors.inputValue = `Tên ${newAttributeModal.attributeType} không hợp lệ hoặc vượt quá 50 ký tự`;
     }
-    if (newAttribute.thuongHieu && newAttribute.thuongHieu.length > 50) {
-      errors.thuongHieu = 'Tên thương hiệu không được vượt quá 50 ký tự';
+    if (newAttributeModal.moTa && newAttributeModal.moTa.length > 255) {
+      errors.moTa = 'Mô tả không được vượt quá 255 ký tự';
     }
-    if (newAttribute.kichThuoc && newAttribute.kichThuoc.length > 50) {
-      errors.kichThuoc = 'Tên kích thước không được vượt quá 50 ký tự';
-    }
-    if (newAttribute.xuatXu && newAttribute.xuatXu.length > 50) {
-      errors.xuatXu = 'Tên xuất xứ không được vượt quá 50 ký tự';
-    }
-    if (newAttribute.chatLieu && newAttribute.chatLieu.length > 50) {
-      errors.chatLieu = 'Tên chất liệu không được vượt quá 50 ký tự';
-    }
-    setAttributeErrors(errors);
+    setProductErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleAddAttribute = async () => {
-    if (!validateNewAttribute()) {
-      setAlertMessage('Vui lòng kiểm tra lại thông tin thuộc tính');
+  const handleOpenNewAttributeModal = (attributeType, inputValue, index) => {
+    console.log('Opening new attribute modal:', { attributeType, inputValue, index }); // Debug
+    setNewAttributeModal({
+      open: true,
+      attributeType,
+      inputValue: inputValue.trim(),
+      moTa: '',
+      detailIndex: index,
+    });
+  };
+
+  const handleCreateAttribute = async () => {
+    if (!validateNewAttributeModal()) {
+      setAlertMessage(`Vui lòng kiểm tra lại thông tin ${newAttributeModal.attributeType}`);
       setAlertType('danger');
+      return;
+    }
+
+    const normalizedInput = newAttributeModal.inputValue.trim().toLowerCase();
+    const existingItem = dropdownData[newAttributeModal.attributeType].find(
+      (item) => item.ten.toLowerCase() === normalizedInput
+    );
+    if (existingItem) {
+      setAlertMessage(
+        `${newAttributeModal.attributeType} "${newAttributeModal.inputValue}" đã tồn tại (ID: ${existingItem.id}). Vui lòng chọn từ danh sách hoặc nhập giá trị khác.`
+      );
+      setAlertType('warning');
       return;
     }
 
     try {
       setLoading(true);
-      const promises = [];
-      if (newAttribute.mauSac) {
-        promises.push(axios.post(`${BASE_URL}/mau-sac`, { ten: newAttribute.mauSac }));
-      }
-      if (newAttribute.thuongHieu) {
-        promises.push(axios.post(`${BASE_URL}/thuong-hieu`, { ten: newAttribute.thuongHieu }));
-      }
-      if (newAttribute.kichThuoc) {
-        promises.push(axios.post(`${BASE_URL}/kich-thuoc`, { ten: newAttribute.kichThuoc }));
-      }
-      if (newAttribute.xuatXu) {
-        promises.push(axios.post(`${BASE_URL}/xuat-xu`, { ten: newAttribute.xuatXu }));
-      }
-      if (newAttribute.chatLieu) {
-        promises.push(axios.post(`${BASE_URL}/chat-lieu`, { ten: newAttribute.chatLieu }));
+      const response = await axios.post(`${BASE_URL}/${newAttributeModal.attributeType}`, {
+        ten: newAttributeModal.inputValue,
+        moTa: newAttributeModal.moTa || null,
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const newItem = response.data;
+
+      console.log('Created new item:', newItem); // Debug
+
+      setDropdownData((prev) => ({
+        ...prev,
+        [newAttributeModal.attributeType]: [...prev[newAttributeModal.attributeType], newItem],
+      }));
+
+      setProductDetails((prev) => {
+        const newDetails = [...prev];
+        if (newAttributeModal.detailIndex !== null) {
+          newDetails[newAttributeModal.detailIndex] = {
+            ...newDetails[newAttributeModal.detailIndex],
+            [`${newAttributeModal.attributeType}Id`]: newItem.id,
+          };
+          if (newAttributeModal.attributeType === 'mauSac') {
+            fetchHinhAnhByMauSacId(newItem.id, newAttributeModal.detailIndex);
+          }
+        }
+        return newDetails;
+      });
+
+      if (newAttributeModal.attributeType === 'sanPham') {
+        setProductData((prev) => {
+          const newData = { ...prev, id: newItem.id, ten: newItem.ten };
+          console.log('Updated productData:', newData); // Debug
+          return newData;
+        });
       }
 
-      if (promises.length > 0) {
-        await Promise.all(promises);
-        setAlertMessage('Thêm thuộc tính thành công');
-        setAlertType('success');
-        await fetchDropdownData(new AbortController().signal);
-        setNewAttribute({ mauSac: '', thuongHieu: '', kichThuoc: '', xuatXu: '', chatLieu: '' });
-        setAddAttributeModal({ open: false });
-      } else {
-        setAlertMessage('Vui lòng nhập ít nhất một thuộc tính để thêm');
-        setAlertType('warning');
-      }
+      setAlertMessage(`Thêm ${newAttributeModal.attributeType} "${newAttributeModal.inputValue}" thành công`);
+      setAlertType('success');
+      setNewAttributeModal({ open: false, attributeType: '', inputValue: '', moTa: '', detailIndex: null });
     } catch (err) {
-      console.error('Add attribute error:', err);
-      setAlertMessage(`Thêm thuộc tính thất bại: ${err.response?.data?.message || err.message}`);
+      console.error(`Add ${newAttributeModal.attributeType} error:`, err.response?.data || err.message);
+      setAlertMessage(`Thêm ${newAttributeModal.attributeType} thất bại: ${err.response?.data?.message || err.message}`);
       setAlertType('danger');
     } finally {
       setLoading(false);
@@ -331,8 +511,10 @@ const AddProductWithDetailsPage = () => {
     setProductDetails((prev) => {
       const newDetails = [...prev];
       let parsedValue = value;
-      if (['giaNhap', 'giaBan', 'soLuong'].includes(field)) {
-        parsedValue = value && !isNaN(value) ? parseFloat(value) : null;
+      if (['giaNhap', 'giaBan'].includes(field)) {
+        parsedValue = parseVND(value);
+      } else if (['soLuong'].includes(field)) {
+        parsedValue = value && !isNaN(value) ? parseInt(value) : null;
       } else if (['mauSacId', 'thuongHieuId', 'kichThuocId', 'xuatXuId', 'chatLieuId', 'hinhAnhMauSacId'].includes(field)) {
         parsedValue = value ? parseInt(value) : null;
       } else {
@@ -352,6 +534,7 @@ const AddProductWithDetailsPage = () => {
       newDetails[index] = { ...newDetails[index], hinhAnhMauSacId: hinhAnhId };
       return newDetails;
     });
+    setImageModal({ open: false, detailIndex: null });
   };
 
   const handleSave = async (e) => {
@@ -408,7 +591,7 @@ const AddProductWithDetailsPage = () => {
       setConfirmModal({ open: false });
       setTimeout(() => navigate('/admin/quan-ly-sp/san-pham'), 2000);
     } catch (err) {
-      console.error('Save error:', err);
+      console.error('Save error:', err.response?.data || err.message);
       setAlertMessage(`Thao tác thất bại: ${err.response?.data?.message || err.message || 'Lỗi không xác định'}`);
       setAlertType('danger');
       setConfirmModal({ open: false });
@@ -441,15 +624,6 @@ const AddProductWithDetailsPage = () => {
         <h1 className="text-center text-black fw-bold flex-grow-1" style={{ letterSpacing: '2px' }}>
           THÊM SẢN PHẨM
         </h1>
-        <button
-          className="btn btn-outline-primary ms-3"
-          onClick={() => setAddAttributeModal({ open: true })}
-          title="Thêm nhanh thuộc tính"
-          aria-label="Thêm nhanh thuộc tính"
-          style={{ borderRadius: '8px', padding: '0.5rem 1rem' }}
-        >
-          <FontAwesomeIcon icon={faPlus} /> Thêm thuộc tính
-        </button>
       </div>
       <form onSubmit={handleSave} noValidate>
         <div className="card shadow-lg mb-4">
@@ -458,20 +632,26 @@ const AddProductWithDetailsPage = () => {
           </div>
           <div className="card-body p-4">
             <div className="mb-4">
-              <label className="form-label fw-semibold text-dark">
-                Tên Sản Phẩm <span className="text-danger">*</span>
-              </label>
-              <input
-                type="text"
-                className={`form-control shadow-sm ${productErrors.ten ? 'is-invalid' : ''}`}
-                value={productData.ten}
-                onChange={(e) => setProductData({ ...productData, ten: e.target.value })}
-                placeholder=""
+              <DropdownField
+                label="Tên Sản Phẩm"
+                name="ten"
+                value={productData.id || null}
+                options={dropdownData.sanPham}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const selectedProduct = dropdownData.sanPham.find(opt => opt.id === selectedId);
+                  setProductData({ 
+                    ...productData, 
+                    id: selectedId, 
+                    ten: selectedProduct ? selectedProduct.ten : '' 
+                  });
+                  console.log('Selected product:', { id: selectedId, ten: selectedProduct?.ten }); // Debug
+                }}
+                onCreateOption={(inputValue) => handleOpenNewAttributeModal('sanPham', inputValue, null)}
+                onPlusButtonClick={() => handleOpenNewAttributeModal('sanPham', '', null)}
+                error={productErrors.ten}
                 required
-                style={{ borderRadius: '8px', padding: '0.75rem' }}
-                aria-label="Tên sản phẩm"
               />
-              {productErrors.ten && <div className="invalid-feedback">{productErrors.ten}</div>}
             </div>
           </div>
         </div>
@@ -490,202 +670,202 @@ const AddProductWithDetailsPage = () => {
             </button>
           </div>
           <div className="card-body p-4">
-            {productDetails.map((detail, index) => (
-              <div key={index} className="border rounded p-3 mb-3 bg-white shadow-sm">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="fw-semibold text-dark">Chi tiết #{index + 1}</h6>
-                  {productDetails.length > 1 && (
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger btn-sm rounded-circle"
-                      onClick={() => handleRemoveDetail(index)}
-                      title="Xóa chi tiết"
-                      aria-label="Xóa chi tiết sản phẩm"
-                      style={{ width: '30px', height: '30px', padding: '0' }}
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
+            {productDetails.map((detail, index) => {
+              const selectedImage = detail.hinhAnhMauSacId
+                ? (dropdownData.hinhAnh[index] || []).find((hinhAnh) => hinhAnh.id === detail.hinhAnhMauSacId)
+                : null;
+
+              return (
+                <div key={index} className="border rounded p-3 mb-3 bg-white shadow-sm">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h6 className="fw-semibold text-dark">Chi tiết #{index + 1}</h6>
+                    {productDetails.length > 1 && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger btn-sm rounded-circle"
+                        onClick={() => handleRemoveDetail(index)}
+                        title="Xóa chi tiết"
+                        aria-label="Xóa chi tiết sản phẩm"
+                        style={{ width: '30px', height: '30px', padding: '0' }}
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    )}
+                  </div>
+                  {detailErrors[index]?.combination && (
+                    <div className="alert alert-danger mb-3 p-2" role="alert">
+                      {detailErrors[index].combination}
+                    </div>
                   )}
-                </div>
-                {detailErrors[index]?.combination && (
-                  <div className="alert alert-danger mb-3 p-2" role="alert">
-                    {detailErrors[index].combination}
-                  </div>
-                )}
-                <div className="row">
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">
-                        Giá Nhập <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        className={`form-control shadow-sm ${detailErrors[index]?.giaNhap ? 'is-invalid' : ''}`}
-                        value={detail.giaNhap || ''}
-                        onChange={(e) => handleDetailChange(index, 'giaNhap', e.target.value)}
-                        placeholder=""
-                        min="0"
-                        step="1000"
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                        aria-label="Giá nhập"
-                      />
-                      {detailErrors[index]?.giaNhap && (
-                        <div className="invalid-feedback">{detailErrors[index].giaNhap}</div>
-                      )}
+                  <div className="row">
+                    <div className="col-12 col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label fw-semibold text-dark">
+                          Giá Nhập <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className={`form-control shadow-sm ${detailErrors[index]?.giaNhap ? 'is-invalid' : ''}`}
+                          value={formatVND(detail.giaNhap)}
+                          onChange={(e) => handleDetailChange(index, 'giaNhap', e.target.value)}
+                          placeholder="0 VND"
+                          style={{ borderRadius: '8px', padding: '0.75rem' }}
+                          aria-label="Giá nhập"
+                        />
+                        {detailErrors[index]?.giaNhap && (
+                          <div className="invalid-feedback">{detailErrors[index].giaNhap}</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">
-                        Giá Bán <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        className={`form-control shadow-sm ${detailErrors[index]?.giaBan ? 'is-invalid' : ''}`}
-                        value={detail.giaBan || ''}
-                        onChange={(e) => handleDetailChange(index, 'giaBan', e.target.value)}
-                        placeholder=""
-                        min="0"
-                        step="1000"
+                    <div className="col-12 col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label fw-semibold text-dark">
+                          Giá Bán <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className={`form-control shadow-sm ${detailErrors[index]?.giaBan ? 'is-invalid' : ''}`}
+                          value={formatVND(detail.giaBan)}
+                          onChange={(e) => handleDetailChange(index, 'giaBan', e.target.value)}
+                          placeholder="0 VND"
+                          required
+                          style={{ borderRadius: '8px', padding: '0.75rem' }}
+                          aria-label="Giá bán"
+                        />
+                        {detailErrors[index]?.giaBan && (
+                          <div className="invalid-feedback">{detailErrors[index].giaBan}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label fw-semibold text-dark">
+                          Số Lượng <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          className={`form-control shadow-sm ${detailErrors[index]?.soLuong ? 'is-invalid' : ''}`}
+                          value={detail.soLuong || ''}
+                          onChange={(e) => handleDetailChange(index, 'soLuong', e.target.value)}
+                          placeholder=""
+                          min="0"
+                          required
+                          style={{ borderRadius: '8px', padding: '0.75rem' }}
+                          aria-label="Số lượng"
+                        />
+                        {detailErrors[index]?.soLuong && (
+                          <div className="invalid-feedback">{detailErrors[index].soLuong}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <DropdownField
+                        label="Màu Sắc"
+                        name="mauSacId"
+                        value={detail.mauSacId}
+                        options={dropdownData.mauSac}
+                        onChange={(e) => handleDetailChange(index, 'mauSacId', e.target.value)}
+                        onCreateOption={(inputValue) => handleOpenNewAttributeModal('mauSac', inputValue, index)}
+                        onPlusButtonClick={() => handleOpenNewAttributeModal('mauSac', '', index)}
+                        error={detailErrors[index]?.mauSacId}
                         required
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                        aria-label="Giá bán"
+                        showImageButton
+                        onImageButtonClick={() => setImageModal({ open: true, detailIndex: index })}
                       />
-                      {detailErrors[index]?.giaBan && (
-                        <div className="invalid-feedback">{detailErrors[index].giaBan}</div>
-                      )}
                     </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">
-                        Số Lượng <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        className={`form-control shadow-sm ${detailErrors[index]?.soLuong ? 'is-invalid' : ''}`}
-                        value={detail.soLuong || ''}
-                        onChange={(e) => handleDetailChange(index, 'soLuong', e.target.value)}
-                        placeholder=""
-                        min="0"
+                    <div className="col-12 col-md-6">
+                      <DropdownField
+                        label="Thương Hiệu"
+                        name="thuongHieuId"
+                        value={detail.thuongHieuId}
+                        options={dropdownData.thuongHieu}
+                        onChange={(e) => handleDetailChange(index, 'thuongHieuId', e.target.value)}
+                        onCreateOption={(inputValue) => handleOpenNewAttributeModal('thuongHieu', inputValue, index)}
+                        onPlusButtonClick={() => handleOpenNewAttributeModal('thuongHieu', '', index)}
+                        error={detailErrors[index]?.thuongHieuId}
                         required
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                        aria-label="Số lượng"
                       />
-                      {detailErrors[index]?.soLuong && (
-                        <div className="invalid-feedback">{detailErrors[index].soLuong}</div>
-                      )}
                     </div>
-                  </div>
-                  <div className="col-md-6">
-                    <DropdownField
-                      label="Màu Sắc"
-                      name="mauSacId"
-                      value={detail.mauSacId}
-                      options={dropdownData.mauSac}
-                      onChange={(e) => handleDetailChange(index, 'mauSacId', e.target.value)}
-                      error={detailErrors[index]?.mauSacId}
-                      required
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <DropdownField
-                      label="Thương Hiệu"
-                      name="thuongHieuId"
-                      value={detail.thuongHieuId}
-                      options={dropdownData.thuongHieu}
-                      onChange={(e) => handleDetailChange(index, 'thuongHieuId', e.target.value)}
-                      error={detailErrors[index]?.thuongHieuId}
-                      required
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <DropdownField
-                      label="Kích Thước"
-                      name="kichThuocId"
-                      value={detail.kichThuocId}
-                      options={dropdownData.kichThuoc}
-                      onChange={(e) => handleDetailChange(index, 'kichThuocId', e.target.value)}
-                      error={detailErrors[index]?.kichThuocId}
-                      required
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <DropdownField
-                      label="Xuất Xứ"
-                      name="xuatXuId"
-                      value={detail.xuatXuId}
-                      options={dropdownData.xuatXu}
-                      onChange={(e) => handleDetailChange(index, 'xuatXuId', e.target.value)}
-                      error={detailErrors[index]?.xuatXuId}
-                      required
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <DropdownField
-                      label="Chất Liệu"
-                      name="chatLieuId"
-                      value={detail.chatLieuId}
-                      options={dropdownData.chatLieu}
-                      onChange={(e) => handleDetailChange(index, 'chatLieuId', e.target.value)}
-                      error={detailErrors[index]?.chatLieuId}
-                      required
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <DropdownField
-                      label="Hình Ảnh Màu Sắc"
-                      name="hinhAnhMauSacId"
-                      value={detail.hinhAnhMauSacId}
-                      options={dropdownData.hinhAnh[index] || []}
-                      onChange={(e) => handleDetailChange(index, 'hinhAnhMauSacId', e.target.value)}
-                      error={detailErrors[index]?.hinhAnhMauSacId}
-                    />
-                  </div>
-                  <div className="col-md-12">
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">Xem trước hình ảnh</label>
-                      <div className="d-flex flex-wrap gap-2">
-                        {(dropdownData.hinhAnh[index] || []).map((hinhAnh) => (
+                    <div className="col-12 col-md-6">
+                      <DropdownField
+                        label="Kích Thước"
+                        name="kichThuocId"
+                        value={detail.kichThuocId}
+                        options={dropdownData.kichThuoc}
+                        onChange={(e) => handleDetailChange(index, 'kichThuocId', e.target.value)}
+                        onCreateOption={(inputValue) => handleOpenNewAttributeModal('kichThuoc', inputValue, index)}
+                        onPlusButtonClick={() => handleOpenNewAttributeModal('kichThuoc', '', index)}
+                        error={detailErrors[index]?.kichThuocId}
+                        required
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <DropdownField
+                        label="Xuất Xứ"
+                        name="xuatXuId"
+                        value={detail.xuatXuId}
+                        options={dropdownData.xuatXu}
+                        onChange={(e) => handleDetailChange(index, 'xuatXuId', e.target.value)}
+                        onCreateOption={(inputValue) => handleOpenNewAttributeModal('xuatXu', inputValue, index)}
+                        onPlusButtonClick={() => handleOpenNewAttributeModal('xuatXu', '', index)}
+                        error={detailErrors[index]?.xuatXuId}
+                        required
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <DropdownField
+                        label="Chất Liệu"
+                        name="chatLieuId"
+                        value={detail.chatLieuId}
+                        options={dropdownData.chatLieu}
+                        onChange={(e) => handleDetailChange(index, 'chatLieuId', e.target.value)}
+                        onCreateOption={(inputValue) => handleOpenNewAttributeModal('chatLieu', inputValue, index)}
+                        onPlusButtonClick={() => handleOpenNewAttributeModal('chatLieu', '', index)}
+                        error={detailErrors[index]?.chatLieuId}
+                        required
+                      />
+                    </div>
+                    <div className="col-12">
+                      <div className="mb-3">
+                        <label className="form-label fw-semibold text-dark">Hình ảnh đã chọn</label>
+                        {selectedImage ? (
                           <div
-                            key={hinhAnh.id}
-                            className={`border p-1 rounded ${detail.hinhAnhMauSacId === hinhAnh.id ? 'border-primary' : ''}`}
-                            style={{ cursor: 'pointer', maxWidth: '100px' }}
-                            onClick={() => handleImageSelect(index, hinhAnh.id)}
+                            className="border p-1 rounded border-primary"
+                            style={{ maxWidth: '100px' }}
                           >
                             <img
-                              src={hinhAnh.hinhAnh}
-                              alt={hinhAnh.tenMauSac}
+                              src={selectedImage.hinhAnh}
+                              alt={selectedImage.tenMauSac}
                               style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
+                              onError={(e) => (e.target.src = '/default-image.jpg')}
                             />
                           </div>
-                        ))}
-                        {(!dropdownData.hinhAnh[index] || dropdownData.hinhAnh[index].length === 0) && (
-                          <p className="text-muted">Không có hình ảnh cho màu sắc này</p>
+                        ) : (
+                          <p className="text-muted">Chưa chọn hình ảnh</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-12">
+                      <div className="mb-3">
+                        <label className="form-label fw-semibold text-dark">Mô Tả</label>
+                        <textarea
+                          className={`form-control shadow-sm ${detailErrors[index]?.moTa ? 'is-invalid' : ''}`}
+                          value={detail.moTa}
+                          onChange={(e) => handleDetailChange(index, 'moTa', e.target.value)}
+                          placeholder="Nhập mô tả sản phẩm..."
+                          rows="3"
+                          style={{ borderRadius: '8px', padding: '0.75rem' }}
+                          aria-label="Mô tả sản phẩm chi tiết"
+                        />
+                        {detailErrors[index]?.moTa && (
+                          <div className="invalid-feedback">{detailErrors[index].moTa}</div>
                         )}
                       </div>
                     </div>
                   </div>
-                  <div className="col-md-12">
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">Mô Tả</label>
-                      <textarea
-                        className={`form-control shadow-sm ${detailErrors[index]?.moTa ? 'is-invalid' : ''}`}
-                        value={detail.moTa}
-                        onChange={(e) => handleDetailChange(index, 'moTa', e.target.value)}
-                        placeholder="Nhập mô tả sản phẩm..."
-                        rows="3"
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                        aria-label="Mô tả sản phẩm chi tiết"
-                      />
-                      {detailErrors[index]?.moTa && (
-                        <div className="invalid-feedback">{detailErrors[index].moTa}</div>
-                      )}
-                    </div>
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
         <div className="d-flex justify-content-end gap-3">
@@ -805,91 +985,54 @@ const AddProductWithDetailsPage = () => {
           </div>
         </div>
       )}
-      {addAttributeModal.open && (
+      {newAttributeModal.open && (
         <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Thêm nhanh thuộc tính</h5>
+                <h5 className="modal-title">Thêm nhanh {newAttributeModal.attributeType}</h5>
                 <button
                   type="button"
                   className="btn-close"
-                  onClick={() => setAddAttributeModal({ open: false })}
+                  onClick={() => setNewAttributeModal({ open: false, attributeType: '', inputValue: '', moTa: '', detailIndex: null })}
                   aria-label="Đóng"
                 />
               </div>
               <div className="modal-body">
                 <div className="mb-3">
-                  <label className="form-label fw-semibold text-dark">Màu Sắc</label>
+                  <label className="form-label fw-semibold text-dark">
+                    Tên {newAttributeModal.attributeType} <span className="text-danger">*</span>
+                  </label>
                   <input
                     type="text"
-                    className={`form-control shadow-sm ${attributeErrors.mauSac ? 'is-invalid' : ''}`}
-                    value={newAttribute.mauSac}
-                    onChange={(e) => setNewAttribute({ ...newAttribute, mauSac: e.target.value })}
-                    placeholder="Nhập tên màu sắc..."
+                    className={`form-control shadow-sm ${productErrors.inputValue ? 'is-invalid' : ''}`}
+                    value={newAttributeModal.inputValue}
+                    onChange={(e) => setNewAttributeModal({ ...newAttributeModal, inputValue: e.target.value })}
+                    placeholder={`Nhập tên ${newAttributeModal.attributeType}...`}
                     style={{ borderRadius: '8px', padding: '0.75rem' }}
-                    aria-label="Tên màu sắc"
+                    aria-label={`Tên ${newAttributeModal.attributeType}`}
                   />
-                  {attributeErrors.mauSac && <div className="invalid-feedback">{attributeErrors.mauSac}</div>}
+                  {productErrors.inputValue && <div className="invalid-feedback">{productErrors.inputValue}</div>}
                 </div>
                 <div className="mb-3">
-                  <label className="form-label fw-semibold text-dark">Thương Hiệu</label>
-                  <input
-                    type="text"
-                    className={`form-control shadow-sm ${attributeErrors.thuongHieu ? 'is-invalid' : ''}`}
-                    value={newAttribute.thuongHieu}
-                    onChange={(e) => setNewAttribute({ ...newAttribute, thuongHieu: e.target.value })}
-                    placeholder="Nhập tên thương hiệu..."
+                  <label className="form-label fw-semibold text-dark">Mô Tả</label>
+                  <textarea
+                    className={`form-control shadow-sm ${productErrors.moTa ? 'is-invalid' : ''}`}
+                    value={newAttributeModal.moTa}
+                    onChange={(e) => setNewAttributeModal({ ...newAttributeModal, moTa: e.target.value })}
+                    placeholder={`Nhập mô tả ${newAttributeModal.attributeType}...`}
+                    rows="3"
                     style={{ borderRadius: '8px', padding: '0.75rem' }}
-                    aria-label="Tên thương hiệu"
+                    aria-label={`Mô tả ${newAttributeModal.attributeType}`}
                   />
-                  {attributeErrors.thuongHieu && <div className="invalid-feedback">{attributeErrors.thuongHieu}</div>}
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold text-dark">Kích Thước</label>
-                  <input
-                    type="text"
-                    className={`form-control shadow-sm ${attributeErrors.kichThuoc ? 'is-invalid' : ''}`}
-                    value={newAttribute.kichThuoc}
-                    onChange={(e) => setNewAttribute({ ...newAttribute, kichThuoc: e.target.value })}
-                    placeholder="Nhập tên kích thước..."
-                    style={{ borderRadius: '8px', padding: '0.75rem' }}
-                    aria-label="Tên kích thước"
-                  />
-                  {attributeErrors.kichThuoc && <div className="invalid-feedback">{attributeErrors.kichThuoc}</div>}
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold text-dark">Xuất Xứ</label>
-                  <input
-                    type="text"
-                    className={`form-control shadow-sm ${attributeErrors.xuatXu ? 'is-invalid' : ''}`}
-                    value={newAttribute.xuatXu}
-                    onChange={(e) => setNewAttribute({ ...newAttribute, xuatXu: e.target.value })}
-                    placeholder="Nhập tên xuất xứ..."
-                    style={{ borderRadius: '8px', padding: '0.75rem' }}
-                    aria-label="Tên xuất xứ"
-                  />
-                  {attributeErrors.xuatXu && <div className="invalid-feedback">{attributeErrors.xuatXu}</div>}
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold text-dark">Chất Liệu</label>
-                  <input
-                    type="text"
-                    className={`form-control shadow-sm ${attributeErrors.chatLieu ? 'is-invalid' : ''}`}
-                    value={newAttribute.chatLieu}
-                    onChange={(e) => setNewAttribute({ ...newAttribute, chatLieu: e.target.value })}
-                    placeholder="Nhập tên chất liệu..."
-                    style={{ borderRadius: '8px', padding: '0.75rem' }}
-                    aria-label="Tên chất liệu"
-                  />
-                  {attributeErrors.chatLieu && <div className="invalid-feedback">{attributeErrors.chatLieu}</div>}
+                  {productErrors.moTa && <div className="invalid-feedback">{productErrors.moTa}</div>}
                 </div>
               </div>
               <div className="modal-footer">
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setAddAttributeModal({ open: false })}
+                  onClick={() => setNewAttributeModal({ open: false, attributeType: '', inputValue: '', moTa: '', detailIndex: null })}
                   style={{ borderRadius: '8px' }}
                 >
                   Hủy
@@ -897,15 +1040,67 @@ const AddProductWithDetailsPage = () => {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={handleAddAttribute}
+                  onClick={handleCreateAttribute}
                   disabled={loading}
                   style={{ borderRadius: '8px' }}
                 >
                   {loading ? (
                     <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
                   ) : (
-                    <><FontAwesomeIcon icon={faCheck} /> Thêm</>
+                    'Thêm'
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {imageModal.open && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Chọn hình ảnh cho màu sắc</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setImageModal({ open: false, detailIndex: null })}
+                  aria-label="Đóng"
+                />
+              </div>
+              <div className="modal-body">
+                {(dropdownData.hinhAnh[imageModal.detailIndex] || []).length > 0 ? (
+                  <div className="row">
+                    {(dropdownData.hinhAnh[imageModal.detailIndex] || []).map((hinhAnh) => (
+                      <div key={hinhAnh.id} className="col-4 mb-3">
+                        <div
+                          className="border p-2 rounded cursor-pointer"
+                          onClick={() => handleImageSelect(imageModal.detailIndex, hinhAnh.id)}
+                          style={{ borderColor: hinhAnh.id === productDetails[imageModal.detailIndex]?.hinhAnhMauSacId ? '#0d6efd' : '#dee2e6' }}
+                        >
+                          <img
+                            src={hinhAnh.hinhAnh}
+                            alt={hinhAnh.tenMauSac}
+                            style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
+                            onError={(e) => (e.target.src = '/default-image.jpg')}
+                          />
+                          <p className="text-center mt-1">{hinhAnh.tenMauSac}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted">Không có hình ảnh nào cho màu sắc này.</p>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setImageModal({ open: false, detailIndex: null })}
+                  style={{ borderRadius: '8px' }}
+                >
+                  Đóng
                 </button>
               </div>
             </div>

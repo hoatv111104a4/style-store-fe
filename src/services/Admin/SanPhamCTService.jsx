@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 const BASE_URL = 'http://localhost:8080/api/admin-san-pham-chi-tiet';
-const HINH_ANH_BASE_URL = 'http://localhost:8080/api/hinh-anh-mau-sac';
+const PUBLIC_API_URL = 'http://localhost:8080/api';
 
+// Tạo instance cho các endpoint yêu cầu xác thực
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
@@ -11,7 +12,16 @@ const axiosInstance = axios.create({
   },
 });
 
-// Thêm interceptor để gửi token xác thực
+// Tạo instance riêng cho các endpoint công khai
+export const axiosPublicInstance = axios.create({
+  baseURL: PUBLIC_API_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor cho axiosInstance (thêm token cho các endpoint yêu cầu xác thực)
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('jwtToken');
@@ -23,7 +33,7 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Xử lý lỗi 401 (token hết hạn)
+// Interceptor xử lý lỗi 401
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -34,7 +44,7 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-// Hàm retry cho các API quan trọng
+// Hàm retry cho các yêu cầu
 const retry = async (fn, retries = 2, delay = 1000) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -46,14 +56,14 @@ const retry = async (fn, retries = 2, delay = 1000) => {
   }
 };
 
-// Lấy danh sách hình ảnh theo mauSacId
+// Lấy hình ảnh theo màu sắc (endpoint công khai)
 export const getHinhAnhByMauSacId = async (mauSacId) => {
   try {
     if (!mauSacId || mauSacId <= 0) {
       throw new Error('ID màu sắc không hợp lệ');
     }
     const response = await retry(() =>
-      axiosInstance.get(`${HINH_ANH_BASE_URL}/mau-sac/${mauSacId}`)
+      axiosPublicInstance.get(`/hinh-anh-mau-sac/mau-sac/${mauSacId}`)
     );
     return response.data;
   } catch (error) {
@@ -63,6 +73,7 @@ export const getHinhAnhByMauSacId = async (mauSacId) => {
   }
 };
 
+// Lấy tất cả sản phẩm chi tiết
 export const getAllSanPhamCt = async (page = 0, size = 10) => {
   try {
     if (page < 0 || size <= 0) {
@@ -81,6 +92,7 @@ export const getAllSanPhamCt = async (page = 0, size = 10) => {
   }
 };
 
+// Lấy sản phẩm chi tiết theo trạng thái
 export const getSanPhamCtByTrangThai = async (trangThai, page = 0, size = 10) => {
   try {
     if (!Number.isInteger(trangThai) || page < 0 || size <= 0) {
@@ -99,19 +111,25 @@ export const getSanPhamCtByTrangThai = async (trangThai, page = 0, size = 10) =>
   }
 };
 
-export const searchSanPhamCtByTen = async (ten, page = 0, size = 10) => {
+/// Tìm kiếm sản phẩm chi tiết theo mã
+export const searchSanPhamCtByMa = async (ten, page = 0, size = 10) => {
   try {
     if (page < 0 || size <= 0) {
       throw new Error('Page hoặc size không hợp lệ');
     }
+
+    // Nếu không nhập mã, gọi API lấy tất cả
     if (!ten || ten.trim().length === 0) {
-      return await getAllSanPhamCt(page, size);
+      return await getAllSanPhamCt(page, size); // -> hàm này bạn đã định nghĩa trước
     }
+
+    // Gọi API tìm kiếm theo mã
     const response = await retry(() =>
       axiosInstance.get('/search', {
         params: { ten: ten.trim(), page, size },
       })
     );
+
     return response.data;
   } catch (error) {
     throw new Error(
@@ -120,6 +138,7 @@ export const searchSanPhamCtByTen = async (ten, page = 0, size = 10) => {
   }
 };
 
+// Lấy sản phẩm chi tiết theo ID
 export const getSanPhamCtById = async (id) => {
   try {
     if (!id || id <= 0) {
@@ -134,20 +153,22 @@ export const getSanPhamCtById = async (id) => {
   }
 };
 
-export const getSanPhamCtByMa = async (ma) => {
-  try {
-    if (!ma || ma.trim().length === 0) {
-      throw new Error('Mã không hợp lệ');
-    }
-    const response = await retry(() => axiosInstance.get(`/ma/${ma.trim()}`));
-    return response.data;
-  } catch (error) {
-    throw new Error(
-      error.response?.data?.error || 'Không thể lấy sản phẩm theo mã'
-    );
-  }
-};
+// Lấy sản phẩm chi tiết theo mã
+// export const getSanPhamCtByMa = async (ma) => {
+//   try {
+//     if (!ma || ma.trim().length === 0) {
+//       throw new Error('Mã không hợp lệ');
+//     }
+//     const response = await retry(() => axiosInstance.get(`/ma/${ma.trim()}`));
+//     return response.data;
+//   } catch (error) {
+//     throw new Error(
+//       error.response?.data?.error || 'Không thể lấy sản phẩm theo mã'
+//     );
+//   }
+// };
 
+// Lấy sản phẩm chi tiết theo sanPhamId
 export const getSanPhamCtBySanPhamId = async (sanPhamId, page = 0, size = 10) => {
   try {
     if (!sanPhamId || sanPhamId <= 0 || page < 0 || size <= 0) {
@@ -166,6 +187,7 @@ export const getSanPhamCtBySanPhamId = async (sanPhamId, page = 0, size = 10) =>
   }
 };
 
+// Lấy sản phẩm chi tiết theo mauSacId
 export const getSanPhamCtByMauSacId = async (mauSacId, page = 0, size = 10) => {
   try {
     if (!mauSacId || mauSacId <= 0 || page < 0 || size <= 0) {
@@ -184,6 +206,86 @@ export const getSanPhamCtByMauSacId = async (mauSacId, page = 0, size = 10) => {
   }
 };
 
+// Lọc sản phẩm chi tiết
+export const filterSanPhamCt = async ({
+  sanPhamId = null,
+  mauSacId = null,
+  thuongHieuId = null,
+  kichThuocId = null,
+  xuatXuId = null,
+  chatLieuId = null,
+  minPrice = null,
+  maxPrice = null,
+  minQuantity = null,
+  maxQuantity = null,
+  startDate = null,
+  endDate = null,
+  page = 0,
+  size = 10,
+}) => {
+  try {
+    if (page < 0 || size <= 0) {
+      throw new Error('Page hoặc size không hợp lệ');
+    }
+    if (minPrice && (isNaN(Number(minPrice)) || Number(minPrice) < 0)) {
+      throw new Error('Giá tối thiểu không hợp lệ');
+    }
+    if (maxPrice && (isNaN(Number(maxPrice)) || Number(maxPrice) < 0)) {
+      throw new Error('Giá tối đa không hợp lệ');
+    }
+    if (minQuantity && (isNaN(Number(minQuantity)) || Number(minQuantity) < 0)) {
+      throw new Error('Số lượng tối thiểu không hợp lệ');
+    }
+    if (maxQuantity && (isNaN(Number(maxQuantity)) || Number(maxQuantity) < 0)) {
+      throw new Error('Số lượng tối đa không hợp lệ');
+    }
+    if (sanPhamId && sanPhamId <= 0) {
+      throw new Error('ID sản phẩm không hợp lệ');
+    }
+    if (mauSacId && mauSacId <= 0) {
+      throw new Error('ID màu sắc không hợp lệ');
+    }
+    if (thuongHieuId && thuongHieuId <= 0) {
+      throw new Error('ID thương hiệu không hợp lệ');
+    }
+    if (kichThuocId && kichThuocId <= 0) {
+      throw new Error('ID kích thước không hợp lệ');
+    }
+    if (xuatXuId && xuatXuId <= 0) {
+      throw new Error('ID xuất xứ không hợp lệ');
+    }
+    if (chatLieuId && chatLieuId <= 0) {
+      throw new Error('ID chất liệu không hợp lệ');
+    }
+    const response = await retry(() =>
+      axiosInstance.get('/filter', {
+        params: {
+          sanPhamId,
+          mauSacId,
+          thuongHieuId,
+          kichThuocId,
+          xuatXuId,
+          chatLieuId,
+          minPrice,
+          maxPrice,
+          minQuantity,
+          maxQuantity,
+          startDate,
+          endDate,
+          page,
+          size,
+        },
+      })
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.error || 'Không thể lọc sản phẩm chi tiết'
+    );
+  }
+};
+
+// Thêm sản phẩm chi tiết
 export const addSanPhamCt = async (sanPhamCtDTO) => {
   try {
     if (!sanPhamCtDTO || typeof sanPhamCtDTO !== 'object') {
@@ -213,7 +315,7 @@ export const addSanPhamCt = async (sanPhamCtDTO) => {
     if (!sanPhamCtDTO.giaBan || isNaN(Number(sanPhamCtDTO.giaBan)) || Number(sanPhamCtDTO.giaBan) <= 0) {
       throw new Error('Giá bán phải là số và lớn hơn 0');
     }
-    if (sanPhamCtDTO.soLuong === null || isNaN(Number(sanPhamCtDTO.soLuong)) || Number(sanPhamCtDTO.soLuong) < 0) {
+    if (sanPhamCtDTO.soLuong === null || isNaN(Number(sanPhamCtDTO.soLuong)) || Number(sanPhamCtDTO.soLuong) <= 0) {
       throw new Error('Số lượng phải là số và không được nhỏ hơn 0');
     }
     if (sanPhamCtDTO.giaNhap && (isNaN(Number(sanPhamCtDTO.giaNhap)) || Number(sanPhamCtDTO.giaNhap) < 0)) {
@@ -228,6 +330,7 @@ export const addSanPhamCt = async (sanPhamCtDTO) => {
   }
 };
 
+// Cập nhật sản phẩm chi tiết
 export const updateSanPhamCt = async (id, sanPhamCtDTO) => {
   try {
     if (!id || id <= 0 || !sanPhamCtDTO || typeof sanPhamCtDTO !== 'object') {
@@ -257,7 +360,7 @@ export const updateSanPhamCt = async (id, sanPhamCtDTO) => {
     if (!sanPhamCtDTO.giaBan || isNaN(Number(sanPhamCtDTO.giaBan)) || Number(sanPhamCtDTO.giaBan) <= 0) {
       throw new Error('Giá bán phải là số và lớn hơn 0');
     }
-    if (sanPhamCtDTO.soLuong === null || isNaN(Number(sanPhamCtDTO.soLuong)) || Number(sanPhamCtDTO.soLuong) < 0) {
+    if (sanPhamCtDTO.soLuong === null || isNaN(Number(sanPhamCtDTO.soLuong)) || Number(sanPhamCtDTO.soLuong) <= 0) {
       throw new Error('Số lượng phải là số và không được nhỏ hơn 0');
     }
     if (!sanPhamCtDTO.ma || sanPhamCtDTO.ma.trim().length === 0) {
@@ -272,16 +375,17 @@ export const updateSanPhamCt = async (id, sanPhamCtDTO) => {
   }
 };
 
+// Xóa (toggle trạng thái) sản phẩm chi tiết
 export const deleteSanPhamCt = async (id) => {
   try {
     if (!id || id <= 0) {
       throw new Error('ID không hợp lệ');
     }
-    const response = await axiosInstance.put(`/toggle-status/${id}`);
-    return { success: true, message: 'Xóa sản phẩm chi tiết thành công' };
+    const response = await retry(() => axiosInstance.put(`/toggle-status/${id}`));
+    return { success: true, message: 'Cập nhật trạng thái sản phẩm chi tiết thành công' };
   } catch (error) {
     throw new Error(
-      error.response?.data?.error || 'Xóa sản phẩm chi tiết thất bại'
+      error.response?.data?.error || 'Cập nhật trạng thái sản phẩm chi tiết thất bại'
     );
   }
 };

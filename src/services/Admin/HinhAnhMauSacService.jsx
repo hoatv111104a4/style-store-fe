@@ -27,36 +27,27 @@ export const getHinhAnhByMauSacId = async (mauSacId) => {
   }
 };
 
-// ✅ Upload hình ảnh và TRẢ VỀ TÊN FILE (VD: "balo81.jpg")
 export const uploadHinhAnhMauSac = async (file, mauSacId) => {
+  if (!file || !mauSacId) throw new Error("Thiếu file hoặc màu sắc ID");
+
+  const formData = new FormData();
+  formData.append('file', file);               // ✅ trùng với @RequestParam("file")
+  formData.append('mauSacId', mauSacId);       // ✅ trùng với @RequestParam("mauSacId")
+
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('mauSacId', mauSacId);
-
-    const response = await axios.post(`${BASE_URL}/api/hinh-anh-mau-sac/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      timeout: 30000,
-    });
-
-    console.log('📦 Upload response:', response.data);
-
-    if (response.data && typeof response.data === 'string') {
-      toast.success('Tải ảnh thành công');
-      return response.data; // chỉ là "balo81.jpg"
-    }
-
-    throw new Error('Phản hồi từ server không hợp lệ');
+    const response = await axios.post(
+      'http://localhost:8080/api/hinh-anh-mau-sac/upload',
+      formData
+    
+    );
+    return response.data;
   } catch (error) {
-    console.error('Lỗi khi upload ảnh:', error);
-    toast.error(`Lỗi: ${error.response?.data?.message || error.message || 'Upload thất bại'}`);
+    console.error("Upload thất bại", error);
     throw error;
   }
 };
 
-// ✅ Thêm hình ảnh (chỉ gửi tên file, không có /uploads/)
+
 export const addHinhAnhMauSac = async (hinhAnhData) => {
   try {
     const payload = {
@@ -79,7 +70,6 @@ export const addHinhAnhMauSac = async (hinhAnhData) => {
   }
 };
 
-// Cập nhật hình ảnh
 export const updateHinhAnhMauSac = async (id, hinhAnhData) => {
   try {
     const payload = {
@@ -102,7 +92,7 @@ export const updateHinhAnhMauSac = async (id, hinhAnhData) => {
   }
 };
 
-// Xóa mềm hình ảnh
+
 export const deleteHinhAnhMauSac = async (id) => {
   try {
     const response = await axios.put(

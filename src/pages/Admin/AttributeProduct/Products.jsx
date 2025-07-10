@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { searchSPWithQuantity, getDeletedSP } from '../../../services/Admin/SanPhamAdminService';
-
+import { useNavigate } from 'react-router-dom';
+import { searchSPWithQuantity, toggleStatusSP } from '../../../services/Admin/SanPhamAdminService';
 import {
   Box,
   Button,
@@ -66,11 +65,16 @@ const Products = () => {
   const [error, setError] = useState(null);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState('success');
-  const [confirmModal, setConfirmModal] = useState({ open: false, id: null, currentStatus: null });
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    id: null,
+    currentStatus: null,
+  });
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [skipFetch, setSkipFetch] = useState(false);
 
   const navigate = useNavigate();
   const theme = useTheme();
@@ -100,8 +104,10 @@ const Products = () => {
   }, []);
 
   useEffect(() => {
-    fetchData(currentPage, pageSize, searchTerm);
-  }, [currentPage, pageSize, searchTerm, fetchData]);
+    if (!skipFetch) {
+      fetchData(currentPage, pageSize, searchTerm);
+    }
+  }, [currentPage, pageSize, searchTerm, fetchData, skipFetch]);
 
   useEffect(() => {
     if (alertMessage) {
@@ -110,73 +116,83 @@ const Products = () => {
     }
   }, [alertMessage]);
 
-  const handleViewOrEdit = (product, viewOnly = false) => {
-    if (!product || !product.id) {
-      setAlertMessage('Sản phẩm không hợp lệ');
-      setAlertType('error');
-      return;
+  useEffect(() => {
+    if (skipFetch && currentPage === 0) {
+      setSkipFetch(false);
     }
-    const path = viewOnly
-      ? `/admin/san-pham-chi-tiet/${product.id}`
-      : `/admin/san-pham-chi-tiet/${product.id}`;
-    navigate(path, {
+  }, [currentPage, skipFetch]);
+
+  const handleViewOrEdit = useCallback((product, viewOnly = false) => {
+    navigate(`/admin/san-pham-chi-tiet/${product.id}`, {
       state: { isViewMode: viewOnly, product },
     });
-  };
+  }, [navigate]);
 
-  const handleAddProduct = () => {
+  const handleAddProduct = useCallback(() => {
     navigate('/admin/quan-ly-sp/them-san-pham');
-  };
+  }, [navigate]);
 
-  const handleDelete = async () => {
+  const handleToggleStatus = useCallback(async () => {
     try {
-      await getDeletedSP(confirmModal.id);
-      await fetchData(currentPage, pageSize, searchTerm);
-      const newStatus = confirmModal.currentStatus === 1 ? 'Hết Hàng' : 'Đang Bán';
-      setAlertMessage(`Đã thay đổi trạng thái sản phẩm sang "${newStatus}"`);
+      await toggleStatusSP(confirmModal.id);
+      setAlertMessage('Chuyển đổi trạng thái sản phẩm thành công');
       setAlertType('success');
+      await fetchData(currentPage, pageSize, searchTerm);
     } catch (err) {
-      setAlertMessage(`Cập nhật trạng thái thất bại: ${err.message}`);
+      setAlertMessage(err.message || 'Chuyển đổi trạng thái sản phẩm thất bại');
       setAlertType('error');
     } finally {
       setConfirmModal({ open: false, id: null, currentStatus: null });
     }
-  };
+  }, [confirmModal.id, currentPage, pageSize, searchTerm, fetchData]);
 
-  const handlePageChange = (event, value) => {
+  const handlePageChange = useCallback((event, value) => {
     setCurrentPage(value - 1);
-  };
+  }, []);
 
-  const handleSearchInput = (e) => {
+  const handleSearchInput = useCallback((e) => {
     setSearchInput(e.target.value);
     setError(null);
-  };
+  }, []);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     setSearchTerm(searchInput);
     setCurrentPage(0);
-  };
+  }, [searchInput]);
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchInput('');
     setSearchTerm('');
     setCurrentPage(0);
     setError(null);
-  };
+  }, []);
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter' && searchInput.trim()) {
       handleSearch();
     }
+  }, [handleSearch]);
+
+  const getStatusLabel = (trangThai, totalQuantity) => {
+    if (totalQuantity === 0) return 'Hết Hàng';
+    switch (trangThai) {
+      case 1:
+        return 'Đang Kinh Doanh';
+      case 2:
+        return 'Tạm Ngưng';
+      default:
+        return 'Không xác định';
+    }
   };
 
-  if (loading)
+  if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
         <CircularProgress color="warning" size={60} />
       </Box>
     );
-  if (error && !products.length)
+  }
+  if (error && !products.length) {
     return (
       <Box m={4}>
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -184,6 +200,7 @@ const Products = () => {
         </Alert>
       </Box>
     );
+  }
 
   return (
     <Box sx={{ bgcolor: '#fff', minHeight: '100vh', p: isMobile ? 1 : 4 }}>
@@ -206,6 +223,8 @@ const Products = () => {
               value={searchInput}
               onChange={handleSearchInput}
               onKeyPress={handleKeyPress}
+              error={!!error}
+              helperText={error}
               sx={{
                 borderRadius: 2,
                 bgcolor: '#fafafa',
@@ -233,7 +252,7 @@ const Products = () => {
                       <IconButton
                         color="warning"
                         onClick={handleSearch}
-                        disabled={!searchInput.trim()}
+                        disabled={!!error || !searchInput.trim()}
                         edge="end"
                         size="small"
                       >
@@ -269,30 +288,29 @@ const Products = () => {
         <Table size="small">
           <TableHead>
             <TableRow sx={{ bgcolor: orange }}>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: 48, border: 0 }}>#</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, minWidth: 120, border: 0 }}>MÃ SẢN PHẨM</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, minWidth: 180, border: 0 }}>TÊN SẢN PHẨM</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, minWidth: 80, border: 0 }}>TỔNG SỐ LƯỢNG</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, minWidth: 110, border: 0 }}>NGÀY TẠO</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, minWidth: 110, border: 0 }}>NGÀY SỬA</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, minWidth: 110, border: 0 }}>NGÀY XÓA</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, minWidth: 120, border: 0 }}>TRẠNG THÁI</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, minWidth: 120, border: 0 }}>HÀNH ĐỘNG</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '5%', border: 0 }}>#</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>MÃ SẢN PHẨM</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TÊN SẢN PHẨM</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TỔNG SỐ LƯỢNG</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY TẠO</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY SỬA</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TRẠNG THÁI</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '20%', border: 0 }}>HÀNH ĐỘNG</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {products.length > 0 ? (
+            {Array.isArray(products) && products.length > 0 ? (
               products.map((product, index) => (
                 <TableRow
                   key={product.id}
-                  hover
+                  hover及时
                   sx={{
                     transition: 'background 0.2s',
                     '&:hover': { backgroundColor: '#fffaf3' },
                     borderBottom: '1px solid #ffe0b2',
                   }}
                 >
-                  <TableCell align="center" sx={{ fontWeight: 600, color: orange, border: 0 }}>
+                  <TableCell align="center" sx={{ fontWeight: 600, color: black, border: 0 }}>
                     {index + 1 + currentPage * pageSize}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600, color: black, letterSpacing: 1, border: 0 }}>
@@ -309,11 +327,7 @@ const Products = () => {
                       }}>{product.ten}</span>
                     </Tooltip>
                   </TableCell>
-                  <TableCell sx={{
-                    fontWeight: 600,
-                    color: product.totalQuantity === 0 ? '#e53935' : orange,
-                    border: 0
-                  }}>
+                  <TableCell sx={{ fontWeight: 600, color: black, border: 0 }}>
                     {product.totalQuantity || 0}
                   </TableCell>
                   <TableCell sx={{ color: black, border: 0 }}>
@@ -322,47 +336,29 @@ const Products = () => {
                   <TableCell sx={{ color: black, border: 0 }}>
                     {product.ngaySua?.slice(0, 10) || '-'}
                   </TableCell>
-                  <TableCell sx={{ color: black, border: 0 }}>
-                    {product.ngayXoa?.slice(0, 10) || '-'}
-                  </TableCell>
                   <TableCell align="center" sx={{ border: 0 }}>
-                    {product.trangThai === 0 ? (
-                      <Chip
-                        label={product.totalQuantity > 0 ? 'Tạm Ngưng' : 'Hết Hàng'}
-                        icon={
-                          product.totalQuantity > 0
-                            ? <PauseCircleIcon sx={{ color: '#757575' }} />
-                            : <RemoveShoppingCartIcon sx={{ color: '#e53935' }} />
-                        }
-                        sx={{
-                          bgcolor: '#fff',
-                          color: product.totalQuantity > 0 ? black : '#e53935',
-                          fontWeight: 600,
-                          px: 1.5,
-                          fontSize: 14,
-                          border: '1px solid #eee',
-                          boxShadow: 'none',
-                        }}
-                      />
-                    ) : (
-                      <Chip
-                        label={product.totalQuantity === 0 ? 'Hết Hàng' : 'Đang Kinh Doanh'}
-                        icon={
-                          product.totalQuantity === 0
-                            ? <RemoveShoppingCartIcon sx={{ color: '#e53935' }} />
-                            : <CheckCircleIcon sx={{ color: orange }} />
-                        }
-                        sx={{
-                          bgcolor: product.totalQuantity === 0 ? '#fff' : '#fff',
-                          color: product.totalQuantity === 0 ? '#e53935' : orange,
-                          fontWeight: 600,
-                          px: 1.5,
-                          fontSize: 14,
-                          border: `1.5px solid ${product.totalQuantity === 0 ? '#e53935' : orange}`,
-                          boxShadow: 'none',
-                        }}
-                      />
-                    )}
+                    <Chip
+                      label={getStatusLabel(product.trangThai, product.totalQuantity)}
+                      icon={
+                        product.totalQuantity === 0 ? (
+                          <RemoveShoppingCartIcon sx={{ color: '#fff !important' }} />
+                        ) : product.trangThai === 1 ? (
+                          <CheckCircleIcon sx={{ color: '#fff !important' }} />
+                        ) : (
+                          <PauseCircleIcon sx={{ color: '#fff !important' }} />
+                        )
+                      }
+                      sx={{
+                        bgcolor:
+                          product.totalQuantity === 0 ? '#e53935' :
+                          product.trangThai === 1 ? '#a3e635' : '#6c757d',
+                        color: white,
+                        fontWeight: 600,
+                        px: 1.5,
+                        fontSize: 14,
+                        borderRadius: '16px',
+                      }}
+                    />
                   </TableCell>
                   <TableCell align="center" sx={{ border: 0 }}>
                     <Box display="flex" justifyContent="center" gap={0.5}>
@@ -371,10 +367,11 @@ const Products = () => {
                           sx={{
                             color: '#1976d2',
                             bgcolor: '#f4f8fd',
-                            borderRadius: 2,
+                            borderRadius: '50%',
+                            width: 30,
+                            height: 30,
                             transition: 'all 0.2s',
                             '&:hover': { bgcolor: '#e3f2fd', color: '#0d47a1' },
-                            p: 1,
                           }}
                           onClick={() => handleViewOrEdit(product, true)}
                           size="small"
@@ -382,43 +379,61 @@ const Products = () => {
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Sửa" arrow>
+                      {/* <Tooltip title="Sửa" arrow>
                         <IconButton
                           sx={{
-                            color: orange,
+                            color: '#ffca28',
                             bgcolor: '#fff7f0',
-                            borderRadius: 2,
+                            borderRadius: '50%',
+                            width: 30,
+                            height: 30,
                             transition: 'all 0.2s',
                             '&:hover': { bgcolor: '#ffe0b2', color: '#ff6f00' },
-                            p: 1,
                           }}
                           onClick={() => handleViewOrEdit(product, false)}
                           size="small"
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Thay đổi trạng thái" arrow>
-                        <IconButton
-                          sx={{
-                            color: '#e53935',
-                            bgcolor: '#fff6f6',
-                            borderRadius: 2,
-                            transition: 'all 0.2s',
-                            '&:hover': { bgcolor: '#ffeaea', color: '#b71c1c' },
-                            p: 1,
-                          }}
-                          onClick={() =>
-                            setConfirmModal({
-                              open: true,
-                              id: product.id,
-                              currentStatus: product.trangThai,
-                            })
-                          }
-                          size="small"
-                        >
-                          <SyncIcon fontSize="small" />
-                        </IconButton>
+                      </Tooltip> */}
+                      <Tooltip title={product.totalQuantity === 0 ? 'Không thể chuyển đổi trạng thái' : (product.trangThai === 1 ? 'Tạm ngưng' : 'Đang kinh doanh')} arrow>
+                        <span>
+                          <IconButton
+                            sx={{
+                              color: product.totalQuantity === 0
+                                ? '#b0bec5'
+                                : product.trangThai === 1
+                                  ? '#e53935' // đỏ khi đang kinh doanh (chuyển sang tạm ngưng)
+                                  : '#43a047', // xanh lá khi tạm ngưng (chuyển sang đang kinh doanh)
+                              bgcolor: product.totalQuantity === 0
+                                ? '#eceff1'
+                                : product.trangThai === 1
+                                  ? '#ffebee' // nền đỏ nhạt khi đang kinh doanh
+                                  : '#e8f5e9', // nền xanh nhạt khi tạm ngưng
+                              borderRadius: '50%',
+                              width: 30,
+                              height: 30,
+                              transition: 'all 0.2s',
+                              '&:hover': product.totalQuantity === 0
+                                ? {}
+                                : product.trangThai === 1
+                                  ? { bgcolor: '#ffcdd2', color: '#b71c1c' } // hover đỏ đậm
+                                  : { bgcolor: '#c8e6c9', color: '#1b5e20' }, // hover xanh đậm
+                            }}
+                            onClick={() =>
+                              product.totalQuantity !== 0 &&
+                              setConfirmModal({
+                                open: true,
+                                id: product.id,
+                                currentStatus: product.trangThai,
+                              })
+                            }
+                            disabled={product.totalQuantity === 0}
+                            size="small"
+                          >
+                            <SyncIcon fontSize="small" />
+                          </IconButton>
+                        </span>
                       </Tooltip>
                     </Box>
                   </TableCell>
@@ -426,7 +441,7 @@ const Products = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} align="center">
+                <TableCell colSpan={8} align="center">
                   <Typography color="text.secondary" fontSize={18}>
                     {searchTerm
                       ? `Không tìm thấy sản phẩm phù hợp với "${searchTerm}"`
@@ -479,8 +494,8 @@ const Products = () => {
         <DialogTitle>Xác nhận</DialogTitle>
         <DialogContent>
           <Typography>
-            Bạn có chắc muốn thay đổi trạng thái sản phẩm sang "
-            {confirmModal.currentStatus === 1 ? 'Hết Hàng' : 'Đang Bán'}"?
+            Bạn có chắc muốn chuyển trạng thái sản phẩm sang "
+            {confirmModal.currentStatus === 1 ? 'Tạm Ngưng' : 'Đang Kinh Doanh'}"?
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -491,7 +506,7 @@ const Products = () => {
           >
             Hủy
           </Button>
-          <OrangeButton variant="contained" onClick={handleDelete}>
+          <OrangeButton variant="contained" onClick={handleToggleStatus}>
             Xác nhận
           </OrangeButton>
         </DialogActions>

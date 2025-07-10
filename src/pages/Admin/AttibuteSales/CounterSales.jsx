@@ -427,7 +427,7 @@ const CounterSales = () => {
                           onChange={() =>
                             setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 2 }))
                           }
-                        /> Tại quầy &nbsp;
+                        /> Tiền mặt &nbsp;
                         <input
                           type="radio"
                           name={`tt-${hd.id}`}
@@ -435,7 +435,7 @@ const CounterSales = () => {
                           onChange={() =>
                             setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 3 }))
                           }
-                        /> Quét mã QR
+                        /> chuyển khoản
                       </>
                     ) : (
                       // Tại quầy: 2 lựa chọn (giá trị 2 và 3)
@@ -447,7 +447,7 @@ const CounterSales = () => {
                           onChange={() =>
                             setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 2 }))
                           }
-                        /> Tại quầy &nbsp;
+                        /> Tiền mặt &nbsp;
                         <input
                           type="radio"
                           name={`tt-${hd.id}`}
@@ -455,7 +455,7 @@ const CounterSales = () => {
                           onChange={() =>
                             setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 3 }))
                           }
-                        /> Quét mã QR
+                        /> Chuyển Khoản
                       </>
                     )}
                     <div className="mt-2">

@@ -106,3 +106,34 @@ export const searchHoaDonById = async (id) => {
         );
     }
 }
+
+// Hàm gọi API tìm kiếm hóa đơn theo số tháng gần đây
+export const getHoaDonByMonths = async (months) => {
+    try {
+        const response = await axiosInstance.get('/theo-thang', {
+            params: { months },
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(
+            error.response?.data?.error || 'Không thể lấy hóa đơn theo số tháng'
+        );
+    }
+};
+
+// Hàm gọi API tìm kiếm hóa đơn theo ngày bắt đầu và kết thúc
+export const getHoaDonByNgayBatDauVaKetThuc = async (startDate, endDate) => {
+    try {
+        const response = await axiosInstance.get('/theo-ngay', {
+            params: {
+                start: startDate,
+                end: endDate,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(
+            error.response?.data?.error || 'Không thể lấy hóa đơn theo khoảng ngày'
+        );
+    }
+};

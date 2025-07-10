@@ -5,34 +5,111 @@ import {
   addSanPhamCt,
   updateSanPhamCt,
   deleteSanPhamCt,
-  searchSanPhamCtByTen,
+  searchSanPhamCtByMa,
+  filterSanPhamCt,
+  axiosPublicInstance,
 } from '../../../services/Admin/SanPhamCTService';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { getHinhAnhByMauSacId, uploadHinhAnhMauSac } from '../../../services/Admin/HinhAnhMauSacService';
 import {
-  faPlus,
-  faEye,
-  faEdit,
-  faTrash,
-  faSearch,
-  faFileExcel,
-  faQrcode,
-  faArrowLeft,
-  faSync,
-} from '@fortawesome/free-solid-svg-icons';
-import axios from 'axios';
+  Box,
+  Button,
+  Typography,
+  TextField,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  Grid,
+  useMediaQuery,
+  Pagination,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from '@mui/material';
+import { useTheme, styled } from '@mui/material/styles';
+import {
+  Add as AddIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Sync as SyncIcon,
+  Search as SearchIcon,
+  Close as CloseIcon,
+  Image as ImageIcon,
+  ArrowBack as ArrowBackIcon,
+} from '@mui/icons-material';
+import { toast } from 'react-toastify';
 
-// Định nghĩa BASE_URL và STATIC_URL riêng
-const BASE_URL = 'http://localhost:8080/api'; // Dành cho API endpoint
-const STATIC_URL = 'http://localhost:8080'; // Dành cho tài nguyên tĩnh (hình ảnh)
+const orange = '#ff8800';
+const black = '#222';
+const white = '#fff';
+const STATIC_URL = import.meta.env.VITE_STATIC_URL || 'http://localhost:8080';
+const DEFAULT_IMAGE = '/default-image.jpg';
+
+// Nội dung từ tài liệu image.png
+const documentContent = `manage inventory product detail item list catalog stock goods merchandise article supply stockpile assortment collection range variety array selection batch lot bundle package unit piece equipment gear accessory luggage bag backpack rucksack knapsack travel gear travel bag travel pack premium quality high-end top-notch superior excellent fine best top-grade elite luxury upscale premium brand name label maker manufacturer producer supplier vendor retailer seller distributor trader dealer shop store outlet market bazaar emporium mart color hue shade tint tone pigment dye paint coating finish material fabric textile cloth weave thread yarn fiber polyester nylon canvas leather vinyl plastic rubber metal alloy steel aluminum wood bamboo dimensions size length width height depth volume capacity weight measurement scale proportion ratio extent magnitude quantity amount number total sum aggregate bulk mass load cargo freight shipment consignment parcel crate box case container vessel holder carrier packager wrapper cover lid cap top bottom side edge corner angle surface area space room capacity storage warehouse depot shed yard facility plant factory workshop studio atelier loft garage shed barn stable pen coop cage enclosure penfold corral yardage acreage plot tract field ground land terrain territory region zone district area sector division part portion segment section piece fraction component element constituent ingredient factor aspect feature characteristic attribute property quality trait aspect facet side angle perspective view point standpoint position stance posture attitude approach method technique style fashion mode trend vogue craze rage fad hit sensation popularity demand request order booking reservation appointment schedule timetable calendar agenda program plan scheme design blueprint draft outline sketch drawing illustration depiction representation portrayal picture image photo photograph snapshot shot capture record log journal diary chronicle history archive recordkeeping documentation paperwork filing organization arrangement coordination management administration supervision oversight control governance direction leadership guidance instruction command authority rule regulation law policy guideline standard criterion benchmark measure yardstick gauge indicator signal sign mark token symbol emblem logo insignia badge crest seal stamp imprint impression trace track footprint evidence proof confirmation verification validation authentication certification accreditation approval endorsement sanction ratification acceptance recognition acknowledgment admission confession declaration statement announcement proclamation notice bulletin advisory warning alert caution advice recommendation suggestion proposal offer bid quote estimate appraisal evaluation assessment review critique analysis examination inspection scrutiny survey study research investigation exploration probe inquiry search quest pursuit chase hunt seeking tracking tracing following monitoring observation watching viewing looking seeing gazing staring peering glancing peeking spying scouting reconnoitering surveying mapping charting plotting navigating steering guiding piloting directing leading conducting managing handling operating running functioning working performing executing implementing carrying executing fulfilling completing finishing concluding ending terminating closing wrapping up tying off sealing off locking securing fastening binding tying knotting lacing threading weaving stitching sewing knitting crocheting braiding plaiting twisting turning spinning rotating revolving circling orbiting wheeling pivoting swiveling twirling whirling spinning top gyro top spinner whirlgig fidget toy plaything game amusement entertainment recreation pastime hobby interest passion enthusiasm zeal`;
+
+const OrangeButton = styled(Button)(({ theme }) => ({
+  backgroundColor: orange,
+  color: white,
+  '&:hover': {
+    backgroundColor: '#ff9900',
+  },
+  borderRadius: 12,
+  textTransform: 'none',
+  fontWeight: 600,
+  boxShadow: '0 2px 8px rgba(255,136,0,0.3)',
+  padding: '10px 24px',
+}));
+
+const StyledFormControl = styled(FormControl)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '8px',
+    backgroundColor: white,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: orange,
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: orange,
+      borderWidth: '2px',
+    },
+  },
+  '& .MuiInputLabel-root': {
+    fontWeight: 600,
+    color: black,
+    fontSize: '1.1rem',
+    '&.Mui-focused': {
+      color: orange,
+    },
+  },
+  '& .MuiSelect-select': {
+    padding: '14px 16px',
+    fontSize: '1rem',
+  },
+}));
 
 const SanPhamCtPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [sanPhamCts, setSanPhamCts] = useState([]);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -51,13 +128,24 @@ const SanPhamCtPage = () => {
     soLuong: '',
     moTa: '',
     trangThai: 1,
+    imagePreview: null,
+  });
+  const [filterData, setFilterData] = useState({
+    sanPhamId: parseInt(id) || null,
+    mauSacId: null,
+    thuongHieuId: null,
+    kichThuocId: null,
+    xuatXuId: null,
+    chatLieuId: null,
   });
   const [formErrors, setFormErrors] = useState({});
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState('success');
   const [confirmModal, setConfirmModal] = useState({ open: false, id: null });
   const [currentPage, setCurrentPage] = useState(0);
+  const [imagePage, setImagePage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
+  const [imagesPerPage] = useState(12);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [dropdownData, setDropdownData] = useState({
@@ -68,55 +156,71 @@ const SanPhamCtPage = () => {
     chatLieu: [],
     hinhAnhMauSac: [],
   });
+  const [imageModal, setImageModal] = useState({ open: false });
+  const [documentModal, setDocumentModal] = useState({ open: false });
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const imageCache = new Map();
 
-  const fetchDropdownData = useCallback(async () => {
+  const fetchDropdownData = useCallback(async (signal) => {
     try {
-      console.log('Fetching dropdown data...');
-      const token = localStorage.getItem('jwtToken');
-      const [mauSacRes, thuongHieuRes, kichThuocRes, xuatXuRes, chatLieuRes, hinhAnhRes] = await Promise.all([
-        axios.get(`${BASE_URL}/mau-sac/all`, {
-          params: { page: 0, size: 100 },
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${BASE_URL}/thuong-hieu/all`, {
-          params: { page: 0, size: 100 },
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${BASE_URL}/kich-thuoc/all`, {
-          params: { page: 0, size: 100 },
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${BASE_URL}/xuat-xu/all`, {
-          params: { page: 0, size: 100 },
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${BASE_URL}/chat-lieu/all`, {
-          params: { page: 0, size: 100 },
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${BASE_URL}/hinh-anh-mau-sac/all`, {
-          params: { page: 0, size: 100 },
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        }),
+      setLoading(true);
+      const [mauSacRes, thuongHieuRes, kichThuocRes, xuatXuRes, chatLieuRes] = await Promise.all([
+        axiosPublicInstance.get('/mau-sac/active', { params: { page: 0, size: 100 }, signal }),
+        axiosPublicInstance.get('/thuong-hieu/all', { params: { page: 0, size: 100 }, signal }),
+        axiosPublicInstance.get('/kich-thuoc/all', { params: { page: 0, size: 100 }, signal }),
+        axiosPublicInstance.get('/xuat-xu/all', { params: { page: 0, size: 100 }, signal }),
+        axiosPublicInstance.get('/chat-lieu/all', { params: { page: 0, size: 100 }, signal }),
       ]);
-      // Điều chỉnh URL hình ảnh
-      const adjustedHinhAnhMauSac = hinhAnhRes.data.content.map((item) => ({
-        ...item,
-        hinhAnh: item.hinhAnh.startsWith('http') ? item.hinhAnh : `${STATIC_URL}${item.hinhAnh}`,
-      }));
-      setDropdownData({
+      setDropdownData((prev) => ({
+        ...prev,
         mauSac: mauSacRes.data.content || [],
         thuongHieu: thuongHieuRes.data.content || [],
         kichThuoc: kichThuocRes.data.content || [],
         xuatXu: xuatXuRes.data.content || [],
         chatLieu: chatLieuRes.data.content || [],
-        hinhAnhMauSac: adjustedHinhAnhMauSac || [],
-      });
+      }));
     } catch (err) {
-      console.error('Error fetching dropdown data:', err);
-      
+      if (err.code === 'ERR_CANCELED') return;
+      setAlertMessage(`Không thể tải dữ liệu dropdown: ${err.message}`);
+      setAlertType('error');
+    } finally {
+      setLoading(false);
     }
-  }, [navigate]);
+  }, []);
+
+  const fetchHinhAnhByMauSacIds = useCallback(async (mauSacIds) => {
+    if (!mauSacIds || mauSacIds.length === 0) return;
+    const newMauSacIds = mauSacIds.filter((id) => !imageCache.has(id));
+    if (newMauSacIds.length === 0) return;
+
+    try {
+      setImageLoading(true);
+      const hinhAnhPromises = newMauSacIds.map((mauSacId) =>
+        getHinhAnhByMauSacId(mauSacId).catch((err) => {
+          console.error(`Error fetching images for mauSacId ${mauSacId}:`, err);
+          return [];
+        })
+      );
+      const hinhAnhResponses = await Promise.all(hinhAnhPromises);
+      const hinhAnhList = hinhAnhResponses.flat();
+
+      newMauSacIds.forEach((id, index) => imageCache.set(id, hinhAnhResponses[index]));
+      setDropdownData((prev) => ({
+        ...prev,
+        hinhAnhMauSac: [
+          ...hinhAnhList,
+          ...prev.hinhAnhMauSac.filter((img) => !hinhAnhList.some((newImg) => newImg.id === img.id)),
+        ],
+      }));
+    } catch (err) {
+      console.error('Fetch hinh anh error:', err);
+      setAlertMessage(`Không thể tải hình ảnh: ${err.message}`);
+      setAlertType('error');
+    } finally {
+      setImageLoading(false);
+    }
+  }, []);
 
   const fetchData = useCallback(
     async (page, size) => {
@@ -128,32 +232,45 @@ const SanPhamCtPage = () => {
         }
         let response;
         if (searchTerm.trim()) {
-          response = await searchSanPhamCtByTen(searchTerm, page, size);
+          response = await searchSanPhamCtByMa(searchTerm.trim(), page, size);
+        } else if (
+          filterData.mauSacId ||
+          filterData.thuongHieuId ||
+          filterData.kichThuocId ||
+          filterData.xuatXuId ||
+          filterData.chatLieuId
+        ) {
+          response = await filterSanPhamCt({
+            ...filterData,
+            page,
+            size,
+          });
         } else {
           response = await getSanPhamCtBySanPhamId(id, page, size);
         }
         setSanPhamCts(response.content || []);
         setTotalPages(response.totalPages || 0);
         setTotalElements(response.totalElements || 0);
+        const mauSacIds = [...new Set(response.content.map((spct) => spct.mauSacId).filter(Boolean))];
+        await fetchHinhAnhByMauSacIds(mauSacIds);
       } catch (err) {
-        console.error('Error fetching data:', err);
-        if (err.message === 'Phiên đăng nhập đã hết hạn') {
-          setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-          navigate('/login');
-        } else {
-          setError(err.message || 'Không thể tải dữ liệu từ server');
-        }
+        setError(err.message || 'Không thể tải dữ liệu từ server');
+        setSanPhamCts([]);
+        setTotalPages(0);
+        setTotalElements(0);
       } finally {
         setLoading(false);
         setSearchLoading(false);
       }
     },
-    [id, searchTerm, navigate]
+    [id, searchTerm, filterData, fetchHinhAnhByMauSacIds]
   );
 
   useEffect(() => {
-    fetchDropdownData();
+    const controller = new AbortController();
+    fetchDropdownData(controller.signal);
     fetchData(currentPage, pageSize);
+    return () => controller.abort();
   }, [currentPage, pageSize, fetchData, fetchDropdownData]);
 
   useEffect(() => {
@@ -165,38 +282,30 @@ const SanPhamCtPage = () => {
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.sanPhamId || formData.sanPhamId <= 0) {
-      errors.sanPhamId = 'ID sản phẩm không hợp lệ';
-    }
-    if (!formData.mauSacId) {
-      errors.mauSacId = 'Màu sắc không được để trống';
-    }
-    if (!formData.thuongHieuId) {
-      errors.thuongHieuId = 'Thương hiệu không được để trống';
-    }
-    if (!formData.kichThuocId) {
-      errors.kichThuocId = 'Kích thước không được để trống';
-    }
-    if (!formData.xuatXuId) {
-      errors.xuatXuId = 'Xuất xứ không được để trống';
-    }
-    if (!formData.chatLieuId) {
-      errors.chatLieuId = 'Chất liệu không được để trống';
-    }
-    if (formData.hinhAnhMauSacId && formData.hinhAnhMauSacId <= 0) {
-      errors.hinhAnhMauSacId = 'ID hình ảnh màu sắc không hợp lệ';
-    }
-    if (!formData.giaBan || isNaN(Number(formData.giaBan)) || Number(formData.giaBan) <= 0) {
-      errors.giaBan = 'Giá bán phải là số và lớn hơn 0';
-    }
-    if (formData.soLuong === null || isNaN(Number(formData.soLuong)) || Number(formData.soLuong) < 0) {
-      errors.soLuong = 'Số lượng phải là số và không được nhỏ hơn 0';
-    }
-    if (formData.giaNhap && (isNaN(Number(formData.giaNhap)) || Number(formData.giaNhap) < 0)) {
-      errors.giaNhap = 'Giá nhập phải là số và không âm';
-    }
-    if (selectedSanPhamCt && (!formData.ma || formData.ma.trim().length === 0)) {
-      errors.ma = 'Mã sản phẩm chi tiết không được để trống';
+    if (!formData.sanPhamId || formData.sanPhamId <= 0) errors.sanPhamId = 'ID sản phẩm không hợp lệ';
+    if (!formData.mauSacId) errors.mauSacId = 'Màu sắc không được để trống';
+    if (!formData.thuongHieuId) errors.thuongHieuId = 'Thương hiệu không được để trống';
+    if (!formData.kichThuocId) errors.kichThuocId = 'Kích thước không được để trống';
+    if (!formData.xuatXuId) errors.xuatXuId = 'Xuất xứ không được để trống';
+    if (!formData.chatLieuId) errors.chatLieuId = 'Chất liệu không được để trống';
+    if (formData.giaBan === '' || isNaN(Number(formData.giaBan)) || Number(formData.giaBan) <= 0)
+      errors.giaBan = 'Giá bán phải lớn hơn 0';
+    if (formData.soLuong === '' || isNaN(Number(formData.soLuong)) || Number(formData.soLuong) < 0)
+      errors.soLuong = 'Số lượng không được nhỏ hơn 0';
+    if (formData.giaNhap && (isNaN(Number(formData.giaNhap)) || Number(formData.giaNhap) < 0))
+      errors.giaNhap = 'Giá nhập không được nhỏ hơn 0';
+    if (formData.moTa && formData.moTa.length > 255) errors.moTa = 'Mô tả không được vượt quá 255 ký tự';
+    if (!formData.ma.trim()) errors.ma = 'Mã sản phẩm chi tiết không được để trống';
+    if (Number(formData.soLuong) > 0 && formData.trangThai === 0)
+      errors.trangThai = 'Trạng thái Hết Hàng chỉ áp dụng khi số lượng bằng 0';
+    if (formData.mauSacId && formData.thuongHieuId && formData.kichThuocId) {
+      const key = `${formData.mauSacId}-${formData.thuongHieuId}-${formData.kichThuocId}`;
+      const duplicates = sanPhamCts
+        .filter((spct) => spct.id !== (selectedSanPhamCt?.id || null))
+        .filter((spct) => `${spct.mauSacId}-${spct.thuongHieuId}-${spct.kichThuocId}` === key);
+      if (duplicates.length > 0) {
+        errors.combination = 'Kết hợp màu sắc, thương hiệu, kích thước đã tồn tại';
+      }
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -211,12 +320,13 @@ const SanPhamCtPage = () => {
       xuatXuId: null,
       chatLieuId: null,
       hinhAnhMauSacId: null,
-      ma: '',
+      ma: `CT-${crypto.randomUUID().substring(0, 8)}`,
       giaNhap: '',
       giaBan: '',
       soLuong: '',
       moTa: '',
       trangThai: 1,
+      imagePreview: null,
     });
     setFormErrors({});
     setAlertMessage('');
@@ -226,6 +336,7 @@ const SanPhamCtPage = () => {
   };
 
   const handleViewOrEdit = (sanPhamCt, viewOnly = false) => {
+    const image = dropdownData.hinhAnhMauSac.find((img) => img.id === sanPhamCt.hinhAnhMauSacId);
     setFormData({
       id: sanPhamCt.id,
       sanPhamId: parseInt(id) || 0,
@@ -235,13 +346,17 @@ const SanPhamCtPage = () => {
       xuatXuId: sanPhamCt.xuatXuId || null,
       chatLieuId: sanPhamCt.chatLieuId || null,
       hinhAnhMauSacId: sanPhamCt.hinhAnhMauSacId || null,
-      ma: sanPhamCt.ma || '',
+      ma: sanPhamCt.ma || `CT-${crypto.randomUUID().substring(0, 8)}`,
       giaNhap: sanPhamCt.giaNhap || '',
       giaBan: sanPhamCt.giaBan || '',
       soLuong: sanPhamCt.soLuong || '',
       moTa: sanPhamCt.moTa || '',
       trangThai: sanPhamCt.trangThai || 1,
+      imagePreview: image ? image.hinhAnh : null,
     });
+    if (!image && sanPhamCt.mauSacId) {
+      fetchHinhAnhByMauSacIds([sanPhamCt.mauSacId]);
+    }
     setFormErrors({});
     setAlertMessage('');
     setSelectedSanPhamCt(sanPhamCt);
@@ -249,777 +364,1152 @@ const SanPhamCtPage = () => {
     setIsModalOpen(true);
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      toast.error('Vui lòng chọn một file hình ảnh');
+      return;
+    }
+    if (!formData.mauSacId) {
+      toast.error('Vui lòng chọn màu sắc trước khi tải ảnh');
+      return;
+    }
+    try {
+      const response = await uploadHinhAnhMauSac(file, formData.mauSacId);
+      const imageUrl = response.hinhAnh.startsWith('/uploads/')
+        ? `${STATIC_URL}${response.hinhAnh}`
+        : `${STATIC_URL}/uploads/${response.hinhAnh}`;
+      setFormData({
+        ...formData,
+        hinhAnhMauSacId: response.id,
+        imagePreview: imageUrl,
+      });
+      toast.success('Tải ảnh lên thành công');
+      await fetchHinhAnhByMauSacIds([formData.mauSacId]);
+    } catch (err) {
+      toast.error(`Tải ảnh thất bại: ${err.message}`);
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
       setAlertMessage('Vui lòng kiểm tra lại thông tin nhập');
-      setAlertType('danger');
+      setAlertType('error');
+      const firstErrorField = document.querySelector('.Mui-error');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
-
     try {
+      setLoading(true);
+      let updatedTrangThai = formData.trangThai;
+      if (Number(formData.soLuong) === 0 && formData.trangThai !== 2) {
+        updatedTrangThai = 0;
+      } else if (Number(formData.soLuong) > 0 && formData.trangThai === 0) {
+        updatedTrangThai = 1;
+      }
       const sanPhamCtToSave = {
         ...formData,
-        giaNhap: formData.giaNhap ? Number(formData.giaNhap) : null,
+        giaNhap: formData.giaNhap === '' ? null : Number(formData.giaNhap),
         giaBan: Number(formData.giaBan),
         soLuong: Number(formData.soLuong),
+        trangThai: updatedTrangThai,
         ngayTao: selectedSanPhamCt ? formData.ngayTao : new Date().toISOString(),
         ngaySua: new Date().toISOString(),
-        ngayXoa: formData.trangThai === 0 ? new Date().toISOString() : null,
+        ngayXoa: updatedTrangThai === 2 ? new Date().toISOString() : null,
       };
-
       if (selectedSanPhamCt) {
         await updateSanPhamCt(selectedSanPhamCt.id, sanPhamCtToSave);
-        setAlertMessage(`Cập nhật sản phẩm chi tiết "${sanPhamCtToSave.ma}" thành công`);
+        toast.success(`Cập nhật sản phẩm chi tiết "${sanPhamCtToSave.ma}" thành công`);
       } else {
         await addSanPhamCt(sanPhamCtToSave);
-        setAlertMessage(`Thêm sản phẩm chi tiết thành công`);
+        toast.success(`Thêm sản phẩm chi tiết "${sanPhamCtToSave.ma}" thành công`);
       }
-      setAlertType('success');
       setIsModalOpen(false);
       await fetchData(currentPage, pageSize);
     } catch (err) {
-      console.error('Error saving data:', err);
-      if (err.message === 'Phiên đăng nhập đã hết hạn') {
-        setAlertMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-        navigate('/login');
-      } else {
-        setAlertMessage(`Thao tác thất bại: ${err.message}`);
-      }
-      setAlertType('danger');
+      console.error('API Error:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Thao tác thất bại, vui lòng kiểm tra lại';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async () => {
     try {
+      setLoading(true);
       await deleteSanPhamCt(confirmModal.id);
-      setAlertMessage('Cập nhật trạng thái thành công');
-      setAlertType('success');
+      toast.success('Cập nhật trạng thái sản phẩm chi tiết thành Tạm Ngưng thành công');
       await fetchData(currentPage, pageSize);
     } catch (err) {
-      console.error('Error deleting data:', err);
-      if (err.message === 'Phiên đăng nhập đã hết hạn') {
-        setAlertMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-        navigate('/login');
-      } else {
-        setAlertMessage(`Xóa thất bại: ${err.message}`);
-      }
-      setAlertType('danger');
+      toast.error(err.message || 'Cập nhật trạng thái thất bại');
     } finally {
       setConfirmModal({ open: false, id: null });
+      setLoading(false);
     }
   };
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilterData({
+      ...filterData,
+      [name]: value === '' ? null : parseInt(value),
+    });
+    setCurrentPage(0);
   };
 
-  const handleSearch = () => {
-    setSearchLoading(true);
-    setCurrentPage(0);
-    fetchData(0, pageSize);
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value - 1);
   };
 
   const handleSearchInput = (e) => {
-    setSearchTerm(e.target.value);
-    if (e.target.value && !/^[\p{L}\s\d]+$/u.test(e.target.value.trim())) {
-      setError('Tên tìm kiếm chỉ được chứa chữ cái, số và khoảng trắng');
-    } else {
-      setError(null);
+    setSearchInput(e.target.value);
+  };
+
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+    setCurrentPage(0);
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setSearchTerm('');
+    setCurrentPage(0);
+    setError(null);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && searchInput.trim()) {
+      handleSearch();
     }
   };
 
-  const getPaginationItems = () => {
-    const maxPagesToShow = 5;
-    const startPage = Math.max(0, currentPage - Math.floor(maxPagesToShow / 2));
-    const endPage = Math.min(totalPages, startPage + maxPagesToShow);
-    return Array.from({ length: endPage - startPage }, (_, i) => startPage + i);
+  const handleImageSelect = (hinhAnhId) => {
+    const selectedImage = dropdownData.hinhAnhMauSac.find((img) => img.id === hinhAnhId);
+    setFormData({ ...formData, hinhAnhMauSacId: hinhAnhId, imagePreview: selectedImage?.hinhAnh || DEFAULT_IMAGE });
+    setImageModal({ open: false });
   };
 
-  if (loading) return <div className="text-center mt-5">Đang tải...</div>;
-  if (error) {
+  // Lọc hình ảnh theo mauSacId đã chọn
+  const displayedImages = formData.mauSacId
+    ? dropdownData.hinhAnhMauSac
+        .filter((img) => img.mauSacId === formData.mauSacId)
+        .slice(imagePage * imagesPerPage, (imagePage + 1) * imagesPerPage)
+    : [];
+
+  const handleOpenDocument = () => {
+    setDocumentModal({ open: true });
+  };
+
+  if (loading && sanPhamCts.length === 0) {
     return (
-      <div className="alert alert-danger m-4">
-        {error}
-        <br />
-        <button
-          className="btn btn-outline-primary mt-2"
-          onClick={() => {
-            setError(null);
-            fetchDropdownData();
-            fetchData(currentPage, pageSize);
-          }}
-        >
-          Thử lại
-        </button>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress color="warning" size={60} />
+      </Box>
     );
   }
 
   return (
-    <div className="container-fluid p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-      <div className="d-flex align-items-center mb-4">
-        <button
-          className="btn btn-outline-secondary me-3"
-          onClick={() => navigate('/admin/quan-ly-sp/san-pham')}
-          title="Quay lại"
+    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', p: isMobile ? 2 : 4 }} className="font-sans">
+      <Box display="flex" alignItems="center" mb={3}>
+        <IconButton onClick={() => navigate('/admin/quan-ly-sp/san-pham')} sx={{ color: black, mr: 2 }}>
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography
+          variant={isMobile ? 'h5' : 'h4'}
+          fontWeight={700}
+          color={black}
+          align="center"
+          sx={{ letterSpacing: 2, flexGrow: 1 }}
         >
-          <FontAwesomeIcon icon={faArrowLeft} /> Quay lại
-        </button>
-        <h1 className="text-center text-black fw-bold flex-grow-1" style={{ letterSpacing: '2px' }}>
-          SẢN PHẨM CHI TIẾT
-        </h1>
-      </div>
-      <div className="d-flex justify-content-between mb-4 flex-wrap gap-3">
-        <div className="d-flex gap-2 align-items-center flex-wrap">
-          <div className="position-relative w-auto">
-            <input
-              type="text"
-              className={`form-control shadow-sm ${error ? 'is-invalid' : ''}`}
-              placeholder="Tìm kiếm sản phẩm chi tiết..."
-              value={searchTerm}
-              onChange={handleSearchInput}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              style={{ borderRadius: '12px', borderColor: '#000000', padding: '0.5rem 1rem', maxWidth: '250px' }}
-            />
-            {error && <div className="invalid-feedback">{error}</div>}
-          </div>
-          <button
-            className="btn btn-primary shadow-sm"
-            onClick={handleSearch}
-            title="Tìm kiếm"
-            disabled={searchLoading}
-            style={{ borderRadius: '12px', padding: '0.5rem 1rem' }}
+          QUẢN LÝ SẢN PHẨM CHI TIẾT
+        </Typography>
+      </Box>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+          {error}
+          <Button
+            onClick={() => {
+              setError(null);
+              const controller = new AbortController();
+              fetchDropdownData(controller.signal);
+              fetchData(currentPage, pageSize);
+            }}
+            sx={{ ml: 2 }}
           >
-            {searchLoading ? (
-              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            ) : (
-              <>
-                <FontAwesomeIcon icon={faSearch} style={{ fontSize: '1rem' }} /> Tìm
-              </>
-            )}
-          </button>
-        </div>
-        <div className="d-flex gap-2">
-          <button className="btn btn-success shadow-sm" style={{ borderRadius: '12px' }} disabled>
-            <FontAwesomeIcon icon={faFileExcel} /> Xuất Excel
-          </button>
-          <button className="btn btn-info shadow-sm" style={{ borderRadius: '12px' }} disabled>
-            <FontAwesomeIcon icon={faQrcode} /> Xuất QR Code
-          </button>
-          <button
-            className="btn btn-primary shadow-sm"
-            onClick={handleAdd}
-            title="Thêm Sản Phẩm Chi Tiết"
-          >
-            <FontAwesomeIcon icon={faPlus} style={{ fontSize: '1rem' }} /> Thêm sản phẩm chi tiết
-          </button>
-        </div>
-      </div>
-      <div className="table-responsive shadow-lg rounded-3 overflow-hidden border border-light">
-        <table className="table table-hover mb-0 align-middle" style={{ fontSize: '0.9rem' }}>
-          <thead className="table-dark text-uppercase" style={{ backgroundColor: '#343a40' }}>
-            <tr>
-              <th scope="col" className="py-2 px-3 text-center" style={{ width: '5%' }}>
-                #
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '15%' }}>
-                Tên *
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
-                Mã *
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
-                Màu Sắc *
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
-                Kích Thước *
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
-                Thương Hiệu *
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
-                Xuất Xứ *
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
-                Chất Liệu *
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
-                Giá *
-              </th>
-              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
-                Số Lượng *
-              </th>
-              <th scope="col" className="py-2 px-3 text-center" style={{ width: '10%' }}>
-                Trạng Thái *
-              </th>
-              <th scope="col" className="py-2 px-3 text-center" style={{ width: '10%' }}>
-                Hành Động
-              </th>
-            </tr>
-          </thead>
-          <tbody style={{ backgroundColor: '#ffffff' }}>
+            Thử lại
+          </Button>
+        </Alert>
+      )}
+      <Grid container spacing={2} alignItems="center" mb={3}>
+        <Grid item xs={12}>
+          <TextField
+            variant="outlined"
+            size="small"
+            placeholder="Tìm kiếm theo mã..."
+            value={searchInput}
+            onChange={handleSearchInput}
+            onKeyPress={handleKeyPress}
+            error={!!error}
+            helperText={error}
+            sx={{
+              borderRadius: 2,
+              bgcolor: '#f9fafb',
+              maxWidth: isMobile ? '100%' : 500,
+              width: '100%',
+              '& .MuiOutlinedInput-root': { borderRadius: 2 },
+            }}
+            InputProps={{
+              endAdornment: (
+                <>
+                  {searchInput && (
+                    <IconButton
+                      color="default"
+                      onClick={handleClearSearch}
+                      edge="end"
+                      size="small"
+                      sx={{ mr: searchLoading ? 1 : 0 }}
+                    >
+                      <CloseIcon />
+                    </IconButton>
+                  )}
+                  {searchLoading ? (
+                    <CircularProgress size={20} color="warning" />
+                  ) : (
+                    <IconButton
+                      color="warning"
+                      onClick={handleSearch}
+                      disabled={!!error || !searchInput.trim()}
+                      edge="end"
+                      size="small"
+                    >
+                      <SearchIcon />
+                    </IconButton>
+                  )}
+                </>
+              ),
+            }}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
+              <InputLabel>Màu Sắc</InputLabel>
+              <Select
+                name="mauSacId"
+                value={filterData.mauSacId || ''}
+                onChange={handleFilterChange}
+                label="Màu Sắc"
+                size="small"
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="">Chọn màu sắc...</MenuItem>
+                {dropdownData.mauSac.map((option) => (
+                  <MenuItem key={option.id} value={option.id}>
+                    {option.ten}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
+              <InputLabel>Thương Hiệu</InputLabel>
+              <Select
+                name="thuongHieuId"
+                value={filterData.thuongHieuId || ''}
+                onChange={handleFilterChange}
+                label="Thương Hiệu"
+                size="small"
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="">Chọn thương hiệu...</MenuItem>
+                {dropdownData.thuongHieu.map((option) => (
+                  <MenuItem key={option.id} value={option.id}>
+                    {option.ten}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
+              <InputLabel>Kích Thước</InputLabel>
+              <Select
+                name="kichThuocId"
+                value={filterData.kichThuocId || ''}
+                onChange={handleFilterChange}
+                label="Kích Thước"
+                size="small"
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="">Chọn kích thước...</MenuItem>
+                {dropdownData.kichThuoc.map((option) => (
+                  <MenuItem key={option.id} value={option.id}>
+                    {option.ten}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
+              <InputLabel>Xuất Xứ</InputLabel>
+              <Select
+                name="xuatXuId"
+                value={filterData.xuatXuId || ''}
+                onChange={handleFilterChange}
+                label="Xuất Xứ"
+                size="small"
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="">Chọn xuất xứ...</MenuItem>
+                {dropdownData.xuatXu.map((option) => (
+                  <MenuItem key={option.id} value={option.id}>
+                    {option.ten}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
+              <InputLabel>Chất Liệu</InputLabel>
+              <Select
+                name="chatLieuId"
+                value={filterData.chatLieuId || ''}
+                onChange={handleFilterChange}
+                label="Chất Liệu"
+                size="small"
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="">Chọn chất liệu...</MenuItem>
+                {dropdownData.chatLieu.map((option) => (
+                  <MenuItem key={option.id} value={option.id}>
+                    {option.ten}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </Grid>
+        <Grid item xs={12} display="flex" justifyContent={isMobile ? 'flex-start' : 'flex-end'}>
+          <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+            <OrangeButton
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAdd}
+              sx={{ minWidth: 180 }}
+            >
+              Thêm sản phẩm chi tiết
+            </OrangeButton>
+
+          </Box>
+        </Grid>
+      </Grid>
+      <TableContainer
+        component={Paper}
+        sx={{
+          borderRadius: 3,
+          boxShadow: 2,
+          border: '1px solid #ffe0b2',
+          mt: 1,
+          maxWidth: '100%', // Đảm bảo chiếm toàn bộ chiều rộng
+          minHeight: '60vh', // Chiều cao tối thiểu
+          overflowY: 'auto', // Thêm cuộn nếu cần
+        }}
+      >
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ bgcolor: orange }}>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '5%', border: 0 }}>#</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '8%', border: 0 }}>HÌNH ẢNH</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TÊN</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>MÃ</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>MÀU SẮC</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>KÍCH THƯỚC</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>THƯƠNG HIỆU</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>XUẤT XỨ</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>CHẤT LIỆU</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>GIÁ</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, width: '8%', border: 0 }}>SỐ LƯỢNG</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>TRẠNG THÁI</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '12%', border: 0 }}>HÀNH ĐỘNG</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {sanPhamCts.length > 0 ? (
-              sanPhamCts.map((spct, index) => (
-                <tr key={spct.id} className="align-middle">
-                  <td className="py-2 px-3 text-center">{index + 1 + currentPage * pageSize}</td>
-                  <td className="py-2 px-3 fw-semibold">
-                    {spct.tenSanPham && spct.tenMauSac ? `${spct.tenSanPham} màu ${spct.tenMauSac}` : 'N/A'}
-                  </td>
-                  <td className="py-2 px-3">{spct.ma || 'N/A'}</td>
-                  <td className="py-2 px-3">
-                    <span
-                      className={`badge ${
-                        spct.tenMauSac === 'Green'
-                          ? 'bg-success'
-                          : spct.tenMauSac === 'Red'
-                          ? 'bg-danger'
-                          : 'bg-secondary'
-                      } rounded-pill px-2 py-1`}
-                    >
-                      {spct.tenMauSac || 'N/A'}
-                    </span>
-                  </td>
-                  <td className="py-2 px-3">{spct.tenKichThuoc || 'N/A'}</td>
-                  <td className="py-2 px-3">{spct.tenThuongHieu || 'N/A'}</td>
-                  <td className="py-2 px-3">{spct.tenXuatXu || 'N/A'}</td>
-                  <td className="py-2 px-3">{spct.tenChatLieu || 'N/A'}</td>
-                  <td className="py-2 px-3">
-                    {spct.giaBan ? spct.giaBan.toLocaleString('vi-VN') + ' đ' : 'N/A'}
-                  </td>
-                  <td className="py-2 px-3">{spct.soLuong || 'N/A'}</td>
-                  <td className="py-2 px-3 text-center">
-                    <span
-                      className={`badge ${
-                        spct.trangThai === 1 ? 'bg-success' : 'bg-warning'
-                      } rounded-pill px-2 py-1`}
-                    >
-                      {spct.trangThai === 1 ? 'Còn Hàng' : 'Hết hàng'}
-                    </span>
-                  </td>
-                  <td className="py-2 px-3 text-center">
-                    <div className="d-flex justify-content-center gap-2">
-                      <button
-                        className="btn btn-outline-primary btn-sm rounded-circle"
-                        onClick={() => handleViewOrEdit(spct, true)}
-                        title="Xem"
-                        style={{ width: '30px', height: '30px', padding: '0' }}
-                      >
-                        <FontAwesomeIcon icon={faEye} />
-                      </button>
-                      <button
-                        className="btn btn-outline-warning btn-sm rounded-circle"
-                        onClick={() => handleViewOrEdit(spct, false)}
-                        title="Sửa"
-                        style={{ width: '30px', height: '30px', padding: '0' }}
-                      >
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                      <button
-                        className="btn btn-outline-danger btn-sm rounded-circle"
-                        onClick={() => setConfirmModal({ open: true, id: spct.id })}
-                        title="Xóa"
-                        style={{ width: '30px', height: '30px', padding: '0' }}
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              sanPhamCts.map((spct, index) => {
+                const image = dropdownData.hinhAnhMauSac.find((img) => img.id === spct.hinhAnhMauSacId);
+                return (
+                  <TableRow
+                    key={spct.id}
+                    hover
+                    sx={{
+                      transition: 'background 0.2s',
+                      '&:hover': { backgroundColor: '#fffaf3' },
+                      borderBottom: '1px solid #ffe0b2',
+                    }}
+                  >
+                    <TableCell align="center" sx={{ fontWeight: 600, color: black, border: 0 }}>
+                      {index + 1 + currentPage * pageSize}
+                    </TableCell>
+                    <TableCell align="center" sx={{ border: 0 }}>
+                      {image ? (
+                        <img
+                          src={image.hinhAnh}
+                          alt={spct.tenMauSac || 'Hình ảnh'}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            objectFit: 'cover',
+                            borderRadius: '4px',
+                          }}
+                          onError={(e) => (e.target.src = DEFAULT_IMAGE)}
+                        />
+                      ) : (
+                        <Typography color="text.secondary">N/A</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: black, border: 0 }}>
+                      {spct.tenSanPham && spct.tenMauSac ? `${spct.tenSanPham} màu ${spct.tenMauSac}` : 'N/A'}
+                    </TableCell>
+                    <TableCell sx={{ color: black, border: 0 }}>{spct.ma || 'N/A'}</TableCell>
+                    <TableCell sx={{ border: 0 }}>
+                      <Chip
+                        label={spct.tenMauSac || 'N/A'}
+                        sx={{
+                          bgcolor:
+                            spct.tenMauSac === 'Green'
+                              ? '#a3e635'
+                              : spct.tenMauSac === 'Red'
+                                ? '#e53935'
+                                : '#6c757d',
+                          color: spct.tenMauSac === 'Green' ? '#1a2e05' : white,
+                          fontWeight: 600,
+                          px: 1.5,
+                          borderRadius: '16px',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ color: black, border: 0 }}>{spct.tenKichThuoc || 'N/A'}</TableCell>
+                    <TableCell sx={{ color: black, border: 0 }}>{spct.tenThuongHieu || 'N/A'}</TableCell>
+                    <TableCell sx={{ color: black, border: 0 }}>{spct.tenXuatXu || 'N/A'}</TableCell>
+                    <TableCell sx={{ color: black, border: 0 }}>{spct.tenChatLieu || 'N/A'}</TableCell>
+                    <TableCell sx={{ color: black, border: 0 }}>
+                      {spct.giaBan ? spct.giaBan.toLocaleString('vi-VN') + ' đ' : 'N/A'}
+                    </TableCell>
+                    <TableCell sx={{ color: black, border: 0 }}>{spct.soLuong}</TableCell>
+                    <TableCell align="center" sx={{ border: 0 }}>
+                      <Chip
+                        label={
+                          spct.soLuong === 0
+                            ? 'Hết Hàng'
+                            : spct.trangThai === 1
+                              ? 'Đang Bán'
+                              : spct.trangThai === 2
+                                ? 'Tạm Ngưng'
+                                : 'Hết Hàng'
+                        }
+                        sx={{
+                          bgcolor:
+                            spct.soLuong === 0
+                              ? '#6c757d'
+                              : spct.trangThai === 1
+                                ? '#a3e635'
+                                : spct.trangThai === 2
+                                  ? '#ffca28'
+                                  : '#6c757d',
+                          color: spct.soLuong === 0 ? white : spct.trangThai === 1 ? '#1a2e05' : white,
+                          fontWeight: 600,
+                          px: 1.5,
+                          borderRadius: '16px',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="center" sx={{ border: 0 }}>
+                      <Box display="flex" justifyContent="center" gap={0.5}>
+                        <IconButton
+                          sx={{
+                            color: '#1976d2',
+                            bgcolor: '#f4f8fd',
+                            borderRadius: '50%',
+                            width: 30,
+                            height: 30,
+                            '&:hover': { bgcolor: '#e3f2fd', color: '#0d47a1' },
+                          }}
+                          onClick={() => handleViewOrEdit(spct, true)}
+                          size="small"
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          sx={{
+                            color: '#ffca28',
+                            bgcolor: '#fff7f0',
+                            borderRadius: '50%',
+                            width: 30,
+                            height: 30,
+                            '&:hover': { bgcolor: '#ffe0b2', color: '#ff6f00' },
+                          }}
+                          onClick={() => handleViewOrEdit(spct, false)}
+                          size="small"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          sx={{
+                            color: '#e53935',
+                            bgcolor: '#fff6f6',
+                            borderRadius: '50%',
+                            width: 30,
+                            height: 30,
+                            '&:hover': { bgcolor: '#ffeaea', color: '#b71c1c' },
+                          }}
+                          onClick={() => setConfirmModal({ open: true, id: spct.id })}
+                          size="small"
+                        >
+                          <SyncIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
-              <tr>
-                <td colSpan="12" className="text-center text-muted py-3 fs-5">
-                  Không tìm thấy sản phẩm chi tiết phù hợp
-                </td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={13} align="center">
+                  <Typography color="text.secondary" fontSize={18}>
+                    {searchTerm
+                      ? `Không tìm thấy sản phẩm chi tiết với mã "${searchTerm}"`
+                      : 'Không tìm thấy sản phẩm chi tiết phù hợp'}
+                  </Typography>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
-      <div className="d-flex justify-content-between align-items-center mt-3 text-secondary">
-        <nav>
-          <ul className="pagination mb-0">
-            {getPaginationItems().map((page) => (
-              <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                <button
-                  className="page-link"
-                  onClick={() => handlePageChange(page)}
-                  style={{ borderRadius: '50%' }}
-                >
-                  {page + 1}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <select
-          className="form-select shadow-sm"
-          value={pageSize}
-          onChange={(e) => {
-            setPageSize(parseInt(e.target.value));
-            setCurrentPage(0);
-          }}
-          style={{ borderRadius: '12px', padding: '0.5rem 1rem', maxWidth: '100px' }}
-        >
-          <option value="5">5 / page</option>
-          <option value="10">10 / page</option>
-          <option value="20">20 / page</option>
-        </select>
-      </div>
-      {alertMessage && (
-        <div
-          className={`alert alert-${alertType} alert-dismissible fade show`}
-          role="alert"
-          style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            zIndex: 1050,
-            minWidth: '300px',
-            maxWidth: '400px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            animation: 'slideIn 0.3s ease-in-out',
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mt={3} flexWrap="wrap" gap={2}>
+        <Pagination
+          count={totalPages}
+          page={currentPage + 1}
+          onChange={handlePageChange}
+          color="warning"
+          shape="rounded"
+        />
+        <Typography>
+          Trang {totalPages > 0 ? currentPage + 1 : 0} / {totalPages} ({totalElements} sản phẩm chi tiết)
+        </Typography>
+      </Box>
+      <Snackbar
+        open={!!alertMessage}
+        autoHideDuration={4000}
+        onClose={() => setAlertMessage('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setAlertMessage('')}
+          severity={alertType}
+          sx={{
+            bgcolor: alertType === 'success' ? orange : '#e53935',
+            color: white,
+            fontWeight: 600,
+            borderRadius: 2,
+            boxShadow: 3,
           }}
         >
           {alertMessage}
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setAlertMessage('')}
-            aria-label="Close"
-          />
-          <style>
-            {`
-              @keyframes slideIn {
-                from {
-                  transform: translateX(100%);
-                  opacity: 0;
-                }
-                to {
-                  transform: translateX(0);
-                  opacity: 1;
-                }
-              }
-              .alert-success {
-                background-color: #a3e635;
-                color: #1a2e05;
-                border-color: #84cc16;
-              }
-              .alert-danger {
-                background-color: #f87171;
-                color: #2a0404;
-                border-color: #ef4444;
-              }
-            `}
-          </style>
-        </div>
-      )}
-      {isModalOpen && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered" style={{ maxWidth: '800px' }}>
-            <div
-              className="modal-content shadow-lg rounded-3 border-0"
-              style={{ backgroundColor: '#ffffff' }}
-            >
-              <div
-                className="modal-header border-bottom-0 px-4 py-3"
-                style={{ backgroundColor: '#f1f5f9' }}
-              >
-                <h4 className="modal-title fw-bold text-dark">
-                  {isViewMode
-                    ? 'Xem Sản Phẩm Chi Tiết'
-                    : selectedSanPhamCt
-                    ? 'Chỉnh sửa Sản Phẩm Chi Tiết'
-                    : 'Thêm mới Sản Phẩm Chi Tiết'}
-                </h4>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setIsModalOpen(false)}
-                  aria-label="Close"
-                />
-              </div>
-              <div className="modal-body p-4">
-                <form onSubmit={handleSave}>
-                  <div className="row">
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Giá Nhập
-                      </label>
-                      <input
-                        type="number"
-                        className={`form-control shadow-sm ${formErrors.giaNhap ? 'is-invalid' : ''}`}
-                        value={formData.giaNhap}
-                        onChange={(e) =>
-                          !isViewMode && setFormData({ ...formData, giaNhap: e.target.value })
-                        }
-                        readOnly={isViewMode}
-                        placeholder=""
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      />
-                      {formErrors.giaNhap && <div className="invalid-feedback">{formErrors.giaNhap}</div>}
-                    </div>
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Giá Bán <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        className={`form-control shadow-sm ${formErrors.giaBan ? 'is-invalid' : ''}`}
-                        value={formData.giaBan}
-                        onChange={(e) =>
-                          !isViewMode && setFormData({ ...formData, giaBan: e.target.value })
-                        }
-                        readOnly={isViewMode}
-                        placeholder=""
-                        required={!isViewMode}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      />
-                      {formErrors.giaBan && <div className="invalid-feedback">{formErrors.giaBan}</div>}
-                    </div>
-                  </div>
-                  <div className="row">
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Số Lượng <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        className={`form-control shadow-sm ${formErrors.soLuong ? 'is-invalid' : ''}`}
-                        value={formData.soLuong}
-                        onChange={(e) =>
-                          !isViewMode && setFormData({ ...formData, soLuong: e.target.value })
-                        }
-                        readOnly={isViewMode}
-                        placeholder=""
-                        required={!isViewMode}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      />
-                      {formErrors.soLuong && <div className="invalid-feedback">{formErrors.soLuong}</div>}
-                    </div>
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Màu Sắc <span className="text-danger">*</span>
-                      </label>
-                      <select
-                        className={`form-select shadow-sm ${formErrors.mauSacId ? 'is-invalid' : ''}`}
-                        value={formData.mauSacId || ''}
-                        onChange={(e) =>
-                          !isViewMode &&
+        </Alert>
+      </Snackbar>
+      <Dialog
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        maxWidth="xl" // Tăng kích thước tối đa
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            bgcolor: '#f9fafb',
+            maxWidth: '90vw', // 90% chiều rộng màn hình
+            maxHeight: '90vh', // 90% chiều cao màn hình
+            overflowY: 'auto', // Thêm cuộn nếu cần
+          },
+        }}
+      >
+        <DialogTitle sx={{ bgcolor: orange, color: white, fontWeight: 700, py: 3, px: 4 }}>
+          {isViewMode
+            ? 'Xem Sản Phẩm Chi Tiết'
+            : selectedSanPhamCt
+              ? 'Chỉnh sửa Sản Phẩm Chi Tiết'
+              : 'Thêm mới Sản Phẩm Chi Tiết'}
+        </DialogTitle>
+        <DialogContent sx={{ p: 4, pt: 3, overflowY: 'auto', maxHeight: '70vh' }}>
+          <Box component="form" onSubmit={handleSave} className="space-y-6">
+            <Box className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <Typography variant="h6" fontWeight={600} color={black} mb={3}>
+                Thông tin cơ bản
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Mã Sản Phẩm Chi Tiết"
+                    value={formData.ma}
+                    onChange={(e) => !isViewMode && setFormData({ ...formData, ma: e.target.value })}
+                    fullWidth
+                    required={!isViewMode}
+                    error={!!formErrors.ma}
+                    helperText={formErrors.ma}
+                    InputProps={{ readOnly: isViewMode }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        bgcolor: white,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontWeight: 600,
+                        color: black,
+                        fontSize: '1.1rem',
+                        '&.Mui-focused': { color: orange },
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Số Lượng"
+                    type="number"
+                    value={formData.soLuong}
+                    onChange={(e) => !isViewMode && setFormData({ ...formData, soLuong: e.target.value })}
+                    fullWidth
+                    required={!isViewMode}
+                    error={!!formErrors.soLuong}
+                    helperText={formErrors.soLuong}
+                    InputProps={{
+                      readOnly: isViewMode,
+                      inputProps: { min: 0 },
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        bgcolor: white,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontWeight: 600,
+                        color: black,
+                        fontSize: '1.1rem',
+                        '&.Mui-focused': { color: orange },
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Giá Nhập"
+                    type="number"
+                    value={formData.giaNhap}
+                    onChange={(e) => !isViewMode && setFormData({ ...formData, giaNhap: e.target.value })}
+                    fullWidth
+                    error={!!formErrors.giaNhap}
+                    helperText={formErrors.giaNhap}
+                    InputProps={{ readOnly: isViewMode }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        bgcolor: white,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontWeight: 600,
+                        color: black,
+                        fontSize: '1.1rem',
+                        '&.Mui-focused': { color: orange },
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Giá Bán"
+                    type="number"
+                    value={formData.giaBan}
+                    onChange={(e) => !isViewMode && setFormData({ ...formData, giaBan: e.target.value })}
+                    fullWidth
+                    required={!isViewMode}
+                    error={!!formErrors.giaBan}
+                    helperText={formErrors.giaBan}
+                    InputProps={{ readOnly: isViewMode }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        bgcolor: white,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontWeight: 600,
+                        color: black,
+                        fontSize: '1.1rem',
+                        '&.Mui-focused': { color: orange },
+                      },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+            <Box className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <Typography variant="h6" fontWeight={600} color={black} mb={3}>
+                Thuộc tính sản phẩm
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <StyledFormControl fullWidth error={!!formErrors.mauSacId}>
+                    <InputLabel>Màu Sắc</InputLabel>
+                    <Select
+                      value={formData.mauSacId || ''}
+                      onChange={(e) => {
+                        if (!isViewMode) {
+                          const newMauSacId = parseInt(e.target.value) || null;
                           setFormData({
                             ...formData,
-                            mauSacId: parseInt(e.target.value) || null,
-                            hinhAnhMauSacId: null, // Reset image when color changes
-                          })
+                            mauSacId: newMauSacId,
+                            hinhAnhMauSacId: null,
+                            imagePreview: null,
+                          });
+                          fetchHinhAnhByMauSacIds([newMauSacId]);
                         }
-                        disabled={isViewMode}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      >
-                        <option value="">Chọn màu sắc...</option>
-                        {dropdownData.mauSac.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.ten}
-                          </option>
-                        ))}
-                      </select>
-                      {formErrors.mauSacId && <div className="invalid-feedback">{formErrors.mauSacId}</div>}
-                    </div>
-                  </div>
-                  <div className="row">
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Thương Hiệu <span className="text-danger">*</span>
-                      </label>
-                      <select
-                        className={`form-select shadow-sm ${formErrors.thuongHieuId ? 'is-invalid' : ''}`}
-                        value={formData.thuongHieuId || ''}
-                        onChange={(e) =>
-                          !isViewMode &&
-                          setFormData({ ...formData, thuongHieuId: parseInt(e.target.value) || null })
-                        }
-                        disabled={isViewMode}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      >
-                        <option value="">Chọn thương hiệu...</option>
-                        {dropdownData.thuongHieu.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.ten}
-                          </option>
-                        ))}
-                      </select>
-                      {formErrors.thuongHieuId && <div className="invalid-feedback">{formErrors.thuongHieuId}</div>}
-                    </div>
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Kích Thước <span className="text-danger">*</span>
-                      </label>
-                      <select
-                        className={`form-select shadow-sm ${formErrors.kichThuocId ? 'is-invalid' : ''}`}
-                        value={formData.kichThuocId || ''}
-                        onChange={(e) =>
-                          !isViewMode &&
-                          setFormData({ ...formData, kichThuocId: parseInt(e.target.value) || null })
-                        }
-                        disabled={isViewMode}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      >
-                        <option value="">Chọn kích thước...</option>
-                        {dropdownData.kichThuoc.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.ten}
-                          </option>
-                        ))}
-                      </select>
-                      {formErrors.kichThuocId && <div className="invalid-feedback">{formErrors.kichThuocId}</div>}
-                    </div>
-                  </div>
-                  <div className="row">
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Xuất Xứ <span className="text-danger">*</span>
-                      </label>
-                      <select
-                        className={`form-select shadow-sm ${formErrors.xuatXuId ? 'is-invalid' : ''}`}
-                        value={formData.xuatXuId || ''}
-                        onChange={(e) =>
-                          !isViewMode &&
-                          setFormData({ ...formData, xuatXuId: parseInt(e.target.value) || null })
-                        }
-                        disabled={isViewMode}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      >
-                        <option value="">Chọn xuất xứ...</option>
-                        {dropdownData.xuatXu.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.ten}
-                          </option>
-                        ))}
-                      </select>
-                      {formErrors.xuatXuId && <div className="invalid-feedback">{formErrors.xuatXuId}</div>}
-                    </div>
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Chất Liệu <span className="text-danger">*</span>
-                      </label>
-                      <select
-                        className={`form-select shadow-sm ${formErrors.chatLieuId ? 'is-invalid' : ''}`}
-                        value={formData.chatLieuId || ''}
-                        onChange={(e) =>
-                          !isViewMode &&
-                          setFormData({ ...formData, chatLieuId: parseInt(e.target.value) || null })
-                        }
-                        disabled={isViewMode}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      >
-                        <option value="">Chọn chất liệu...</option>
-                        {dropdownData.chatLieu.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.ten}
-                          </option>
-                        ))}
-                      </select>
-                      {formErrors.chatLieuId && <div className="invalid-feedback">{formErrors.chatLieuId}</div>}
-                    </div>
-                  </div>
-                  <div className="row">
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Hình Ảnh Màu Sắc (Tùy chọn)
-                      </label>
-                      <select
-                        className={`form-select shadow-sm ${formErrors.hinhAnhMauSacId ? 'is-invalid' : ''}`}
-                        value={formData.hinhAnhMauSacId || ''}
-                        onChange={(e) =>
-                          !isViewMode &&
-                          setFormData({ ...formData, hinhAnhMauSacId: parseInt(e.target.value) || null })
-                        }
-                        disabled={isViewMode || !formData.mauSacId}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      >
-                        <option value="">Không chọn (tự động theo màu sắc)</option>
-                        {dropdownData.hinhAnhMauSac
-                          .filter((option) => option.mauSacId === formData.mauSacId)
-                          .map((option) => (
-                            <option key={option.id} value={option.id}>
-                              {option.ten || `Hình ${option.id}`}
-                            </option>
-                          ))}
-                      </select>
-                      {formErrors.hinhAnhMauSacId && (
-                        <div className="invalid-feedback">{formErrors.hinhAnhMauSacId}</div>
-                      )}
-                      <small className="form-text text-muted">
-                        Nếu không chọn, hệ thống sẽ tự động lấy hình ảnh mới nhất theo màu sắc.
-                      </small>
-                      {/* Image Preview */}
-                      {formData.hinhAnhMauSacId && (
-                        <div className="mt-2">
-                          <img
-                            src={
-                              dropdownData.hinhAnhMauSac.find(
-                                (option) => option.id === formData.hinhAnhMauSacId
-                              )?.hinhAnh || '/default-image.jpg'
-                            }
-                            alt="Hình ảnh màu sắc"
-                            style={{
-                              maxWidth: '100px',
-                              maxHeight: '100px',
-                              borderRadius: '8px',
-                              objectFit: 'cover',
-                            }}
-                            onError={(e) => (e.target.src = '/default-image.jpg')}
-                          />
-                        </div>
-                      )}
-                      {/* Image Selection Grid */}
-                      {!isViewMode && formData.mauSacId && (
-                        <div className="mt-3">
-                          <div
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-                              gap: '10px',
-                            }}
-                          >
-                            {dropdownData.hinhAnhMauSac
-                              .filter((option) => option.mauSacId === formData.mauSacId)
-                              .map((option) => (
-                                <div
-                                  key={option.id}
-                                  style={{
-                                    cursor: 'pointer',
-                                    border:
-                                      formData.hinhAnhMauSacId === option.id
-                                        ? '2px solid #007bff'
-                                        : '2px solid transparent',
-                                    borderRadius: '8px',
-                                    padding: '2px',
-                                  }}
-                                  onClick={() =>
-                                    !isViewMode &&
-                                    setFormData({ ...formData, hinhAnhMauSacId: option.id })
-                                  }
-                                >
-                                  <img
-                                    src={option.hinhAnh || '/default-image.jpg'}
-                                    alt={option.ten || `Hình ${option.id}`}
-                                    style={{
-                                      width: '100%',
-                                      height: '80px',
-                                      objectFit: 'cover',
-                                      borderRadius: '6px',
-                                    }}
-                                    onError={(e) => (e.target.src = '/default-image.jpg')}
-                                  />
-                                  <div
-                                    style={{
-                                      fontSize: '12px',
-                                      textAlign: 'center',
-                                      whiteSpace: 'nowrap',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                    }}
-                                  >
-                                    {option.ten || `Hình ${option.id}`}
-                                  </div>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="col-md-6 mb-4">
-                      <label className="form-label fw-semibold text-dark">
-                        Trạng Thái <span className="text-danger">*</span>
-                      </label>
-                      <select
-                        className="form-select shadow-sm"
-                        value={formData.trangThai}
-                        onChange={(e) =>
-                          !isViewMode &&
-                          setFormData({ ...formData, trangThai: parseInt(e.target.value) })
-                        }
-                        disabled={isViewMode}
-                        style={{ borderRadius: '8px', padding: '0.75rem' }}
-                      >
-                        <option value={1}>Đang bán</option>
-                        <option value={0}>Hết hàng</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold text-dark">
-                      Mô Tả
-                    </label>
-                    <textarea
-                      className="form-control shadow-sm"
-                      value={formData.moTa}
-                      onChange={(e) =>
-                        !isViewMode && setFormData({ ...formData, moTa: e.target.value })
-                      }
-                      readOnly={isViewMode}
-                      placeholder="Nhập mô tả sản phẩm..."
-                      rows="4"
-                      style={{ borderRadius: '8px', padding: '0.75rem' }}
-                    />
-                  </div>
-                  <div className="d-flex justify-content-end gap-3">
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary"
-                      onClick={() => setIsModalOpen(false)}
-                      style={{ borderRadius: '8px', padding: '8px 20px' }}
+                      }}
+                      label="Màu Sắc"
+                      disabled={isViewMode}
+                      startAdornment={<ImageIcon sx={{ color: orange, mr: 1 }} />}
                     >
-                      {isViewMode ? 'Đóng' : 'Hủy'}
-                    </button>
-                    {!isViewMode && (
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        style={{ borderRadius: '8px', padding: '8px 20px' }}
-                      >
-                        {selectedSanPhamCt ? 'Cập nhật' : 'Thêm mới'}
-                      </button>
+                      <MenuItem value="">Chọn màu sắc...</MenuItem>
+                      {dropdownData.mauSac.map((option) => (
+                        <MenuItem key={option.id} value={option.id}>
+                          {option.ten}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {!!formErrors.mauSacId && (
+                      <Typography color="error" variant="caption">{formErrors.mauSacId}</Typography>
                     )}
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {confirmModal.open && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
-          <div className="modal-dialog modal-sm modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Xác nhận</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setConfirmModal({ open: false, id: null })}
+                  </StyledFormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <StyledFormControl fullWidth error={!!formErrors.thuongHieuId}>
+                    <InputLabel>Thương Hiệu</InputLabel>
+                    <Select
+                      name="thuongHieuId"
+                      value={formData.thuongHieuId || ''}
+                      onChange={(e) =>
+                        !isViewMode &&
+                        setFormData({ ...formData, thuongHieuId: parseInt(e.target.value) || null })
+                      }
+                      label="Thương Hiệu"
+                      disabled={isViewMode}
+                    >
+                      <MenuItem value="">Chọn thương hiệu...</MenuItem>
+                      {dropdownData.thuongHieu.map((option) => (
+                        <MenuItem key={option.id} value={option.id}>
+                          {option.ten}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {!!formErrors.thuongHieuId && (
+                      <Typography color="error" variant="caption">{formErrors.thuongHieuId}</Typography>
+                    )}
+                  </StyledFormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <StyledFormControl fullWidth error={!!formErrors.kichThuocId}>
+                    <InputLabel>Kích Thước</InputLabel>
+                    <Select
+                      name="kichThuocId"
+                      value={formData.kichThuocId || ''}
+                      onChange={(e) =>
+                        !isViewMode &&
+                        setFormData({ ...formData, kichThuocId: parseInt(e.target.value) || null })
+                      }
+                      label="Kích Thước"
+                      disabled={isViewMode}
+                    >
+                      <MenuItem value="">Chọn kích thước...</MenuItem>
+                      {dropdownData.kichThuoc.map((option) => (
+                        <MenuItem key={option.id} value={option.id}>
+                          {option.ten}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {!!formErrors.kichThuocId && (
+                      <Typography color="error" variant="caption">{formErrors.kichThuocId}</Typography>
+                    )}
+                  </StyledFormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <StyledFormControl fullWidth error={!!formErrors.xuatXuId}>
+                    <InputLabel>Xuất Xứ</InputLabel>
+                    <Select
+                      name="xuatXuId"
+                      value={formData.xuatXuId || ''}
+                      onChange={(e) =>
+                        !isViewMode &&
+                        setFormData({ ...formData, xuatXuId: parseInt(e.target.value) || null })
+                      }
+                      label="Xuất Xứ"
+                      disabled={isViewMode}
+                    >
+                      <MenuItem value="">Chọn xuất xứ...</MenuItem>
+                      {dropdownData.xuatXu.map((option) => (
+                        <MenuItem key={option.id} value={option.id}>
+                          {option.ten}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {!!formErrors.xuatXuId && (
+                      <Typography color="error" variant="caption">{formErrors.xuatXuId}</Typography>
+                    )}
+                  </StyledFormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <StyledFormControl fullWidth error={!!formErrors.chatLieuId}>
+                    <InputLabel>Chất Liệu</InputLabel>
+                    <Select
+                      name="chatLieuId"
+                      value={formData.chatLieuId || ''}
+                      onChange={(e) =>
+                        !isViewMode &&
+                        setFormData({ ...formData, chatLieuId: parseInt(e.target.value) || null })
+                      }
+                      label="Chất Liệu"
+                      disabled={isViewMode}
+                    >
+                      <MenuItem value="">Chọn chất liệu...</MenuItem>
+                      {dropdownData.chatLieu.map((option) => (
+                        <MenuItem key={option.id} value={option.id}>
+                          {option.ten}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {!!formErrors.chatLieuId && (
+                      <Typography color="error" variant="caption">{formErrors.chatLieuId}</Typography>
+                    )}
+                  </StyledFormControl>
+                </Grid>
+              </Grid>
+            </Box>
+            <Box className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <Typography variant="h6" fontWeight={600} color={black} mb={3}>
+                Hình ảnh sản phẩm
+              </Typography>
+              <Grid container spacing={3} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  {!isViewMode && (
+                    <Box>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<ImageIcon />}
+                        sx={{
+                          borderColor: orange,
+                          color: orange,
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          py: 1.5,
+                          px: 3,
+                          '&:hover': { borderColor: '#ff9900', bgcolor: '#fff7f0' },
+                        }}
+                      >
+                        Tải lên ảnh
+                        <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<ImageIcon />}
+                        onClick={() => setImageModal({ open: true })}
+                        disabled={!formData.mauSacId}
+                        sx={{
+                          borderColor: orange,
+                          color: orange,
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          py: 1.5,
+                          px: 3,
+                          ml: 2,
+                          '&:hover': { borderColor: '#ff9900', bgcolor: '#fff7f0' },
+                        }}
+                      >
+                        Chọn từ thư viện
+                      </Button>
+                    </Box>
+                  )}
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  {formData.imagePreview ? (
+                    <Box
+                      className="border-2 border-orange-400 rounded-lg p-2"
+                      sx={{ maxWidth: 150, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                    >
+                      <img
+                        src={formData.imagePreview}
+                        alt="Hình ảnh xem trước"
+                        style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+                        onError={(e) => (e.target.src = DEFAULT_IMAGE)}
+                      />
+                    </Box>
+                  ) : (
+                    <Typography color="text.secondary" fontStyle="italic">
+                      Chưa chọn hình ảnh
+                    </Typography>
+                  )}
+                </Grid>
+              </Grid>
+            </Box>
+            <Box className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <Typography variant="h6" fontWeight={600} color={black} mb={3}>
+                Trạng thái và mô tả
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <StyledFormControl fullWidth>
+                    <InputLabel>Trạng Thái</InputLabel>
+                    <Select
+                      value={formData.trangThai}
+                      onChange={(e) =>
+                        !isViewMode && setFormData({ ...formData, trangThai: parseInt(e.target.value) })
+                      }
+                      label="Trạng Thái"
+                      disabled={isViewMode}
+                    >
+                      <MenuItem value={1}>Đang Bán</MenuItem>
+                      <MenuItem value={0} disabled={Number(formData.soLuong) > 0}>Hết Hàng</MenuItem>
+                      <MenuItem value={2}>Tạm Ngưng</MenuItem>
+                    </Select>
+                    {!!formErrors.trangThai && (
+                      <Typography color="error" variant="caption">{formErrors.trangThai}</Typography>
+                    )}
+                  </StyledFormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Mô Tả"
+                    value={formData.moTa}
+                    onChange={(e) => !isViewMode && setFormData({ ...formData, moTa: e.target.value })}
+                    fullWidth
+                    multiline
+                    rows={4}
+                    error={!!formErrors.moTa}
+                    helperText={formErrors.moTa}
+                    InputProps={{ readOnly: isViewMode }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        bgcolor: white,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontWeight: 600,
+                        color: black,
+                        fontSize: '1.1rem',
+                        '&.Mui-focused': { color: orange },
+                      },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+            {formErrors.combination && (
+              <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
+                {formErrors.combination}
+              </Alert>
+            )}
+            <Box display="flex" justifyContent="flex-end" gap={2} mt={4}>
+              <Button
+                variant="outlined"
+                onClick={() => setIsModalOpen(false)}
+                sx={{
+                  borderRadius: 2,
+                  borderColor: '#d1d5db',
+                  color: black,
+                  fontWeight: 600,
+                  px: 4,
+                  py: 1.5,
+                  '&:hover': { borderColor: orange, bgcolor: '#fff7f0' },
+                }}
+              >
+                {isViewMode ? 'Đóng' : 'Hủy'}
+              </Button>
+              {!isViewMode && (
+                <OrangeButton type="submit" variant="contained" disabled={loading}>
+                  {loading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : selectedSanPhamCt ? (
+                    'Cập nhật'
+                  ) : (
+                    'Thêm mới'
+                  )}
+                </OrangeButton>
+              )}
+            </Box>
+          </Box>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={imageModal.open}
+        onClose={() => setImageModal({ open: false })}
+        maxWidth="md" // Tăng kích thước
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, maxHeight: '70vh', overflowY: 'auto' } }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, color: black }}>Chọn Hình Ảnh</DialogTitle>
+        <DialogContent>
+          {imageLoading ? (
+            <Box display="flex" justifyContent="center" my={4}>
+              <CircularProgress color="warning" />
+            </Box>
+          ) : (
+            <Box>
+              <Box display="flex" flexWrap="wrap" gap={2}>
+                {displayedImages.length > 0 ? (
+                  displayedImages.map((hinhAnh) => (
+                    <Box
+                      key={hinhAnh.id}
+                      border={formData.hinhAnhMauSacId === hinhAnh.id ? 2 : 1}
+                      borderColor={formData.hinhAnhMauSacId === hinhAnh.id ? orange : 'grey.500'}
+                      p={1}
+                      borderRadius={2}
+                      sx={{
+                        cursor: 'pointer',
+                        maxWidth: '120px',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'scale(1.1)',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                          borderColor: orange,
+                        },
+                      }}
+                      onClick={() => handleImageSelect(hinhAnh.id)}
+                    >
+                      <img
+                        src={hinhAnh.hinhAnh}
+                        alt={hinhAnh.tenMauSac || 'Hình ảnh'}
+                        style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+                        onError={(e) => (e.target.src = DEFAULT_IMAGE)}
+                      />
+                    </Box>
+                  ))
+                ) : (
+                  <Typography color="text.secondary" fontStyle="italic">
+                    Không có hình ảnh cho màu sắc này
+                  </Typography>
+                )}
+              </Box>
+              {displayedImages.length > imagesPerPage && (
+                <Pagination
+                  count={Math.ceil(displayedImages.length / imagesPerPage)}
+                  page={imagePage + 1}
+                  onChange={(e, value) => setImagePage(value - 1)}
+                  color="warning"
+                  sx={{ mt: 2 }}
                 />
-              </div>
-              <div className="modal-body">Bạn có chắc muốn xóa sản phẩm chi tiết này?</div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setConfirmModal({ open: false, id: null })}
-                >
-                  Hủy
-                </button>
-                <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                  Xác nhận
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            onClick={() => setImageModal({ open: false })}
+            sx={{
+              borderRadius: 2,
+              borderColor: '#d1d5db',
+              color: black,
+              fontWeight: 600,
+              '&:hover': { borderColor: orange, bgcolor: '#fff7f0' },
+            }}
+          >
+            Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={documentModal.open}
+        onClose={() => setDocumentModal({ open: false })}
+        maxWidth="xl" // Tăng kích thước tối đa
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            bgcolor: '#f9fafb',
+            maxWidth: '90vw', // 90% chiều rộng màn hình
+            maxHeight: '90vh', // 90% chiều cao màn hình
+            overflowY: 'auto', // Thêm cuộn nếu cần
+          },
+        }}
+      >
+        
+        <DialogContent sx={{ p: 4, pt: 3, overflowY: 'auto', maxHeight: '70vh' }}>
+          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: black }}>
+            {documentContent}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            onClick={() => setDocumentModal({ open: false })}
+            sx={{
+              borderRadius: 2,
+              borderColor: '#d1d5db',
+              color: black,
+              fontWeight: 600,
+              '&:hover': { borderColor: orange, bgcolor: '#fff7f0' },
+            }}
+          >
+            Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, id: null })}
+        maxWidth="xs"
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, color: black }}>Xác nhận</DialogTitle>
+        <DialogContent>
+          <Typography>Bạn có chắc muốn thay đổi trạng thái sản phẩm chi tiết này thành Tạm Ngưng?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            onClick={() => setConfirmModal({ open: false, id: null })}
+            sx={{
+              borderRadius: 2,
+              borderColor: '#d1d5db',
+              color: black,
+              fontWeight: 600,
+              '&:hover': { borderColor: orange, bgcolor: '#fff7f0' },
+            }}
+          >
+            Hủy
+          </Button>
+          <OrangeButton
+            variant="contained"
+            onClick={handleDelete}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={20} color="inherit" /> : 'Xác nhận'}
+          </OrangeButton>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
