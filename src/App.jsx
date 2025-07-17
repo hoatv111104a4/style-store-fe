@@ -9,7 +9,7 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 import CounterSales from "./pages/Admin/AttibuteSales/CounterSales";
 import Discounts from "./pages/Admin/Discounts";
 import OrderManagement from "./pages/Admin/OrderManagement";
-import OrderDetail from "./pages/Admin/OrderDetail";
+import OrderDetailAdmin from "./pages/Admin/OrderDetail";
 import ReturnManagement from "./pages/Admin/ReturnManagement";
 import Logout from "./pages/Admin/Logout";
 import AboutPage from "./pages/Website/AboutPage";
@@ -72,7 +72,8 @@ function App() {
           <Route path="/admin/san-pham-chi-tiet/:id" element={<SanPhamCtPage />} />
           <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddProductWithDetailsPage />} />
           <Route path="/admin/giam-gia/them-phieu-giam-gia" element={<AddVoucher />} />
-           <Route path="/admin/orders/:id" element={<OrderDetail />} />
+     <Route path="/admin/orders/:id" element={<OrderDetailAdmin />} />
+
 
         </Route>
       </Routes>
