@@ -9,19 +9,17 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
-import CircularProgress from "@mui/material/CircularProgress"; // Added for loading indicator
+import CircularProgress from "@mui/material/CircularProgress";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useNavigate } from "react-router-dom";
-import { createOder } from "../../services/Website/OrderApi";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createOder, submitVNPayOrder } from "../../services/Website/OrderApi";
 
 const API_PROVINCE = "https://provinces.open-api.vn/api/";
 
-// Dữ liệu địa phương làm fallback khi API không hoạt động
 const fallbackProvinces = [
   { code: "01", name: "Hà Nội" },
   { code: "02", name: "Hồ Chí Minh" },
-  // Thêm các tỉnh/thành khác khi cần (tạm thời chỉ làm ví dụ)
 ];
 
 const CheckOutPage = () => {
@@ -44,16 +42,22 @@ const CheckOutPage = () => {
   const [wardNames, setWardNames] = useState({});
   const [shippingFee] = useState(30000);
   const [expectedDate, setExpectedDate] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Added loading state
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedItems = location.state?.selectedItems || [];
 
   useEffect(() => {
-    setCartItems(JSON.parse(localStorage.getItem("cart") || "[]"));
+    // Use selectedItems directly instead of loading from localStorage
+    const items = location.state?.selectedItems?.length > 0 
+      ? location.state.selectedItems 
+      : JSON.parse(localStorage.getItem("cart") || []);
+    setCartItems(items);
+
     const date = new Date();
     date.setDate(date.getDate() + 3);
     setExpectedDate(date.toLocaleDateString("vi-VN"));
 
-    // Thử gọi API trước
     fetch(API_PROVINCE + "?depth=1")
       .then((res) => {
         if (!res.ok) throw new Error("Không thể tải dữ liệu từ API");
@@ -68,17 +72,21 @@ const CheckOutPage = () => {
       .catch((error) => {
         console.error("Lỗi khi gọi API tỉnh thành:", error);
         toast.error("Không thể tải dữ liệu từ API. Sử dụng dữ liệu địa phương.");
-        // Fallback sang dữ liệu địa phương khi API thất bại
         const names = {};
         fallbackProvinces.forEach((p) => (names[p.code] = p.name));
         setProvinces(fallbackProvinces);
         setProvinceNames(names);
       });
+  }, [location.state?.selectedItems]);
+
+  useEffect(() => {
+    return () => {
+      setCartItems([]);
+    };
   }, []);
 
   useEffect(() => {
     if (form.province) {
-      // Thử gọi API cho quận huyện
       fetch(`${API_PROVINCE}p/${form.province}?depth=2`)
         .then((res) => {
           if (!res.ok) throw new Error("Không thể tải dữ liệu quận huyện");
@@ -93,7 +101,6 @@ const CheckOutPage = () => {
         .catch((error) => {
           console.error("Lỗi khi gọi API quận huyện:", error);
           toast.error("Không thể tải dữ liệu quận huyện. Sử dụng dữ liệu mẫu.");
-          // Fallback dữ liệu mẫu cho quận huyện (thay bằng dữ liệu thực tế khi cần)
           const sampleDistricts = [
             { code: "001", name: "Quận 1" },
             { code: "002", name: "Quận 2" },
@@ -112,7 +119,6 @@ const CheckOutPage = () => {
 
   useEffect(() => {
     if (form.district) {
-      // Thử gọi API cho phường xã
       fetch(`${API_PROVINCE}d/${form.district}?depth=2`)
         .then((res) => {
           if (!res.ok) throw new Error("Không thể tải dữ liệu phường xã");
@@ -127,7 +133,6 @@ const CheckOutPage = () => {
         .catch((error) => {
           console.error("Lỗi khi gọi API phường xã:", error);
           toast.error("Không thể tải dữ liệu phường xã. Sử dụng dữ liệu mẫu.");
-          // Fallback dữ liệu mẫu cho phường xã (thay bằng dữ liệu thực tế khi cần)
           const sampleWards = [
             { code: "0001", name: "Phường 1" },
             { code: "0002", name: "Phường 2" },
@@ -155,18 +160,25 @@ const CheckOutPage = () => {
       item.id === id ? { ...item, quantity } : item
     );
     setCartItems(newCart);
-    localStorage.setItem("cart", JSON.stringify(newCart));
+    // Update localStorage to reflect the quantity change
+    const fullCart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const updatedFullCart = fullCart.map((item) =>
+      item.id === id ? { ...item, quantity } : item
+    );
+    localStorage.setItem("cart", JSON.stringify(updatedFullCart));
   };
 
   const handleRemoveItem = (id) => {
     const newCart = cartItems.filter((item) => item.id !== id);
     setCartItems(newCart);
-    localStorage.setItem("cart", JSON.stringify(newCart));
+    // Update localStorage to remove the item
+    const fullCart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const updatedFullCart = fullCart.filter((item) => item.id !== id);
+    localStorage.setItem("cart", JSON.stringify(updatedFullCart));
   };
 
   const handleOrder = async (e) => {
     e.preventDefault();
-    // Validate
     if (
       !form.name ||
       !form.phone ||
@@ -182,14 +194,9 @@ const CheckOutPage = () => {
       toast.error("Giỏ hàng trống!");
       return;
     }
-    if (form.payment !== "cod") {
-      toast.error("Hiện tại chỉ hỗ trợ thanh toán khi nhận hàng!");
-      return;
-    }
 
-    setIsLoading(true); // Set loading state to true
+    setIsLoading(true);
 
-    // Tạo dữ liệu JSON theo định dạng DonHangRequest
     const donHangData = {
       nguoiDatHang: form.phone,
       nguoiNhanHang: form.name,
@@ -206,27 +213,40 @@ const CheckOutPage = () => {
         thanhTien: item.quantity * item.giaBan,
       })),
     };
-    console.log("Dữ liệu gửi lên:", donHangData);
+
     try {
-      const result = await createOder(donHangData);
-      toast.success("Đặt hàng thành công!");
-      localStorage.removeItem("cart");
-      setCartItems([]);
-      setForm({
-        name: "",
-        phone: "",
-        province: "",
-        district: "",
-        ward: "",
-        address: "",
-        note: "",
-        payment: "cod",
-      });
+      if (form.payment === "online") {
+        console.log("Đặt hàng online với dữ liệu:", donHangData);
+        const vnpayUrl = await submitVNPayOrder(donHangData);
+        window.location.href = vnpayUrl;
+        return;
+      } else {
+        await createOder(donHangData);
+        toast.success("Đặt hàng thành công!");
+        // Remove only selected items from localStorage
+        const fullCart = JSON.parse(localStorage.getItem("cart") || "[]");
+        const updatedFullCart = fullCart.filter(
+          (item) => !cartItems.some((selected) => selected.id === item.id)
+        );
+        localStorage.setItem("cart", JSON.stringify(updatedFullCart));
+        setCartItems([]);
+        setForm({
+          name: "",
+          phone: "",
+          province: "",
+          district: "",
+          ward: "",
+          address: "",
+          note: "",
+          payment: "cod",
+        });
+        navigate("/website/dat-hang/lich-su-dat-hang");
+      }
     } catch (error) {
-      toast.error("Có lỗi xảy ra khi tạo đơn hàng!");
+      toast.error("Có lỗi xảy ra khi tạo đơn hàng hoặc thanh toán!");
       console.error(error);
     } finally {
-      setIsLoading(false); // Reset loading state
+      setIsLoading(false);
     }
   };
 
@@ -382,7 +402,7 @@ const CheckOutPage = () => {
               color="primary"
               fullWidth
               sx={{ fontWeight: 700, py: 1.2, mt: 2 }}
-              disabled={cartItems.length === 0 || isLoading} 
+              disabled={cartItems.length === 0 || isLoading}
               startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
             >
               {isLoading ? "Đang xử lý..." : "Đặt hàng"}

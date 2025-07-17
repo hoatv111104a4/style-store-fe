@@ -30,6 +30,8 @@ import ScrollToTop from "./components/ScrollToTop";
 import { ToastContainer } from "react-toastify";
 import HistoryOrder from "./pages/Website/HistoryOrder";
 import AddVoucher from "./pages/Website/AddVocher";
+import OrderDetail from "./pages/Website/OrderDetail";
+import PaymentSuccess from "./pages/Website/PaymentSuccess";
 function App() {
   return (
     <BrowserRouter>
@@ -45,6 +47,10 @@ function App() {
           <Route path="/website/san-pham/chi-tiet-san-pham/:id" element={<DetailProduct />} />
           <Route path="/website/dat-hang" element={<CheckOutPage />} />
           <Route path="/website/dat-hang/lich-su-dat-hang" element={<HistoryOrder />} />
+          <Route path="/website/dat-hang/lich-su-dat-hang/chi-tiet-don-hang/:orderId" element={<OrderDetail />} />
+          <Route path="/thanh-toan-thanh-cong" element={<PaymentSuccess />} />
+          <Route path="/thanh-toan-that-bai" element={<PaymentSuccess />} />
+
         </Route>
 
         {/* Routes cho AdminLayout */}

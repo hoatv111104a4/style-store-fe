@@ -42,13 +42,12 @@ const WebsiteNavbar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
 
-  // Lấy vai trò từ token
+  // Get user role from token
   const getUserRole = () => {
     const token = Cookies.get("token");
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        // Tách scope thành mảng dựa trên khoảng trắng
         const scopes = decoded.scope ? decoded.scope.split(" ") : [];
         return scopes.length > 0 ? scopes : [decoded.role || ""];
       } catch (err) {
@@ -68,9 +67,11 @@ const WebsiteNavbar = () => {
   };
 
   const handleOpenCart = () => {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    setCartItems(cart);
-    setSelectedCartItems([]);
+    // Kiểm tra nếu không phải đang ở trang thanh toán thì mới load từ localStorage
+    if (!window.location.pathname.includes("/dat-hang")) {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      setCartItems(cart);
+    }
     setOpenCart(true);
   };
 
@@ -130,6 +131,7 @@ const WebsiteNavbar = () => {
     const selectedItems = cartItems.filter((item) =>
       selectedCartItems.includes(item.id)
     );
+
     handleCloseCart();
     navigate("/website/dat-hang", {
       state: { selectedItems },
@@ -166,7 +168,6 @@ const WebsiteNavbar = () => {
     return () => clearInterval(interval);
   }, [navigate]);
 
-  // Kiểm tra vai trò để hiển thị nút "Cửa hàng của tôi"
   const userRole = getUserRole();
   const isAdminOrStaff = user && (Array.isArray(userRole) ? userRole.includes("ROLE_ADMIN") || userRole.includes("ROLE_STAFF") : false);
 

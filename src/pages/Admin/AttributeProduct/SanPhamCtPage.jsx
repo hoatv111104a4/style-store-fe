@@ -548,8 +548,208 @@ const handleImageUpload = async (e) => {
             '&:hover': { bgcolor: '#e3f2fd' },
           }}
         >
-          <ArrowBackIcon fontSize="small" />
+          <FontAwesomeIcon icon={faArrowLeft} />
         </IconButton>
+
+        <h1 className="text-center text-black fw-bold flex-grow-1" style={{ letterSpacing: '2px' }}>
+          SẢN PHẨM CHI TIẾT
+        </h1>
+      </Box>
+      <div className="d-flex justify-content-between mb-4 flex-wrap gap-3">
+        <div className="d-flex gap-2 align-items-center flex-wrap">
+          <div className="position-relative w-auto">
+            <input
+              type="text"
+              className={`form-control shadow-sm ${error ? 'is-invalid' : ''}`}
+              placeholder="Tìm kiếm sản phẩm chi tiết..."
+              value={searchTerm}
+              onChange={handleSearchInput}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              style={{ borderRadius: '12px', borderColor: '#000000', padding: '0.5rem 1rem', maxWidth: '250px' }}
+            />
+            {error && <div className="invalid-feedback">{error}</div>}
+          </div>
+          <button
+            className="btn btn-primary shadow-sm"
+            onClick={handleSearch}
+            title="Tìm kiếm"
+            disabled={searchLoading}
+            style={{ borderRadius: '12px', padding: '0.5rem 1rem' }}
+          >
+            {searchLoading ? (
+              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faSearch} style={{ fontSize: '1rem' }} /> Tìm
+              </>
+              
+            )}
+          </button>
+        </div>
+        <div className="d-flex gap-2">
+          <button className="btn btn-success shadow-sm" style={{ borderRadius: '12px' }} disabled>
+            <FontAwesomeIcon icon={faFileExcel} /> Xuất Excel
+          </button>
+          <button className="btn btn-info shadow-sm" style={{ borderRadius: '12px' }} disabled>
+            <FontAwesomeIcon icon={faQrcode} /> Xuất QR Code
+          </button>
+          <button
+            className="btn btn-primary shadow-sm"
+            onClick={handleAdd}
+            title="Thêm Sản Phẩm Chi Tiết"
+          >
+            <FontAwesomeIcon icon={faPlus} style={{ fontSize: '1rem' }} /> Thêm sản phẩm chi tiết
+          </button>
+        </div>
+      </div>
+      <div className="table-responsive shadow-lg rounded-3 overflow-hidden border border-light">
+        <table className="table table-hover mb-0 align-middle" style={{ fontSize: '0.9rem' }}>
+          <thead className="table-dark text-uppercase" style={{ backgroundColor: '#343a40' }}>
+            <tr>
+              <th scope="col" className="py-2 px-3 text-center" style={{ width: '5%' }}>
+                #
+              </th>
+              <th scope="col" className="py-2 px-3" style={{ width: '15%' }}>
+                Tên *
+              </th>
+              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
+                Mã *
+              </th>
+              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
+                Màu Sắc *
+              </th>
+              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
+                Kích Thước *
+              </th>
+              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
+                Thương Hiệu *
+              </th>
+              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
+                Xuất Xứ *
+              </th>
+              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
+                Chất Liệu *
+              </th>
+              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
+                Giá *
+              </th>
+              <th scope="col" className="py-2 px-3" style={{ width: '10%' }}>
+                Số Lượng *
+              </th>
+              <th scope="col" className="py-2 px-3 text-center" style={{ width: '10%' }}>
+                Trạng Thái *
+              </th>
+              <th scope="col" className="py-2 px-3 text-center" style={{ width: '10%' }}>
+                Hành Động
+              </th>
+            </tr>
+          </thead>
+          <tbody style={{ backgroundColor: '#ffffff' }}>
+            {sanPhamCts.length > 0 ? (
+              sanPhamCts.map((spct, index) => (
+                <tr key={spct.id} className="align-middle">
+                  <td className="py-2 px-3 text-center">{index + 1 + currentPage * pageSize}</td>
+                  
+                  <td className="py-2 px-3 fw-semibold">
+                    {spct.tenSanPham && spct.tenMauSac ? `${spct.tenSanPham} màu ${spct.tenMauSac}` : 'N/A'}
+                  </td>
+                  <td className="py-2 px-3">{spct.ma || 'N/A'}</td>
+                  <td className="py-2 px-3">
+                    <span
+                      className={`badge ${
+                        spct.tenMauSac === 'Green'
+                          ? 'bg-success'
+                          : spct.tenMauSac === 'Red'
+                          ? 'bg-danger'
+                          : 'bg-secondary'
+                      } rounded-pill px-2 py-1`}
+                    >
+                      {spct.tenMauSac || 'N/A'}
+                    </span>
+                  </td>
+                  <td className="py-2 px-3">{spct.tenKichThuoc || 'N/A'}</td>
+                  <td className="py-2 px-3">{spct.tenThuongHieu || 'N/A'}</td>
+                  <td className="py-2 px-3">{spct.tenXuatXu || 'N/A'}</td>
+                  <td className="py-2 px-3">{spct.tenChatLieu || 'N/A'}</td>
+                  <td className="py-2 px-3">
+                    {spct.giaBan ? spct.giaBan.toLocaleString('vi-VN') + ' đ' : 'N/A'}
+                  </td>
+                  <td className="py-2 px-3">{spct.soLuong || 'N/A'}</td>
+                  <td className="py-2 px-3 text-center">
+                    <span
+                      className={`badge ${
+                        spct.trangThai === 1 ? 'bg-success' : 'bg-warning'
+                      } rounded-pill px-2 py-1`}
+                    >
+                      {spct.trangThai === 1 ? 'Còn Hàng' : 'Hết hàng'}
+                    </span>
+                  </td>
+                  <td className="py-2 px-3 text-center">
+                    <div className="d-flex justify-content-center gap-2">
+                      <button
+                        className="btn btn-outline-primary btn-sm rounded-circle"
+                        onClick={() => handleViewOrEdit(spct, true)}
+                        title="Xem"
+                        style={{ width: '30px', height: '30px', padding: '0' }}
+                      >
+                        <FontAwesomeIcon icon={faEye} />
+                      </button>
+                      <button
+                        className="btn btn-outline-warning btn-sm rounded-circle"
+                        onClick={() => handleViewOrEdit(spct, false)}
+                        title="Sửa"
+                        style={{ width: '30px', height: '30px', padding: '0' }}
+                      >
+                        <FontAwesomeIcon icon={faEdit} />
+                      </button>
+                      <button
+                        className="btn btn-outline-danger btn-sm rounded-circle"
+                        onClick={() => setConfirmModal({ open: true, id: spct.id })}
+                        title="Xóa"
+                        style={{ width: '30px', height: '30px', padding: '0' }}
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="12" className="text-center text-muted py-3 fs-5">
+                  Không tìm thấy sản phẩm chi tiết phù hợp
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <Box className="d-flex justify-content-between align-items-center mt-3 text-secondary">
+        <nav>
+          <ul className="pagination mb-0">
+            {getPaginationItems().map((page) => (
+              <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                <button
+                  className="page-link"
+                  onClick={() => handlePageChange(page)}
+                  style={{ borderRadius: '50%' }}
+                >
+                  {page + 1}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <select
+          className="form-select shadow-sm"
+          value={pageSize}
+          onChange={(e) => {
+            setPageSize(parseInt(e.target.value));
+            setCurrentPage(0);
+          }}
+        >
+          <ArrowBackIcon fontSize="small" />
+        </select>
         <Typography
           variant={isMobile ? 'h6' : 'h5'}
           fontWeight={700}

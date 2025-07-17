@@ -1,8 +1,13 @@
 import axios from "axios";
-import Cookies from "js-cookie"; // Import js-cookie
+import Cookies from "js-cookie";
 
 const apiClient = axios.create({
     baseURL: "http://localhost:8080/don-hang",
+    timeout: 20000,
+});
+
+const vnpayClient = axios.create({
+    baseURL: "http://localhost:8080/api/vnpay",
     timeout: 20000,
 });
 
@@ -25,6 +30,31 @@ export const createOder = async (oderData) => {
         console.error("Lỗi khi tạo đơn hàng:", error.message || error);
         throw error;
     }
+};
+
+export const submitVNPayOrder = async (donHangData) => {
+  try {
+    const token = Cookies.get("token");
+    if (!token) {
+      throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await vnpayClient.post("/submitOrder", donHangData, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+    console.log("Response từ VNPay API:", response.data);
+    return response.data; // Trả về URL VNPay
+  } catch (error) {
+    console.error("Lỗi khi tạo yêu cầu thanh toán VNPay:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
+    throw error;
+  }
 };
 
 export const getLichSuDatHang = async ({
@@ -74,4 +104,20 @@ export const getLichSuDatHang = async ({
     console.error("Lỗi khi lấy lịch sử đặt hàng:", error.message || error);
     throw error;
   }
+};
+
+export const getChiTietDonHang = async (id, tenSanPham = "") => {
+    try {
+        console.log("Gửi yêu cầu với id:", id, "tenSanPham:", tenSanPham);
+        const response = await apiClient.get(`/chi-tiet-don-hang/${id}`, {
+            params: {
+                tenSanPham: tenSanPham || undefined
+            }
+        });
+        console.log("Phản hồi từ API:", response.data);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi lấy chi tiết đơn hàng theo id:", error.response?.data || error.message);
+        throw error;
+    }
 };
