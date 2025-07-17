@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { listHoaDon } from "../../services/Admin/HoaDonService";
-import { ToastContainer, toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify"; // Import toast và ToastContainer
 import "react-toastify/dist/ReactToastify.css";
+
 import {
   Box,
-  Button,
   Typography,
   TextField,
   IconButton,
@@ -15,61 +15,62 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
   Chip,
+  Tooltip,
   CircularProgress,
   Grid,
   useMediaQuery,
-  styled,
+  Pagination,
+  // Bỏ Alert và Snackbar vì đã dùng react-toastify
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import {
+  Visibility as VisibilityIcon,
   Search as SearchIcon,
   Close as CloseIcon,
-  Visibility as VisibilityIcon,
-  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 
+// Định nghĩa màu sắc
 const orange = "#ff8800";
 const black = "#222";
 const white = "#fff";
 
-const OrangeButton = styled(Button)(({ theme }) => ({
-  backgroundColor: orange,
-  color: white,
-  "&:hover": {
-    backgroundColor: "#ff9900",
-  },
-  borderRadius: 12,
-  textTransform: "none",
-  fontWeight: 600,
-  boxShadow: "0 2px 8px rgba(255,136,0,0.08)",
-}));
-
 const OrderManagement = () => {
-  const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [allHoaDon, setAllHoaDon] = useState([]);
   const [hoaDonList, setHoaDonList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchMa, setSearchMa] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [activeStatus, setActiveStatus] = useState(null);
+  // Bỏ alertMessage và alertType vì đã dùng react-toastify
+  // const [alertMessage, setAlertMessage] = useState("");
+  // const [alertType, setAlertType] = useState("success");
 
+  const [currentPage, setCurrentPage] = useState(0);
+  const pageSize = 10;
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const navigate = useNavigate();
+
+  // Hàm lấy danh sách hóa đơn từ service
   const fetchAllHoaDon = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
       const data = await listHoaDon();
-      setAllHoaDon(data || []);
-      setHoaDonList(data || []);
+      setAllHoaDon(data);
+      setError(null);
     } catch (err) {
       setError(err.message || "Không thể tải danh sách hóa đơn");
       setAllHoaDon([]);
-      setHoaDonList([]);
-      toast.error("Không thể tải danh sách hóa đơn", {
+      toast.error("Không thể tải danh sách hóa đơn.", {
+        // Hiển thị toast khi có lỗi
         position: "top-right",
         autoClose: 3000,
       });
@@ -82,13 +83,16 @@ const OrderManagement = () => {
     fetchAllHoaDon();
   }, [fetchAllHoaDon]);
 
+  // Lọc và phân trang dữ liệu (giữ nguyên)
   useEffect(() => {
     let filteredData = [...allHoaDon];
-    if (searchMa.trim()) {
+
+    if (searchTerm.trim()) {
       filteredData = filteredData.filter((hd) =>
-        hd.ma.toLowerCase().includes(searchMa.toLowerCase())
+        hd.ma.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
+
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -98,117 +102,156 @@ const OrderManagement = () => {
         return ngayTao >= start && ngayTao <= end;
       });
     }
+
     if (activeStatus !== null) {
       filteredData = filteredData.filter((hd) => hd.trangThai === activeStatus);
     }
-    setHoaDonList(filteredData);
-  }, [searchMa, startDate, endDate, activeStatus, allHoaDon]);
 
+    const totalFilteredElements = filteredData.length;
+    const startIndex = currentPage * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedData = filteredData.slice(startIndex, endIndex);
+
+    setHoaDonList(paginatedData);
+    setTotalElements(totalFilteredElements);
+    setTotalPages(Math.ceil(totalFilteredElements / pageSize));
+  }, [
+    searchTerm,
+    startDate,
+    endDate,
+    activeStatus,
+    allHoaDon,
+    currentPage,
+    pageSize,
+  ]);
+
+  // Bỏ useEffect tự động xóa thông báo vì react-toastify tự quản lý
+  // useEffect(() => {
+  //   if (alertMessage) {
+  //     const timer = setTimeout(() => setAlertMessage(""), 3000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [alertMessage]);
+
+  // Hàm hiển thị badge trạng thái (giữ nguyên)
   const renderTrangThaiBadge = (trangThai) => {
     let label = "";
-    let bgcolor = "#6c757d";
-    let color = white;
+    let color = "";
     switch (trangThai) {
       case 0:
         label = "Chờ xác nhận";
-        bgcolor = "#ffca28";
-        color = black;
+        color = "#ffc107"; // Vàng
         break;
       case 1:
-        label = "Đã thanh toán";
-        bgcolor = "#43a047"; // xanh lá cây đậm
-        color = white;
+        label = "Chờ vận chuyển";
+        color = "#17a2b8"; // Xanh lam
         break;
       case 2:
         label = "Đang vận chuyển";
-        bgcolor = "#1976d2";
-        color = white;
+        color = "#007bff"; // Xanh dương
         break;
       case 3:
-        label = "Chờ vận chuyển";
-        bgcolor = "#a3e635";
-        color = "#1a2e05";
+        label = "Đã hoàn thành";
+        color = "#28a745"; // Xanh lá
         break;
       case 4:
         label = "Đã hủy";
-        bgcolor = "#e53935";
-        color = white;
+        color = "#dc3545"; // Đỏ
         break;
       case 5:
         label = "Hoàn tiền / Trả hàng";
-        bgcolor = "#343a40";
-        color = white;
+        color = "#343a40"; // Đen
+        break;
+      case 6:
+        label = "Chờ xác nhận tại quầy";
+        color = "#6610f2"; // Tím
         break;
       default:
         label = "Không xác định";
+        color = "#6c757d"; // Xám
     }
     return (
       <Chip
         label={label}
         sx={{
-          bgcolor,
-          color,
+          bgcolor: color,
+          color: white,
           fontWeight: 600,
-          px: 1.5,
-          fontSize: 14,
-          borderRadius: "16px",
+          px: 1,
+          fontSize: 11,
+          borderRadius: "12px",
+          height: 24,
         }}
       />
     );
   };
 
+  // Danh sách tab trạng thái (giữ nguyên)
   const statusTabs = [
     { label: "Tất cả", status: null },
     { label: "Chờ xác nhận", status: 0 },
-    { label: "Đã thanh toán", status: 1 },
-    { label: "Chờ vận chuyển", status: 3 },
+    { label: "Chờ vận chuyển", status: 1 },
     { label: "Đang vận chuyển", status: 2 },
+    { label: "Đã hoàn thành", status: 3 },
     { label: "Đã hủy", status: 4 },
-    { label: "Hoàn tiền / Trả hàng", status: 5 },
+    { label: "Hoàn tiền / Trả hàng", status: 5 }, // Thêm trạng thái này
+    { label: "Chờ tại quầy", status: 6 }, // Thêm trạng thái này
   ];
 
-  const getStatusCount = (status) =>
-    status === null
-      ? allHoaDon.length
-      : allHoaDon.filter((hd) => hd.trangThai === status).length;
+  // Hàm đếm số lượng hóa đơn theo trạng thái (giữ nguyên)
+  const getStatusCount = (status) => {
+    if (status === null) return allHoaDon.length;
+    return allHoaDon.filter((hd) => hd.trangThai === status).length;
+  };
 
+  // Hàm xóa bộ lọc ngày (giữ nguyên)
   const resetDateFilter = () => {
     setStartDate("");
     setEndDate("");
-    toast.info("Đã xóa bộ lọc ngày", {
-      position: "top-right",
-      autoClose: 3000,
-    });
   };
 
-  const handleSearch = () => {
-    if (!searchMa.trim()) {
-      toast.error("Vui lòng nhập mã hóa đơn để tìm kiếm", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    if (!/^[\p{L}\s\d]+$/u.test(searchMa.trim())) {
-      toast.error("Mã hóa đơn chỉ được chứa chữ cái, số và khoảng trắng", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-  };
+  // Hàm xử lý thay đổi trang (giữ nguyên)
+  const handlePageChange = useCallback((event, value) => {
+    setCurrentPage(value - 1);
+  }, []);
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && searchMa.trim()) {
-      handleSearch();
-    }
-  };
+  // Hàm xử lý nhập liệu tìm kiếm (giữ nguyên)
+  const handleSearchInput = useCallback((e) => {
+    setSearchMa(e.target.value);
+    setError(null);
+  }, []);
 
-  const handleClearSearch = () => {
+  // Hàm xử lý tìm kiếm (giữ nguyên)
+  const handleSearch = useCallback(() => {
+    setSearchTerm(searchMa);
+    setCurrentPage(0);
+  }, [searchMa]);
+
+  // Hàm xóa tìm kiếm (giữ nguyên)
+  const handleClearSearch = useCallback(() => {
     setSearchMa("");
-    toast.info("Đã xóa bộ lọc mã", {
+    setSearchTerm("");
+    setCurrentPage(0);
+    setError(null);
+  }, []);
+
+  // Hàm xử lý phím Enter để tìm kiếm (giữ nguyên)
+  const handleKeyPress = useCallback(
+    (e) => {
+      if (e.key === "Enter" && searchMa.trim()) {
+        handleSearch();
+      }
+    },
+    [handleSearch]
+  );
+
+  // Hàm xử lý xem chi tiết hóa đơn
+  const handleViewDetails = (id) => {
+    navigate(`/admin/orders/${id}`);
+    toast.info(`Đang chuyển đến chi tiết hóa đơn ID: ${id}`, {
+      // Dùng toast thay vì setAlertMessage
       position: "top-right",
-      autoClose: 3000,
+      autoClose: 1500,
     });
   };
 
@@ -225,191 +268,138 @@ const OrderManagement = () => {
     );
   }
 
-  if (error && !hoaDonList.length) {
-    return (
-      <Box m={4}>
-        <Box
-          sx={{
-            bgcolor: "#e53935",
-            color: white,
-            p: 2,
-            borderRadius: 2,
-            boxShadow: 3,
-            mb: 2,
-          }}
-        >
-          {error}
-          <Box mt={2}>
-            <OrangeButton
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              onClick={fetchAllHoaDon}
-            >
-              Thử lại
-            </OrangeButton>
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ bgcolor: white, minHeight: "100vh", p: isMobile ? 1 : 4 }}>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        toastStyle={{
-          backgroundColor: white,
-          color: black,
-          borderRadius: "8px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        }}
-      />
-      <Box display="flex" alignItems="center" mb={3}>
-        <Typography
-          variant={isMobile ? "h5" : "h4"}
-          fontWeight={700}
-          color={black}
-          align="center"
-          sx={{ letterSpacing: 2, flexGrow: 1 }}
-        >
-          QUẢN LÝ ĐƠN HÀNG / HÓA ĐƠN
-        </Typography>
-      </Box>
+    <Box sx={{ bgcolor: "#fff", minHeight: "100vh", p: isMobile ? 1 : 3 }}>
+      <Typography
+        variant={isMobile ? "h6" : "h5"}
+        fontWeight={700}
+        color={black}
+        align="center"
+        sx={{ letterSpacing: 1.5, mb: 2 }}
+      >
+        QUẢN LÝ ĐƠN HÀNG
+      </Typography>
 
-      {/* Bộ lọc */}
-      <Grid container spacing={2} alignItems="center" mb={3}>
-        <Grid item xs={12} md={7}>
-          <Box display="flex" gap={2} alignItems="center">
-            <TextField
-              variant="outlined"
-              size="small"
-              placeholder="Tìm kiếm mã hóa đơn..."
-              value={searchMa}
-              onChange={(e) => setSearchMa(e.target.value)}
-              onKeyPress={handleKeyPress}
-              sx={{
-                borderRadius: 2,
-                bgcolor: "#fafafa",
-                maxWidth: 350,
-                flex: 1,
-                "& .MuiOutlinedInput-root": { borderRadius: 2 },
-              }}
-              InputProps={{
-                endAdornment: (
-                  <>
-                    {searchMa && (
+      <Box mb={2}>
+        <Grid container spacing={1} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <TextField
+                variant="outlined"
+                size="small"
+                placeholder="Nhập mã hóa đơn..."
+                value={searchMa}
+                onChange={handleSearchInput}
+                onKeyPress={handleKeyPress}
+                error={!!error}
+                helperText={error}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: "#fafafa",
+                  flex: 1,
+                  "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <>
+                      {searchMa && (
+                        <IconButton
+                          color="default"
+                          onClick={handleClearSearch}
+                          edge="end"
+                          size="small"
+                        >
+                          <CloseIcon />
+                        </IconButton>
+                      )}
                       <IconButton
-                        color="default"
-                        onClick={handleClearSearch}
+                        color="warning"
+                        onClick={handleSearch}
+                        disabled={!!error || !searchMa.trim()}
                         edge="end"
                         size="small"
                       >
-                        <CloseIcon />
+                        <SearchIcon />
                       </IconButton>
-                    )}
-                    <IconButton
-                      color="warning"
-                      onClick={handleSearch}
-                      disabled={!searchMa.trim()}
-                      edge="end"
-                      size="small"
-                    >
-                      <SearchIcon />
-                    </IconButton>
-                  </>
-                ),
-              }}
-            />
-          </Box>
-        </Grid>
-        <Grid item xs={12} md={5}>
-          <Box display="flex" gap={2} alignItems="center">
-            <TextField
-              type="date"
-              variant="outlined"
-              size="small"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              sx={{
-                borderRadius: 2,
-                bgcolor: "#fafafa",
-                "& .MuiOutlinedInput-root": { borderRadius: 2 },
-              }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <Typography fontWeight={700}>~</Typography>
-            <TextField
-              type="date"
-              variant="outlined"
-              size="small"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              sx={{
-                borderRadius: 2,
-                bgcolor: "#fafafa",
-                "& .MuiOutlinedInput-root": { borderRadius: 2 },
-              }}
-              InputLabelProps={{ shrink: true }}
-            />
-            {(startDate || endDate) && (
-              <OrangeButton
-                variant="outlined"
-                onClick={resetDateFilter}
-                sx={{ borderColor: orange, color: orange }}
+                    </>
+                  ),
+                }}
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+              <Typography
+                variant="subtitle2"
+                fontWeight={600}
+                color={black}
+                sx={{ minWidth: 80 }}
               >
-                <CloseIcon />
-              </OrangeButton>
-            )}
-          </Box>
+                Khoảng ngày:
+              </Typography>
+              <TextField
+                type="date"
+                size="small"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 120 }}
+              />
+              <Typography fontWeight={600}>~</Typography>
+              <TextField
+                type="date"
+                size="small"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 120 }}
+              />
+              {(startDate || endDate) && (
+                <IconButton
+                  color="error"
+                  onClick={resetDateFilter}
+                  size="small"
+                >
+                  <CloseIcon />
+                </IconButton>
+              )}
+            </Box>
+          </Grid>
         </Grid>
-      </Grid>
+      </Box>
 
-      {/* Tabs trạng thái */}
-      <Box display="flex" flexWrap="wrap" gap={1} mb={3}>
+      <Box mb={2} display="flex" flexWrap="wrap" gap={1}>
         {statusTabs.map((tab) => (
-          <Button
+          <Chip
             key={tab.label}
-            variant={activeStatus === tab.status ? "contained" : "outlined"}
+            label={`${tab.label} (${getStatusCount(tab.status)})`}
+            clickable
+            onClick={() => setActiveStatus(tab.status)}
             sx={{
-              borderRadius: "16px",
-              textTransform: "none",
-              fontWeight: 600,
-              px: 3,
-              py: 0.5,
-              bgcolor: activeStatus === tab.status ? orange : white,
+              bgcolor: activeStatus === tab.status ? orange : "#f0f0f0",
               color: activeStatus === tab.status ? white : black,
-              borderColor: orange,
+              fontWeight: 600,
+              px: 1.5,
+              fontSize: 14,
+              borderRadius: "16px",
+              transition: "background-color 0.2s, color 0.2s",
               "&:hover": {
-                bgcolor: activeStatus === tab.status ? "#ff9900" : "#fffaf3",
-                borderColor: orange,
+                bgcolor: activeStatus === tab.status ? "#ff9900" : "#e0e0e0",
               },
             }}
-            onClick={() => setActiveStatus(tab.status)}
-          >
-            {tab.label}
-            <Chip
-              label={getStatusCount(tab.status)}
-              sx={{
-                ml: 1,
-                bgcolor: "#6c757d",
-                color: white,
-                fontSize: "0.8rem",
-                borderRadius: "16px",
-              }}
-            />
-          </Button>
+          />
         ))}
       </Box>
 
-      {/* Table */}
       <TableContainer
-        component={Box}
+        component={Paper}
         sx={{
           borderRadius: 3,
           boxShadow: 2,
           border: "1px solid #ffe0b2",
           mt: 1,
+          maxWidth: "100%",
+          overflowX: "auto",
         }}
       >
         <Table size="small">
@@ -417,88 +407,68 @@ const OrderManagement = () => {
             <TableRow sx={{ bgcolor: orange }}>
               <TableCell
                 align="center"
-                sx={{ color: white, fontWeight: 700, width: "5%", border: 0 }}
+                sx={{ color: white, fontWeight: 700, border: 0, width: "5%" }}
               >
                 #
               </TableCell>
               <TableCell
-                sx={{ color: white, fontWeight: 700, width: "10%", border: 0 }}
+                sx={{ color: white, fontWeight: 700, border: 0, width: "12%" }}
               >
-                Mã
+                MÃ HÓA ĐƠN
               </TableCell>
               <TableCell
-                sx={{ color: white, fontWeight: 700, width: "10%", border: 0 }}
+                sx={{ color: white, fontWeight: 700, border: 0, width: "15%" }}
               >
-                Người đặt
+                NGƯỜI ĐẶT HÀNG
               </TableCell>
               <TableCell
-                sx={{ color: white, fontWeight: 700, width: "10%", border: 0 }}
+                sx={{ color: white, fontWeight: 700, border: 0, width: "15%" }}
               >
-                Người nhận
+                NGƯỜI NHẬN HÀNG
               </TableCell>
               <TableCell
-                sx={{ color: white, fontWeight: 700, width: "15%", border: 0 }}
+                sx={{ color: white, fontWeight: 700, border: 0, width: "12%" }}
               >
-                Địa chỉ
+                NGÀY ĐẶT
               </TableCell>
               <TableCell
-                align="center"
-                sx={{ color: white, fontWeight: 700, width: "5%", border: 0 }}
+                sx={{ color: white, fontWeight: 700, border: 0, width: "12%" }}
               >
-                SLSP
-              </TableCell>
-              <TableCell
-                sx={{ color: white, fontWeight: 700, width: "10%", border: 0 }}
-              >
-                Tổng tiền
-              </TableCell>
-              <TableCell
-                sx={{ color: white, fontWeight: 700, width: "8%", border: 0 }}
-              >
-                Thuế
-              </TableCell>
-              <TableCell
-                sx={{ color: white, fontWeight: 700, width: "8%", border: 0 }}
-              >
-                Ngày đặt
-              </TableCell>
-              <TableCell
-                sx={{ color: white, fontWeight: 700, width: "8%", border: 0 }}
-              >
-                Ngày nhận
-              </TableCell>
-              <TableCell
-                sx={{ color: white, fontWeight: 700, width: "10%", border: 0 }}
-              >
-                Ngày tạo
+                NGÀY NHẬN
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ color: white, fontWeight: 700, width: "10%", border: 0 }}
+                sx={{ color: white, fontWeight: 700, border: 0, width: "8%" }}
               >
-                Trạng thái
+                SỐ LƯỢNG SP
               </TableCell>
               <TableCell
-                sx={{ color: white, fontWeight: 700, width: "10%", border: 0 }}
+                sx={{ color: white, fontWeight: 700, border: 0, width: "12%" }}
               >
-                Mô tả
+                TỔNG TIỀN
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ color: white, fontWeight: 700, width: "8%", border: 0 }}
+                sx={{ color: white, fontWeight: 700, border: 0, width: "15%" }}
               >
-                Hành động
+                TRẠNG THÁI
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{ color: white, fontWeight: 700, border: 0, width: "11%" }}
+              >
+                HÀNH ĐỘNG
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {hoaDonList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={14} align="center">
+                <TableCell colSpan={10} align="center">
                   <Typography color="text.secondary" fontSize={18}>
-                    {searchMa
-                      ? `Không tìm thấy hóa đơn với mã "${searchMa}"`
-                      : "Không có hóa đơn nào"}
+                    {searchTerm
+                      ? `Không tìm thấy đơn hàng phù hợp với "${searchTerm}"`
+                      : "Không có đơn hàng nào"}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -515,100 +485,112 @@ const OrderManagement = () => {
                 >
                   <TableCell
                     align="center"
-                    sx={{ fontWeight: 600, color: black, border: 0 }}
+                    sx={{
+                      fontWeight: 600,
+                      color: black,
+                      border: 0,
+                      width: "5%",
+                    }}
                   >
-                    {idx + 1}
+                    {idx + 1 + currentPage * pageSize}
                   </TableCell>
                   <TableCell
                     sx={{
                       fontWeight: 600,
                       color: black,
-                      letterSpacing: 1,
                       border: 0,
+                      width: "12%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {hd.ma || "N/A"}
+                    <Tooltip title={hd.ma || "-"} arrow>
+                      <span>{hd.ma}</span>
+                    </Tooltip>
                   </TableCell>
                   <TableCell
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
+                    sx={{
+                      color: black,
+                      fontWeight: 500,
+                      border: 0,
+                      width: "15%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
                   >
-                    {hd.nguoiDatHang || "N/A"}
+                    <Tooltip title={hd.nguoiDatHang || "-"} arrow>
+                      <span>{hd.nguoiDatHang || "-"}</span>
+                    </Tooltip>
                   </TableCell>
                   <TableCell
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
+                    sx={{
+                      color: black,
+                      fontWeight: 500,
+                      border: 0,
+                      width: "15%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
                   >
-                    {hd.nguoiNhanHang || "N/A"}
+                    <Tooltip title={hd.nguoiNhanHang || "-"} arrow>
+                      <span>{hd.nguoiNhanHang || "-"}</span>
+                    </Tooltip>
                   </TableCell>
-                  <TableCell
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
-                  >
-                    {hd.diaChiNhanHang || "N/A"}
+                  <TableCell sx={{ color: black, border: 0, width: "12%" }}>
+                    {hd.ngayDat
+                      ? new Date(hd.ngayDat).toLocaleDateString("vi-VN")
+                      : "-"}
+                  </TableCell>
+                  <TableCell sx={{ color: black, border: 0, width: "12%" }}>
+                    {hd.ngayNhan
+                      ? new Date(hd.ngayNhan).toLocaleDateString("vi-VN")
+                      : "-"}
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
+                    sx={{
+                      fontWeight: 600,
+                      color: black,
+                      border: 0,
+                      width: "8%",
+                    }}
                   >
                     {hd.tongSoLuongSp ?? 0}
                   </TableCell>
                   <TableCell
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
+                    sx={{
+                      fontWeight: 600,
+                      color: black,
+                      border: 0,
+                      width: "12%",
+                    }}
                   >
-                    {hd.tongTien
-                      ? hd.tongTien.toLocaleString("vi-VN") + " đ"
-                      : "N/A"}
+                    {hd.tongTien?.toLocaleString()} VNĐ
                   </TableCell>
-                  <TableCell
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
-                  >
-                    {hd.tienThue
-                      ? hd.tienThue.toLocaleString("vi-VN") + " đ"
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
-                  >
-                    {hd.ngayDat
-                      ? new Date(hd.ngayDat).toLocaleDateString("vi-VN")
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
-                  >
-                    {hd.ngayNhan
-                      ? new Date(hd.ngayNhan).toLocaleDateString("vi-VN")
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
-                  >
-                    {hd.ngayTao
-                      ? new Date(hd.ngayTao).toLocaleString("vi-VN")
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell align="center" sx={{ border: 0 }}>
+                  <TableCell align="center" sx={{ border: 0, width: "15%" }}>
                     {renderTrangThaiBadge(hd.trangThai)}
                   </TableCell>
-                  <TableCell
-                    sx={{ color: black, fontWeight: 500, border: 0 }}
-                  >
-                    {hd.moTa || "N/A"}
-                  </TableCell>
-                  <TableCell align="center" sx={{ border: 0 }}>
-                    <IconButton
-                      sx={{
-                        color: "#1976d2",
-                        bgcolor: "#f4f8fd",
-                        borderRadius: "50%",
-                        width: 30,
-                        height: 30,
-                        transition: "all 0.2s",
-                        "&:hover": { bgcolor: "#e3f2fd", color: "#0d47a1" },
-                      }}
-                      onClick={() => navigate(`/admin/hoa-don/${hd.id}`)}
-                      size="small"
-                    >
-                      <VisibilityIcon fontSize="small" />
-                    </IconButton>
+                  <TableCell align="center" sx={{ border: 0, width: "11%" }}>
+                    <Tooltip title="Xem chi tiết" arrow>
+                      <IconButton
+                        sx={{
+                          color: "#1976d2",
+                          bgcolor: "#f4f8fd",
+                          borderRadius: "50%",
+                          width: 30,
+                          height: 30,
+                          transition: "all 0.2s",
+                          "&:hover": { bgcolor: "#e3f2fd", color: "#0d47a1" },
+                        }}
+                        onClick={() => handleViewDetails(hd.id)}
+                        size="small"
+                      >
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))
@@ -616,6 +598,30 @@ const OrderManagement = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mt={3}
+        flexWrap="wrap"
+        gap={2}
+      >
+        <Pagination
+          count={totalPages}
+          page={currentPage + 1}
+          onChange={handlePageChange}
+          color="warning"
+          shape="rounded"
+        />
+        <Typography>
+          Trang {totalPages > 0 ? currentPage + 1 : 0} / {totalPages} (
+          {totalElements} đơn hàng)
+        </Typography>
+      </Box>
+
+      {/* Thay thế Snackbar bằng ToastContainer */}
+      <ToastContainer position="top-right" autoClose={3000} />
     </Box>
   );
 };

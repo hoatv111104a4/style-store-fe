@@ -147,17 +147,26 @@ const Client = ({
                         type="radio"
                         name={`nhanHang-${hoaDonId}`}
                         checked={hinhThucNhanHang === 0}
-                        onChange={() => setHinhThucNhanHang(0)}
+                        onChange={() => {
+                            setHinhThucNhanHang(0);
+                            setTrangThai(1); // Đã hoàn thành
+                            setMoTa("Đã hoàn thành - Mua tại quầy");
+                        }}
                         disabled={daXacNhan}
                     /> Tại quầy &nbsp;
                     <input
                         type="radio"
                         name={`nhanHang-${hoaDonId}`}
                         checked={hinhThucNhanHang === 1}
-                        onChange={() => setHinhThucNhanHang(1)}
+                        onChange={() => {
+                            setHinhThucNhanHang(1);
+                            setTrangThai(1); // Chờ vận chuyển
+                            setMoTa("Chờ vận chuyển - Giao hàng");
+                        }}
                         disabled={daXacNhan}
                     /> Giao hàng
                 </div>
+
             </div>
         </div>
     );

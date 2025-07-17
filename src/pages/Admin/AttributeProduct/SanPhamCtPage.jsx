@@ -58,9 +58,6 @@ const white = '#fff';
 const STATIC_URL = import.meta.env.VITE_STATIC_URL || 'http://localhost:8080';
 const DEFAULT_IMAGE = '/default-image.jpg';
 
-// Nội dung từ tài liệu image.png
-const documentContent = `manage inventory product detail item list catalog stock goods merchandise article supply stockpile assortment collection range variety array selection batch lot bundle package unit piece equipment gear accessory luggage bag backpack rucksack knapsack travel gear travel bag travel pack premium quality high-end top-notch superior excellent fine best top-grade elite luxury upscale premium brand name label maker manufacturer producer supplier vendor retailer seller distributor trader dealer shop store outlet market bazaar emporium mart color hue shade tint tone pigment dye paint coating finish material fabric textile cloth weave thread yarn fiber polyester nylon canvas leather vinyl plastic rubber metal alloy steel aluminum wood bamboo dimensions size length width height depth volume capacity weight measurement scale proportion ratio extent magnitude quantity amount number total sum aggregate bulk mass load cargo freight shipment consignment parcel crate box case container vessel holder carrier packager wrapper cover lid cap top bottom side edge corner angle surface area space room capacity storage warehouse depot shed yard facility plant factory workshop studio atelier loft garage shed barn stable pen coop cage enclosure penfold corral yardage acreage plot tract field ground land terrain territory region zone district area sector division part portion segment section piece fraction component element constituent ingredient factor aspect feature characteristic attribute property quality trait aspect facet side angle perspective view point standpoint position stance posture attitude approach method technique style fashion mode trend vogue craze rage fad hit sensation popularity demand request order booking reservation appointment schedule timetable calendar agenda program plan scheme design blueprint draft outline sketch drawing illustration depiction representation portrayal picture image photo photograph snapshot shot capture record log journal diary chronicle history archive recordkeeping documentation paperwork filing organization arrangement coordination management administration supervision oversight control governance direction leadership guidance instruction command authority rule regulation law policy guideline standard criterion benchmark measure yardstick gauge indicator signal sign mark token symbol emblem logo insignia badge crest seal stamp imprint impression trace track footprint evidence proof confirmation verification validation authentication certification accreditation approval endorsement sanction ratification acceptance recognition acknowledgment admission confession declaration statement announcement proclamation notice bulletin advisory warning alert caution advice recommendation suggestion proposal offer bid quote estimate appraisal evaluation assessment review critique analysis examination inspection scrutiny survey study research investigation exploration probe inquiry search quest pursuit chase hunt seeking tracking tracing following monitoring observation watching viewing looking seeing gazing staring peering glancing peeking spying scouting reconnoitering surveying mapping charting plotting navigating steering guiding piloting directing leading conducting managing handling operating running functioning working performing executing implementing carrying executing fulfilling completing finishing concluding ending terminating closing wrapping up tying off sealing off locking securing fastening binding tying knotting lacing threading weaving stitching sewing knitting crocheting braiding plaiting twisting turning spinning rotating revolving circling orbiting wheeling pivoting swiveling twirling whirling spinning top gyro top spinner whirlgig fidget toy plaything game amusement entertainment recreation pastime hobby interest passion enthusiasm zeal`;
-
 const OrangeButton = styled(Button)(({ theme }) => ({
   backgroundColor: orange,
   color: white,
@@ -71,7 +68,7 @@ const OrangeButton = styled(Button)(({ theme }) => ({
   textTransform: 'none',
   fontWeight: 600,
   boxShadow: '0 2px 8px rgba(255,136,0,0.3)',
-  padding: '10px 24px',
+  padding: '8px 20px',
 }));
 
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
@@ -90,20 +87,22 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
   '& .MuiInputLabel-root': {
     fontWeight: 600,
     color: black,
-    fontSize: '1.1rem',
+    fontSize: '0.95rem',
     '&.Mui-focused': {
       color: orange,
     },
   },
   '& .MuiSelect-select': {
-    padding: '14px 16px',
-    fontSize: '1rem',
+    padding: '12px 14px',
+    fontSize: '0.9rem',
   },
 }));
 
 const SanPhamCtPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [sanPhamCts, setSanPhamCts] = useState([]);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -157,9 +156,6 @@ const SanPhamCtPage = () => {
     hinhAnhMauSac: [],
   });
   const [imageModal, setImageModal] = useState({ open: false });
-  const [documentModal, setDocumentModal] = useState({ open: false });
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const imageCache = new Map();
 
   const fetchDropdownData = useCallback(async (signal) => {
@@ -304,7 +300,7 @@ const SanPhamCtPage = () => {
         .filter((spct) => spct.id !== (selectedSanPhamCt?.id || null))
         .filter((spct) => `${spct.mauSacId}-${spct.thuongHieuId}-${spct.kichThuocId}` === key);
       if (duplicates.length > 0) {
-        errors.combination = 'Kết hợp màu sắc, thương hiệu, kích thước đã tồn tại';
+        errors.combination = 'Sản phẩm chi tiết này đã tồn tại';
       }
     }
     setFormErrors(errors);
@@ -364,32 +360,64 @@ const SanPhamCtPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-      toast.error('Vui lòng chọn một file hình ảnh');
-      return;
-    }
-    if (!formData.mauSacId) {
-      toast.error('Vui lòng chọn màu sắc trước khi tải ảnh');
-      return;
-    }
-    try {
-      const response = await uploadHinhAnhMauSac(file, formData.mauSacId);
-      const imageUrl = response.hinhAnh.startsWith('/uploads/')
-        ? `${STATIC_URL}${response.hinhAnh}`
-        : `${STATIC_URL}/uploads/${response.hinhAnh}`;
-      setFormData({
-        ...formData,
-        hinhAnhMauSacId: response.id,
-        imagePreview: imageUrl,
-      });
-      toast.success('Tải ảnh lên thành công');
-      await fetchHinhAnhByMauSacIds([formData.mauSacId]);
-    } catch (err) {
-      toast.error(`Tải ảnh thất bại: ${err.message}`);
-    }
-  };
+const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) {
+    toast.error('Vui lòng chọn một file hình ảnh');
+    return;
+  }
+  if (!formData.mauSacId) {
+    toast.error('Vui lòng chọn màu sắc trước khi tải ảnh');
+    return;
+  }
+
+  try {
+    setImageLoading(true); // Bật loading để cải thiện UX
+    const response = await uploadHinhAnhMauSac(file, formData.mauSacId);
+    
+    // Chuẩn hóa URL ảnh
+    const imageUrl = response.hinhAnh.startsWith('/uploads/')
+      ? `${STATIC_URL}${response.hinhAnh}`
+      : `${STATIC_URL}/uploads/${response.hinhAnh}`;
+
+    // Tạo đối tượng ảnh mới
+    const newImage = {
+      id: response.id,
+      hinhAnh: imageUrl,
+      mauSacId: formData.mauSacId,
+      tenMauSac: dropdownData.mauSac.find((ms) => ms.id === formData.mauSacId)?.ten || '',
+    };
+
+    // Cập nhật dropdownData.hinhAnhMauSac với ảnh mới
+    setDropdownData((prev) => ({
+      ...prev,
+      hinhAnhMauSac: [
+        ...prev.hinhAnhMauSac.filter((img) => img.id !== newImage.id), // Loại bỏ ảnh trùng nếu có
+        newImage, // Thêm ảnh mới
+      ],
+    }));
+
+    // Cập nhật formData với ảnh vừa tải lên
+    setFormData({
+      ...formData,
+      hinhAnhMauSacId: response.id,
+      imagePreview: imageUrl,
+    });
+
+    // Cập nhật imageCache để đồng bộ
+    imageCache.set(formData.mauSacId, [
+      ...(imageCache.get(formData.mauSacId) || []).filter((img) => img.id !== newImage.id),
+      newImage,
+    ]);
+
+    toast.success('Tải ảnh lên thành công');
+  } catch (err) {
+    toast.error(`Tải ảnh thất bại: ${err.message}`);
+  } finally {
+    setImageLoading(false); // Tắt loading
+  }
+};
+
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -493,16 +521,11 @@ const SanPhamCtPage = () => {
     setImageModal({ open: false });
   };
 
-  // Lọc hình ảnh theo mauSacId đã chọn
   const displayedImages = formData.mauSacId
     ? dropdownData.hinhAnhMauSac
         .filter((img) => img.mauSacId === formData.mauSacId)
         .slice(imagePage * imagesPerPage, (imagePage + 1) * imagesPerPage)
     : [];
-
-  const handleOpenDocument = () => {
-    setDocumentModal({ open: true });
-  };
 
   if (loading && sanPhamCts.length === 0) {
     return (
@@ -513,23 +536,31 @@ const SanPhamCtPage = () => {
   }
 
   return (
-    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', p: isMobile ? 2 : 4 }} className="font-sans">
-      <Box display="flex" alignItems="center" mb={3}>
-        <IconButton onClick={() => navigate('/admin/quan-ly-sp/san-pham')} sx={{ color: black, mr: 2 }}>
-          <ArrowBackIcon />
+    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', p: isMobile ? 1 : 3 }}>
+      <Box display="flex" alignItems="center" mb={2}>
+        <IconButton
+          onClick={() => navigate('/admin/quan-ly-sp/san-pham')}
+          sx={{
+            color: '#1976d2',
+            bgcolor: '#f4f8fd',
+            borderRadius: '50%',
+            mr: 2,
+            '&:hover': { bgcolor: '#e3f2fd' },
+          }}
+        >
+          <ArrowBackIcon fontSize="small" />
         </IconButton>
         <Typography
-          variant={isMobile ? 'h5' : 'h4'}
+          variant={isMobile ? 'h6' : 'h5'}
           fontWeight={700}
           color={black}
-          align="center"
-          sx={{ letterSpacing: 2, flexGrow: 1 }}
+          sx={{ letterSpacing: 2 }}
         >
           QUẢN LÝ SẢN PHẨM CHI TIẾT
         </Typography>
       </Box>
       {error && (
-        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+        <Alert severity="error" sx={{ mb: 2, borderRadius: 2, fontSize: '0.9rem' }}>
           {error}
           <Button
             onClick={() => {
@@ -538,13 +569,13 @@ const SanPhamCtPage = () => {
               fetchDropdownData(controller.signal);
               fetchData(currentPage, pageSize);
             }}
-            sx={{ ml: 2 }}
+            sx={{ ml: 2, fontSize: '0.9rem' }}
           >
             Thử lại
           </Button>
         </Alert>
       )}
-      <Grid container spacing={2} alignItems="center" mb={3}>
+      <Grid container spacing={1.5} alignItems="center" mb={2}>
         <Grid item xs={12}>
           <TextField
             variant="outlined"
@@ -558,9 +589,9 @@ const SanPhamCtPage = () => {
             sx={{
               borderRadius: 2,
               bgcolor: '#f9fafb',
-              maxWidth: isMobile ? '100%' : 500,
+              maxWidth: isMobile ? '100%' : 400,
               width: '100%',
-              '& .MuiOutlinedInput-root': { borderRadius: 2 },
+              '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: '0.9rem', py: '4px' },
             }}
             InputProps={{
               endAdornment: (
@@ -573,11 +604,11 @@ const SanPhamCtPage = () => {
                       size="small"
                       sx={{ mr: searchLoading ? 1 : 0 }}
                     >
-                      <CloseIcon />
+                      <CloseIcon fontSize="small" />
                     </IconButton>
                   )}
                   {searchLoading ? (
-                    <CircularProgress size={20} color="warning" />
+                    <CircularProgress size={16} color="warning" />
                   ) : (
                     <IconButton
                       color="warning"
@@ -586,7 +617,7 @@ const SanPhamCtPage = () => {
                       edge="end"
                       size="small"
                     >
-                      <SearchIcon />
+                      <SearchIcon fontSize="small" />
                     </IconButton>
                   )}
                 </>
@@ -595,9 +626,9 @@ const SanPhamCtPage = () => {
           />
         </Grid>
         <Grid item xs={12}>
-          <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
-            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
-              <InputLabel>Màu Sắc</InputLabel>
+          <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
+            <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
+              <InputLabel sx={{ fontSize: '0.9rem' }}>Màu Sắc</InputLabel>
               <Select
                 name="mauSacId"
                 value={filterData.mauSacId || ''}
@@ -606,16 +637,16 @@ const SanPhamCtPage = () => {
                 size="small"
                 sx={{ borderRadius: 2 }}
               >
-                <MenuItem value="">Chọn màu sắc...</MenuItem>
+                <MenuItem value="">Tất cả</MenuItem>
                 {dropdownData.mauSac.map((option) => (
-                  <MenuItem key={option.id} value={option.id}>
+                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                     {option.ten}
                   </MenuItem>
                 ))}
               </Select>
-            </FormControl>
-            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
-              <InputLabel>Thương Hiệu</InputLabel>
+            </StyledFormControl>
+            <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
+              <InputLabel sx={{ fontSize: '0.9rem' }}>Thương Hiệu</InputLabel>
               <Select
                 name="thuongHieuId"
                 value={filterData.thuongHieuId || ''}
@@ -624,16 +655,16 @@ const SanPhamCtPage = () => {
                 size="small"
                 sx={{ borderRadius: 2 }}
               >
-                <MenuItem value="">Chọn thương hiệu...</MenuItem>
+                <MenuItem value="">Tất cả</MenuItem>
                 {dropdownData.thuongHieu.map((option) => (
-                  <MenuItem key={option.id} value={option.id}>
+                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                     {option.ten}
                   </MenuItem>
                 ))}
               </Select>
-            </FormControl>
-            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
-              <InputLabel>Kích Thước</InputLabel>
+            </StyledFormControl>
+            <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
+              <InputLabel sx={{ fontSize: '0.9rem' }}>Kích Thước</InputLabel>
               <Select
                 name="kichThuocId"
                 value={filterData.kichThuocId || ''}
@@ -642,16 +673,16 @@ const SanPhamCtPage = () => {
                 size="small"
                 sx={{ borderRadius: 2 }}
               >
-                <MenuItem value="">Chọn kích thước...</MenuItem>
+                <MenuItem value="">Tất cả</MenuItem>
                 {dropdownData.kichThuoc.map((option) => (
-                  <MenuItem key={option.id} value={option.id}>
+                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                     {option.ten}
                   </MenuItem>
                 ))}
               </Select>
-            </FormControl>
-            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
-              <InputLabel>Xuất Xứ</InputLabel>
+            </StyledFormControl>
+            <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
+              <InputLabel sx={{ fontSize: '0.9rem' }}>Xuất Xứ</InputLabel>
               <Select
                 name="xuatXuId"
                 value={filterData.xuatXuId || ''}
@@ -660,16 +691,16 @@ const SanPhamCtPage = () => {
                 size="small"
                 sx={{ borderRadius: 2 }}
               >
-                <MenuItem value="">Chọn xuất xứ...</MenuItem>
+                <MenuItem value="">Tất cả</MenuItem>
                 {dropdownData.xuatXu.map((option) => (
-                  <MenuItem key={option.id} value={option.id}>
+                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                     {option.ten}
                   </MenuItem>
                 ))}
               </Select>
-            </FormControl>
-            <FormControl sx={{ minWidth: 150, bgcolor: '#f9fafb' }}>
-              <InputLabel>Chất Liệu</InputLabel>
+            </StyledFormControl>
+            <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
+              <InputLabel sx={{ fontSize: '0.9rem' }}>Chất Liệu</InputLabel>
               <Select
                 name="chatLieuId"
                 value={filterData.chatLieuId || ''}
@@ -678,28 +709,25 @@ const SanPhamCtPage = () => {
                 size="small"
                 sx={{ borderRadius: 2 }}
               >
-                <MenuItem value="">Chọn chất liệu...</MenuItem>
+                <MenuItem value="">Tất cả</MenuItem>
                 {dropdownData.chatLieu.map((option) => (
-                  <MenuItem key={option.id} value={option.id}>
+                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                     {option.ten}
                   </MenuItem>
                 ))}
               </Select>
-            </FormControl>
+            </StyledFormControl>
           </Box>
         </Grid>
         <Grid item xs={12} display="flex" justifyContent={isMobile ? 'flex-start' : 'flex-end'}>
-          <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
-            <OrangeButton
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAdd}
-              sx={{ minWidth: 180 }}
-            >
-              Thêm sản phẩm chi tiết
-            </OrangeButton>
-
-          </Box>
+          <OrangeButton
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAdd}
+            sx={{ minWidth: isMobile ? 140 : 180 }}
+          >
+            Thêm chi tiết
+          </OrangeButton>
         </Grid>
       </Grid>
       <TableContainer
@@ -709,27 +737,27 @@ const SanPhamCtPage = () => {
           boxShadow: 2,
           border: '1px solid #ffe0b2',
           mt: 1,
-          maxWidth: '100%', // Đảm bảo chiếm toàn bộ chiều rộng
-          minHeight: '60vh', // Chiều cao tối thiểu
-          overflowY: 'auto', // Thêm cuộn nếu cần
+          maxWidth: '100%',
+          minHeight: '60vh',
+          overflowX: 'auto',
         }}
       >
-        <Table size="small">
+        <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow sx={{ bgcolor: orange }}>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '5%', border: 0 }}>#</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '8%', border: 0 }}>HÌNH ẢNH</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TÊN</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>MÃ</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>MÀU SẮC</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>KÍCH THƯỚC</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>THƯƠNG HIỆU</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>XUẤT XỨ</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>CHẤT LIỆU</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>GIÁ</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '8%', border: 0 }}>SỐ LƯỢNG</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '10%', border: 0 }}>TRẠNG THÁI</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '12%', border: 0 }}>HÀNH ĐỘNG</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '4%', p: 1 }}>#</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '6%', p: 1 }}>H.ẢNH</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '12%', p: 1 }}>TÊN</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>MÃ</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>MÀU</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>K.THUỚC</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>T.HIỆU</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>X.XỨ</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>C.LIỆU</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '10%', p: 1 }}>GIÁ</TableCell>
+              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '6%', p: 1 }}>SL</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '10%', p: 1 }}>T.THAI</TableCell>
+              <TableCell align="center" sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '10%', p: 1 }}>H.ĐỘNG</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -743,34 +771,33 @@ const SanPhamCtPage = () => {
                     sx={{
                       transition: 'background 0.2s',
                       '&:hover': { backgroundColor: '#fffaf3' },
-                      borderBottom: '1px solid #ffe0b2',
                     }}
                   >
-                    <TableCell align="center" sx={{ fontWeight: 600, color: black, border: 0 }}>
+                    <TableCell align="center" sx={{ fontWeight: 600, color: black, fontSize: '0.9rem', p: 1 }}>
                       {index + 1 + currentPage * pageSize}
                     </TableCell>
-                    <TableCell align="center" sx={{ border: 0 }}>
+                    <TableCell align="center" sx={{ p: 1 }}>
                       {image ? (
                         <img
                           src={image.hinhAnh}
                           alt={spct.tenMauSac || 'Hình ảnh'}
                           style={{
-                            width: '40px',
-                            height: '40px',
+                            width: '32px',
+                            height: '32px',
                             objectFit: 'cover',
                             borderRadius: '4px',
                           }}
                           onError={(e) => (e.target.src = DEFAULT_IMAGE)}
                         />
                       ) : (
-                        <Typography color="text.secondary">N/A</Typography>
+                        <Typography color="text.secondary" fontSize="0.8rem">N/A</Typography>
                       )}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: black, border: 0 }}>
-                      {spct.tenSanPham && spct.tenMauSac ? `${spct.tenSanPham} màu ${spct.tenMauSac}` : 'N/A'}
+                    <TableCell sx={{ fontWeight: 600, color: black, fontSize: '0.9rem', p: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {spct.tenSanPham && spct.tenMauSac ? `${spct.tenSanPham} ${spct.tenMauSac}` : 'N/A'}
                     </TableCell>
-                    <TableCell sx={{ color: black, border: 0 }}>{spct.ma || 'N/A'}</TableCell>
-                    <TableCell sx={{ border: 0 }}>
+                    <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.ma || 'N/A'}</TableCell>
+                    <TableCell sx={{ p: 1 }}>
                       <Chip
                         label={spct.tenMauSac || 'N/A'}
                         sx={{
@@ -782,20 +809,21 @@ const SanPhamCtPage = () => {
                                 : '#6c757d',
                           color: spct.tenMauSac === 'Green' ? '#1a2e05' : white,
                           fontWeight: 600,
-                          px: 1.5,
-                          borderRadius: '16px',
+                          fontSize: '0.8rem',
+                          height: '24px',
+                          borderRadius: '12px',
                         }}
                       />
                     </TableCell>
-                    <TableCell sx={{ color: black, border: 0 }}>{spct.tenKichThuoc || 'N/A'}</TableCell>
-                    <TableCell sx={{ color: black, border: 0 }}>{spct.tenThuongHieu || 'N/A'}</TableCell>
-                    <TableCell sx={{ color: black, border: 0 }}>{spct.tenXuatXu || 'N/A'}</TableCell>
-                    <TableCell sx={{ color: black, border: 0 }}>{spct.tenChatLieu || 'N/A'}</TableCell>
-                    <TableCell sx={{ color: black, border: 0 }}>
-                      {spct.giaBan ? spct.giaBan.toLocaleString('vi-VN') + ' đ' : 'N/A'}
+                    <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.tenKichThuoc || 'N/A'}</TableCell>
+                    <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.tenThuongHieu || 'N/A'}</TableCell>
+                    <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.tenXuatXu || 'N/A'}</TableCell>
+                    <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.tenChatLieu || 'N/A'}</TableCell>
+                    <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>
+                      {spct.giaBan ? spct.giaBan.toLocaleString('vi-VN') : 'N/A'}
                     </TableCell>
-                    <TableCell sx={{ color: black, border: 0 }}>{spct.soLuong}</TableCell>
-                    <TableCell align="center" sx={{ border: 0 }}>
+                    <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.soLuong}</TableCell>
+                    <TableCell align="center" sx={{ p: 1 }}>
                       <Chip
                         label={
                           spct.soLuong === 0
@@ -817,20 +845,21 @@ const SanPhamCtPage = () => {
                                   : '#6c757d',
                           color: spct.soLuong === 0 ? white : spct.trangThai === 1 ? '#1a2e05' : white,
                           fontWeight: 600,
-                          px: 1.5,
-                          borderRadius: '16px',
+                          fontSize: '0.8rem',
+                          height: '24px',
+                          borderRadius: '12px',
                         }}
                       />
                     </TableCell>
-                    <TableCell align="center" sx={{ border: 0 }}>
+                    <TableCell align="center" sx={{ p: 1 }}>
                       <Box display="flex" justifyContent="center" gap={0.5}>
                         <IconButton
                           sx={{
                             color: '#1976d2',
                             bgcolor: '#f4f8fd',
                             borderRadius: '50%',
-                            width: 30,
-                            height: 30,
+                            width: 28,
+                            height: 28,
                             '&:hover': { bgcolor: '#e3f2fd', color: '#0d47a1' },
                           }}
                           onClick={() => handleViewOrEdit(spct, true)}
@@ -843,8 +872,8 @@ const SanPhamCtPage = () => {
                             color: '#ffca28',
                             bgcolor: '#fff7f0',
                             borderRadius: '50%',
-                            width: 30,
-                            height: 30,
+                            width: 28,
+                            height: 28,
                             '&:hover': { bgcolor: '#ffe0b2', color: '#ff6f00' },
                           }}
                           onClick={() => handleViewOrEdit(spct, false)}
@@ -857,8 +886,8 @@ const SanPhamCtPage = () => {
                             color: '#e53935',
                             bgcolor: '#fff6f6',
                             borderRadius: '50%',
-                            width: 30,
-                            height: 30,
+                            width: 28,
+                            height: 28,
                             '&:hover': { bgcolor: '#ffeaea', color: '#b71c1c' },
                           }}
                           onClick={() => setConfirmModal({ open: true, id: spct.id })}
@@ -874,7 +903,7 @@ const SanPhamCtPage = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={13} align="center">
-                  <Typography color="text.secondary" fontSize={18}>
+                  <Typography color="text.secondary" fontSize="0.9rem">
                     {searchTerm
                       ? `Không tìm thấy sản phẩm chi tiết với mã "${searchTerm}"`
                       : 'Không tìm thấy sản phẩm chi tiết phù hợp'}
@@ -885,16 +914,17 @@ const SanPhamCtPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mt={3} flexWrap="wrap" gap={2}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mt={2} flexWrap="wrap" gap={1}>
         <Pagination
           count={totalPages}
           page={currentPage + 1}
           onChange={handlePageChange}
           color="warning"
           shape="rounded"
+          size={isMobile ? 'small' : 'medium'}
         />
-        <Typography>
-          Trang {totalPages > 0 ? currentPage + 1 : 0} / {totalPages} ({totalElements} sản phẩm chi tiết)
+        <Typography fontSize="0.9rem">
+          Trang {totalPages > 0 ? currentPage + 1 : 0} / {totalPages} ({totalElements} chi tiết)
         </Typography>
       </Box>
       <Snackbar
@@ -912,6 +942,7 @@ const SanPhamCtPage = () => {
             fontWeight: 600,
             borderRadius: 2,
             boxShadow: 3,
+            fontSize: '0.9rem',
           }}
         >
           {alertMessage}
@@ -920,32 +951,32 @@ const SanPhamCtPage = () => {
       <Dialog
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="xl" // Tăng kích thước tối đa
+        maxWidth="lg"
         fullWidth
         PaperProps={{
           sx: {
             borderRadius: 3,
             bgcolor: '#f9fafb',
-            maxWidth: '90vw', // 90% chiều rộng màn hình
-            maxHeight: '90vh', // 90% chiều cao màn hình
-            overflowY: 'auto', // Thêm cuộn nếu cần
+            maxWidth: '90vw',
+            maxHeight: '90vh',
+            overflowY: 'auto',
           },
         }}
       >
-        <DialogTitle sx={{ bgcolor: orange, color: white, fontWeight: 700, py: 3, px: 4 }}>
+        <DialogTitle sx={{ bgcolor: orange, color: white, fontWeight: 700, py: 2, px: 3 }}>
           {isViewMode
             ? 'Xem Sản Phẩm Chi Tiết'
             : selectedSanPhamCt
               ? 'Chỉnh sửa Sản Phẩm Chi Tiết'
               : 'Thêm mới Sản Phẩm Chi Tiết'}
         </DialogTitle>
-        <DialogContent sx={{ p: 4, pt: 3, overflowY: 'auto', maxHeight: '70vh' }}>
-          <Box component="form" onSubmit={handleSave} className="space-y-6">
-            <Box className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <Typography variant="h6" fontWeight={600} color={black} mb={3}>
+        <DialogContent sx={{ p: 3, pt: 2, overflowY: 'auto', maxHeight: '70vh' }}>
+          <Box component="form" onSubmit={handleSave}>
+            <Box sx={{ bgcolor: white, p: 2, borderRadius: 2, boxShadow: 1, border: '1px solid #ffe0b2', mb: 2 }}>
+              <Typography variant="h6" fontWeight={600} color={black} mb={2}>
                 Thông tin cơ bản
               </Typography>
-              <Grid container spacing={3}>
+              <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <TextField
                     label="Mã Sản Phẩm Chi Tiết"
@@ -963,11 +994,12 @@ const SanPhamCtPage = () => {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                        fontSize: '0.9rem',
                       },
                       '& .MuiInputLabel-root': {
                         fontWeight: 600,
                         color: black,
-                        fontSize: '1.1rem',
+                        fontSize: '0.95rem',
                         '&.Mui-focused': { color: orange },
                       },
                     }}
@@ -994,11 +1026,12 @@ const SanPhamCtPage = () => {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                        fontSize: '0.9rem',
                       },
                       '& .MuiInputLabel-root': {
                         fontWeight: 600,
                         color: black,
-                        fontSize: '1.1rem',
+                        fontSize: '0.95rem',
                         '&.Mui-focused': { color: orange },
                       },
                     }}
@@ -1021,11 +1054,12 @@ const SanPhamCtPage = () => {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                        fontSize: '0.9rem',
                       },
                       '& .MuiInputLabel-root': {
                         fontWeight: 600,
                         color: black,
-                        fontSize: '1.1rem',
+                        fontSize: '0.95rem',
                         '&.Mui-focused': { color: orange },
                       },
                     }}
@@ -1049,11 +1083,12 @@ const SanPhamCtPage = () => {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                        fontSize: '0.9rem',
                       },
                       '& .MuiInputLabel-root': {
                         fontWeight: 600,
                         color: black,
-                        fontSize: '1.1rem',
+                        fontSize: '0.95rem',
                         '&.Mui-focused': { color: orange },
                       },
                     }}
@@ -1061,14 +1096,14 @@ const SanPhamCtPage = () => {
                 </Grid>
               </Grid>
             </Box>
-            <Box className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <Typography variant="h6" fontWeight={600} color={black} mb={3}>
+            <Box sx={{ bgcolor: white, p: 2, borderRadius: 2, boxShadow: 1, border: '1px solid #ffe0b2', mb: 2 }}>
+              <Typography variant="h6" fontWeight={600} color={black} mb={2}>
                 Thuộc tính sản phẩm
               </Typography>
-              <Grid container spacing={3}>
+              <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <StyledFormControl fullWidth error={!!formErrors.mauSacId}>
-                    <InputLabel>Màu Sắc</InputLabel>
+                    <InputLabel sx={{ fontSize: '0.95rem' }}>Màu Sắc</InputLabel>
                     <Select
                       value={formData.mauSacId || ''}
                       onChange={(e) => {
@@ -1085,23 +1120,23 @@ const SanPhamCtPage = () => {
                       }}
                       label="Màu Sắc"
                       disabled={isViewMode}
-                      startAdornment={<ImageIcon sx={{ color: orange, mr: 1 }} />}
+                      sx={{ fontSize: '0.9rem' }}
                     >
                       <MenuItem value="">Chọn màu sắc...</MenuItem>
                       {dropdownData.mauSac.map((option) => (
-                        <MenuItem key={option.id} value={option.id}>
+                        <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                           {option.ten}
                         </MenuItem>
                       ))}
                     </Select>
                     {!!formErrors.mauSacId && (
-                      <Typography color="error" variant="caption">{formErrors.mauSacId}</Typography>
+                      <Typography color="error" variant="caption" fontSize="0.8rem">{formErrors.mauSacId}</Typography>
                     )}
                   </StyledFormControl>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <StyledFormControl fullWidth error={!!formErrors.thuongHieuId}>
-                    <InputLabel>Thương Hiệu</InputLabel>
+                    <InputLabel sx={{ fontSize: '0.95rem' }}>Thương Hiệu</InputLabel>
                     <Select
                       name="thuongHieuId"
                       value={formData.thuongHieuId || ''}
@@ -1111,22 +1146,23 @@ const SanPhamCtPage = () => {
                       }
                       label="Thương Hiệu"
                       disabled={isViewMode}
+                      sx={{ fontSize: '0.9rem' }}
                     >
                       <MenuItem value="">Chọn thương hiệu...</MenuItem>
                       {dropdownData.thuongHieu.map((option) => (
-                        <MenuItem key={option.id} value={option.id}>
+                        <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                           {option.ten}
                         </MenuItem>
                       ))}
                     </Select>
                     {!!formErrors.thuongHieuId && (
-                      <Typography color="error" variant="caption">{formErrors.thuongHieuId}</Typography>
+                      <Typography color="error" variant="caption" fontSize="0.8rem">{formErrors.thuongHieuId}</Typography>
                     )}
                   </StyledFormControl>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <StyledFormControl fullWidth error={!!formErrors.kichThuocId}>
-                    <InputLabel>Kích Thước</InputLabel>
+                    <InputLabel sx={{ fontSize: '0.95rem' }}>Kích Thước</InputLabel>
                     <Select
                       name="kichThuocId"
                       value={formData.kichThuocId || ''}
@@ -1136,22 +1172,23 @@ const SanPhamCtPage = () => {
                       }
                       label="Kích Thước"
                       disabled={isViewMode}
+                      sx={{ fontSize: '0.9rem' }}
                     >
                       <MenuItem value="">Chọn kích thước...</MenuItem>
                       {dropdownData.kichThuoc.map((option) => (
-                        <MenuItem key={option.id} value={option.id}>
+                        <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                           {option.ten}
                         </MenuItem>
                       ))}
                     </Select>
                     {!!formErrors.kichThuocId && (
-                      <Typography color="error" variant="caption">{formErrors.kichThuocId}</Typography>
+                      <Typography color="error" variant="caption" fontSize="0.8rem">{formErrors.kichThuocId}</Typography>
                     )}
                   </StyledFormControl>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <StyledFormControl fullWidth error={!!formErrors.xuatXuId}>
-                    <InputLabel>Xuất Xứ</InputLabel>
+                    <InputLabel sx={{ fontSize: '0.95rem' }}>Xuất Xứ</InputLabel>
                     <Select
                       name="xuatXuId"
                       value={formData.xuatXuId || ''}
@@ -1161,22 +1198,23 @@ const SanPhamCtPage = () => {
                       }
                       label="Xuất Xứ"
                       disabled={isViewMode}
+                      sx={{ fontSize: '0.9rem' }}
                     >
                       <MenuItem value="">Chọn xuất xứ...</MenuItem>
                       {dropdownData.xuatXu.map((option) => (
-                        <MenuItem key={option.id} value={option.id}>
+                        <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                           {option.ten}
                         </MenuItem>
                       ))}
                     </Select>
                     {!!formErrors.xuatXuId && (
-                      <Typography color="error" variant="caption">{formErrors.xuatXuId}</Typography>
+                      <Typography color="error" variant="caption" fontSize="0.8rem">{formErrors.xuatXuId}</Typography>
                     )}
                   </StyledFormControl>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <StyledFormControl fullWidth error={!!formErrors.chatLieuId}>
-                    <InputLabel>Chất Liệu</InputLabel>
+                    <InputLabel sx={{ fontSize: '0.95rem' }}>Chất Liệu</InputLabel>
                     <Select
                       name="chatLieuId"
                       value={formData.chatLieuId || ''}
@@ -1186,29 +1224,30 @@ const SanPhamCtPage = () => {
                       }
                       label="Chất Liệu"
                       disabled={isViewMode}
+                      sx={{ fontSize: '0.9rem' }}
                     >
                       <MenuItem value="">Chọn chất liệu...</MenuItem>
                       {dropdownData.chatLieu.map((option) => (
-                        <MenuItem key={option.id} value={option.id}>
+                        <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
                           {option.ten}
                         </MenuItem>
                       ))}
                     </Select>
                     {!!formErrors.chatLieuId && (
-                      <Typography color="error" variant="caption">{formErrors.chatLieuId}</Typography>
+                      <Typography color="error" variant="caption" fontSize="0.8rem">{formErrors.chatLieuId}</Typography>
                     )}
                   </StyledFormControl>
                 </Grid>
               </Grid>
             </Box>
-            <Box className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <Typography variant="h6" fontWeight={600} color={black} mb={3}>
+            <Box sx={{ bgcolor: white, p: 2, borderRadius: 2, boxShadow: 1, border: '1px solid #ffe0b2', mb: 2 }}>
+              <Typography variant="h6" fontWeight={600} color={black} mb={2}>
                 Hình ảnh sản phẩm
               </Typography>
-              <Grid container spacing={3} alignItems="center">
+              <Grid container spacing={2} alignItems="center">
                 <Grid item xs={12} md={6}>
                   {!isViewMode && (
-                    <Box>
+                    <Box display="flex" gap={1}>
                       <Button
                         variant="outlined"
                         component="label"
@@ -1219,8 +1258,9 @@ const SanPhamCtPage = () => {
                           borderRadius: 2,
                           textTransform: 'none',
                           fontWeight: 600,
-                          py: 1.5,
-                          px: 3,
+                          py: 1,
+                          px: 2,
+                          fontSize: '0.9rem',
                           '&:hover': { borderColor: '#ff9900', bgcolor: '#fff7f0' },
                         }}
                       >
@@ -1238,9 +1278,9 @@ const SanPhamCtPage = () => {
                           borderRadius: 2,
                           textTransform: 'none',
                           fontWeight: 600,
-                          py: 1.5,
-                          px: 3,
-                          ml: 2,
+                          py: 1,
+                          px: 2,
+                          fontSize: '0.9rem',
                           '&:hover': { borderColor: '#ff9900', bgcolor: '#fff7f0' },
                         }}
                       >
@@ -1252,32 +1292,37 @@ const SanPhamCtPage = () => {
                 <Grid item xs={12} md={6}>
                   {formData.imagePreview ? (
                     <Box
-                      className="border-2 border-orange-400 rounded-lg p-2"
-                      sx={{ maxWidth: 150, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                      sx={{
+                        maxWidth: 120,
+                        border: `2px solid ${orange}`,
+                        borderRadius: 1,
+                        p: 1,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }}
                     >
                       <img
                         src={formData.imagePreview}
                         alt="Hình ảnh xem trước"
-                        style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+                        style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
                         onError={(e) => (e.target.src = DEFAULT_IMAGE)}
                       />
                     </Box>
                   ) : (
-                    <Typography color="text.secondary" fontStyle="italic">
+                    <Typography color="text.secondary" fontStyle="italic" fontSize="0.9rem">
                       Chưa chọn hình ảnh
                     </Typography>
                   )}
                 </Grid>
               </Grid>
             </Box>
-            <Box className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <Typography variant="h6" fontWeight={600} color={black} mb={3}>
+            <Box sx={{ bgcolor: white, p: 2, borderRadius: 2, boxShadow: 1, border: '1px solid #ffe0b2', mb: 2 }}>
+              <Typography variant="h6" fontWeight={600} color={black} mb={2}>
                 Trạng thái và mô tả
               </Typography>
-              <Grid container spacing={3}>
+              <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <StyledFormControl fullWidth>
-                    <InputLabel>Trạng Thái</InputLabel>
+                    <InputLabel sx={{ fontSize: '0.95rem' }}>Trạng Thái</InputLabel>
                     <Select
                       value={formData.trangThai}
                       onChange={(e) =>
@@ -1285,13 +1330,14 @@ const SanPhamCtPage = () => {
                       }
                       label="Trạng Thái"
                       disabled={isViewMode}
+                      sx={{ fontSize: '0.9rem' }}
                     >
-                      <MenuItem value={1}>Đang Bán</MenuItem>
-                      <MenuItem value={0} disabled={Number(formData.soLuong) > 0}>Hết Hàng</MenuItem>
-                      <MenuItem value={2}>Tạm Ngưng</MenuItem>
+                      <MenuItem value={1} sx={{ fontSize: '0.9rem' }}>Đang Bán</MenuItem>
+                      <MenuItem value={0} disabled={Number(formData.soLuong) > 0} sx={{ fontSize: '0.9rem' }}>Hết Hàng</MenuItem>
+                      <MenuItem value={2} sx={{ fontSize: '0.9rem' }}>Tạm Ngưng</MenuItem>
                     </Select>
                     {!!formErrors.trangThai && (
-                      <Typography color="error" variant="caption">{formErrors.trangThai}</Typography>
+                      <Typography color="error" variant="caption" fontSize="0.8rem">{formErrors.trangThai}</Typography>
                     )}
                   </StyledFormControl>
                 </Grid>
@@ -1302,7 +1348,7 @@ const SanPhamCtPage = () => {
                     onChange={(e) => !isViewMode && setFormData({ ...formData, moTa: e.target.value })}
                     fullWidth
                     multiline
-                    rows={4}
+                    rows={3}
                     error={!!formErrors.moTa}
                     helperText={formErrors.moTa}
                     InputProps={{ readOnly: isViewMode }}
@@ -1313,11 +1359,12 @@ const SanPhamCtPage = () => {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+                        fontSize: '0.9rem',
                       },
                       '& .MuiInputLabel-root': {
                         fontWeight: 600,
                         color: black,
-                        fontSize: '1.1rem',
+                        fontSize: '0.95rem',
                         '&.Mui-focused': { color: orange },
                       },
                     }}
@@ -1326,11 +1373,11 @@ const SanPhamCtPage = () => {
               </Grid>
             </Box>
             {formErrors.combination && (
-              <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
+              <Alert severity="error" sx={{ mt: 2, borderRadius: 2, fontSize: '0.9rem' }}>
                 {formErrors.combination}
               </Alert>
             )}
-            <Box display="flex" justifyContent="flex-end" gap={2} mt={4}>
+            <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
               <Button
                 variant="outlined"
                 onClick={() => setIsModalOpen(false)}
@@ -1339,8 +1386,9 @@ const SanPhamCtPage = () => {
                   borderColor: '#d1d5db',
                   color: black,
                   fontWeight: 600,
-                  px: 4,
-                  py: 1.5,
+                  px: 3,
+                  py: 1,
+                  fontSize: '0.9rem',
                   '&:hover': { borderColor: orange, bgcolor: '#fff7f0' },
                 }}
               >
@@ -1364,11 +1412,11 @@ const SanPhamCtPage = () => {
       <Dialog
         open={imageModal.open}
         onClose={() => setImageModal({ open: false })}
-        maxWidth="md" // Tăng kích thước
+        maxWidth="md"
         fullWidth
         PaperProps={{ sx: { borderRadius: 3, maxHeight: '70vh', overflowY: 'auto' } }}
       >
-        <DialogTitle sx={{ fontWeight: 600, color: black }}>Chọn Hình Ảnh</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, color: black, fontSize: '1.1rem' }}>Chọn Hình Ảnh</DialogTitle>
         <DialogContent>
           {imageLoading ? (
             <Box display="flex" justifyContent="center" my={4}>
@@ -1387,10 +1435,10 @@ const SanPhamCtPage = () => {
                       borderRadius={2}
                       sx={{
                         cursor: 'pointer',
-                        maxWidth: '120px',
+                        maxWidth: '100px',
                         transition: 'all 0.3s ease',
                         '&:hover': {
-                          transform: 'scale(1.1)',
+                          transform: 'scale(1.05)',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
                           borderColor: orange,
                         },
@@ -1400,13 +1448,13 @@ const SanPhamCtPage = () => {
                       <img
                         src={hinhAnh.hinhAnh}
                         alt={hinhAnh.tenMauSac || 'Hình ảnh'}
-                        style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+                        style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
                         onError={(e) => (e.target.src = DEFAULT_IMAGE)}
                       />
                     </Box>
                   ))
                 ) : (
-                  <Typography color="text.secondary" fontStyle="italic">
+                  <Typography color="text.secondary" fontStyle="italic" fontSize="0.9rem">
                     Không có hình ảnh cho màu sắc này
                   </Typography>
                 )}
@@ -1417,6 +1465,7 @@ const SanPhamCtPage = () => {
                   page={imagePage + 1}
                   onChange={(e, value) => setImagePage(value - 1)}
                   color="warning"
+                  size={isMobile ? 'small' : 'medium'}
                   sx={{ mt: 2 }}
                 />
               )}
@@ -1432,43 +1481,7 @@ const SanPhamCtPage = () => {
               borderColor: '#d1d5db',
               color: black,
               fontWeight: 600,
-              '&:hover': { borderColor: orange, bgcolor: '#fff7f0' },
-            }}
-          >
-            Đóng
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        open={documentModal.open}
-        onClose={() => setDocumentModal({ open: false })}
-        maxWidth="xl" // Tăng kích thước tối đa
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            bgcolor: '#f9fafb',
-            maxWidth: '90vw', // 90% chiều rộng màn hình
-            maxHeight: '90vh', // 90% chiều cao màn hình
-            overflowY: 'auto', // Thêm cuộn nếu cần
-          },
-        }}
-      >
-        
-        <DialogContent sx={{ p: 4, pt: 3, overflowY: 'auto', maxHeight: '70vh' }}>
-          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: black }}>
-            {documentContent}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            variant="outlined"
-            onClick={() => setDocumentModal({ open: false })}
-            sx={{
-              borderRadius: 2,
-              borderColor: '#d1d5db',
-              color: black,
-              fontWeight: 600,
+              fontSize: '0.9rem',
               '&:hover': { borderColor: orange, bgcolor: '#fff7f0' },
             }}
           >
@@ -1482,9 +1495,9 @@ const SanPhamCtPage = () => {
         maxWidth="xs"
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <DialogTitle sx={{ fontWeight: 600, color: black }}>Xác nhận</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600, color: black, fontSize: '1.1rem' }}>Xác nhận</DialogTitle>
         <DialogContent>
-          <Typography>Bạn có chắc muốn thay đổi trạng thái sản phẩm chi tiết này thành Tạm Ngưng?</Typography>
+          <Typography fontSize="0.9rem">Bạn có chắc muốn thay đổi trạng thái sản phẩm chi tiết này thành Tạm Ngưng?</Typography>
         </DialogContent>
         <DialogActions>
           <Button
@@ -1495,6 +1508,7 @@ const SanPhamCtPage = () => {
               borderColor: '#d1d5db',
               color: black,
               fontWeight: 600,
+              fontSize: '0.9rem',
               '&:hover': { borderColor: orange, bgcolor: '#fff7f0' },
             }}
           >

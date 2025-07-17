@@ -1,13 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSearch } from '@fortawesome/free-solid-svg-icons';
-import { addHDC, getHoaDonByTrangThai, updateHDCTWithKH, updateHoaDonFull } from '../../../services/Admin/CounterSales/HoaDonSAdmService';
+import { addHDC, getHoaDonByTrangThai, updateHDCTWithKH, updateHoaDonFull, deleteHD } from '../../../services/Admin/CounterSales/HoaDonSAdmService';
 import ProductsSales from '../AttibuteSales/ProductsSales';
 import { addHDCT, getHoaDonCTByHoaDonId, updateHDCT, deleteHDCT } from '../../../services/Admin/CounterSales/HoaDonCTSAdmService';
 import { getSanPhamCtById } from '../../../services/Admin/SanPhamCTService';
 import { getKHBySdt } from '../../../services/Admin/CounterSales/NguoiDungSAdmService'
 import Client from './UserSales';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import HoaDonPDFExport from './InvoicePDFExport';
+
+
 
 const CounterSales = () => {
   const [hoaDons, setHoaDons] = useState([]);
@@ -29,12 +34,20 @@ const CounterSales = () => {
   const [hinhThucNhanHangMap, setHinhThucNhanHangMap] = useState({});
   const [hinhThucThanhToanMap, setHinhThucThanhToanMap] = useState({});
 
+  // thêm state để lưu trạng thái và mô tả của hóa đơn
+  const [trangThaiHoaDonMap, setTrangThaiHoaDonMap] = useState({});
+  const [moTaHoaDonMap, setMoTaHoaDonMap] = useState({});
+
+  const hoaDonRefs = useRef({});
   // Thêm state để lưu số tiền khách đưa cho từng hóa đơn
   const [tienKhachDuaMap, setTienKhachDuaMap] = useState({});
 
+
+
+
   const fetchHoaDons = async () => {
     try {
-      const result = await getHoaDonByTrangThai(0);
+      const result = await getHoaDonByTrangThai(6); // Giả sử 6 là trạng thái "Đang xử lý"
       const list = result.content || [];
       setHoaDons(list);
       if (list.length > 0) setActiveTab(list[0].id);
@@ -88,41 +101,34 @@ const CounterSales = () => {
   const confirmAddProduct = async () => {
     if (!selectedProduct) return;
     const hoaDon = hoaDons.find(hd => hd.id === activeTab);
+    const currentList = sanPhamsMap[hoaDon.id] || [];
+    const existed = currentList.find(sp => sp.sanPhamCTId === selectedProduct.id);
 
-    // Giới hạn chỉ được chọn tối đa 20 sản phẩm cho mỗi hóa đơn
-    const currentProductCount = sanPhamsMap[hoaDon.id]?.length || 0;
-    const existed = (sanPhamsMap[hoaDon.id] || []).find(
-      sp => sp.sanPhamCTId === selectedProduct.id
-    );
-    // Nếu sản phẩm chưa có và đã đủ 20 sản phẩm thì không cho thêm mới
-    if (!existed && currentProductCount >= 20) {
-      alert('Chỉ được chọn tối đa 20 sản phẩm cho mỗi hóa đơn!');
+    const newSoLuong = (existed?.soLuong || 0) + soLuongNhap;
+
+    if (newSoLuong > 20) {
+      alert('Mỗi sản phẩm chỉ được thêm tối đa 20 sản phẩm!');
       return;
     }
 
     const gia = selectedProduct.giaBan || selectedProduct.gia || 0;
 
     if (existed) {
-      // Nếu đã có, cộng dồn số lượng
       try {
         await updateHDCT(existed.id, {
           ...existed,
-          soLuong: existed.soLuong + soLuongNhap,
-          thanhTien: (existed.soLuong + soLuongNhap) * (existed.giaTien || gia)
+          soLuong: newSoLuong,
+          thanhTien: newSoLuong * gia
         });
         const result = await getHoaDonCTByHoaDonId(hoaDon.id);
-        const list = result.content || [];
-        setSanPhamsMap(prev => ({ ...prev, [hoaDon.id]: list }));
+        setSanPhamsMap(prev => ({ ...prev, [hoaDon.id]: result.content || [] }));
         setSelectedProduct(null);
         setShowProductModal(false);
         setSoLuongNhap(1);
-        setConnectError(false);
       } catch (err) {
         alert('Cập nhật số lượng thất bại: ' + err.message);
-        setConnectError(true);
       }
     } else {
-      // Nếu chưa có, thêm mới
       const data = {
         hoaDonId: hoaDon.id,
         sanPhamCTId: selectedProduct.id,
@@ -136,15 +142,12 @@ const CounterSales = () => {
       try {
         await addHDCT(data);
         const result = await getHoaDonCTByHoaDonId(hoaDon.id);
-        const list = result.content || [];
-        setSanPhamsMap(prev => ({ ...prev, [hoaDon.id]: list }));
+        setSanPhamsMap(prev => ({ ...prev, [hoaDon.id]: result.content || [] }));
         setSelectedProduct(null);
         setShowProductModal(false);
         setSoLuongNhap(1);
-        setConnectError(false);
       } catch (err) {
         alert('Thêm sản phẩm thất bại: ' + err.message);
-        setConnectError(true);
       }
     }
   };
@@ -156,9 +159,33 @@ const CounterSales = () => {
 
   const calculateTotal = (hoaDonId) =>
     sanPhamsMap[hoaDonId]?.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0) || 0;
+  const exportHoaDonToPDF = async (hoaDonId) => {
+    const element = hoaDonRefs.current[hoaDonId];
+    if (!element) return;
+
+    const canvas = await html2canvas(element);
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF();
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+    // Mở PDF trong tab mới thay vì tải về
+    pdf.output('dataurlnewwindow');
+  };
+
+
+
+
 
   const handleUpdateProduct = async (sp, hoaDonId) => {
     if (!sp.soLuong || isNaN(sp.soLuong) || Number(sp.soLuong) <= 0) return;
+    if (Number(sp.soLuong) > 20) {
+      alert('Mỗi sản phẩm chỉ được mua tối đa 20 sản phẩm!');
+      return;
+    }
     try {
       await updateHDCT(sp.id, {
         id: sp.id,
@@ -178,6 +205,26 @@ const CounterSales = () => {
       setConnectError(true);
     }
   };
+
+  const handleDeleteHoaDon = async (hoaDonId) => {
+    if (!window.confirm("Bạn có chắc muốn xoá hoá đơn này?")) return;
+    try {
+      await deleteHD(hoaDonId); // API soft delete hoặc chuyển trạng thái
+      setHoaDons(prev => prev.filter(hd => hd.id !== hoaDonId));
+      setActiveTab(prev => {
+        if (prev === hoaDonId && hoaDons.length > 1) {
+          // Nếu xóa tab đang mở, chuyển sang tab đầu tiên còn lại
+          const remaining = hoaDons.filter(hd => hd.id !== hoaDonId);
+          return remaining[0]?.id || null;
+        }
+        return prev;
+      });
+      alert("Đã xoá hóa đơn!");
+    } catch (err) {
+      alert("Xoá hoá đơn thất bại: " + err.message);
+    }
+  };
+
 
   const handleDeleteProduct = async (sp, hoaDonId) => {
     if (!window.confirm('Bạn có chắc muốn xoá sản phẩm này khỏi hoá đơn?')) return;
@@ -251,11 +298,11 @@ const CounterSales = () => {
 
   const handleUpdateHoaDonWithKhachHang = async (hoaDonId, khachHang, hinhThucNhanHang = 0) => {
     try {
-        console.log('Gửi lên API:', { hoaDonId, khachHangId: khachHang?.id, hinhThucNhanHang });
-        await updateHDCTWithKH(hoaDonId, khachHang.id, hinhThucNhanHang);
-        alert('Cập nhật khách hàng cho hóa đơn thành công!');
+      console.log('Gửi lên API:', { hoaDonId, khachHangId: khachHang?.id, hinhThucNhanHang });
+      await updateHDCTWithKH(hoaDonId, khachHang.id, hinhThucNhanHang);
+      alert('Cập nhật khách hàng cho hóa đơn thành công!');
     } catch (err) {
-        alert('Cập nhật khách hàng thất bại: ' + err.message);
+      alert('Cập nhật khách hàng thất bại: ' + err.message);
     }
   };
 
@@ -265,19 +312,31 @@ const CounterSales = () => {
     const tongSoLuongSp = sanPhams.reduce((sum, sp) => sum + sp.soLuong, 0);
     const tongTien = sanPhams.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0);
 
+    if (tongSoLuongSp === 0) {
+      alert('Không có sản phẩm nào trong hoá đơn!');
+      return;
+    }
+
     // Lấy hình thức nhận hàng và thanh toán
     const hinhThucNhanHang = hinhThucNhanHangMap[hoaDonId] || 0;
     const selectedPaymentId = hinhThucThanhToanMap[hoaDonId];
+
+    // Lấy trạng thái và mô tả của hóa đơn
+    const trangThai = trangThaiHoaDonMap[hoaDonId] || 6; // hiện là chờ xác nhận cho đơn tại quầy
+    const moTa = moTaHoaDonMap[hoaDonId] || "Đơn hàng tại quầy";
 
     try {
       await updateHoaDonFull(hoaDonId, {
         ptThanhToanId: selectedPaymentId,
         tongSoLuongSp,
         tongTien,
-        hinhThucNhanHang
+        hinhThucNhanHang,
+        trangThai,
+        moTa
       });
       alert('Cập nhật hóa đơn thành công!');
-       await fetchHoaDons();
+      await exportHoaDonToPDF(hoaDonId); // Xuất hóa đơn sang PDF
+      await fetchHoaDons();
     } catch (err) {
       alert('Cập nhật thất bại: ' + err.message);
     }
@@ -303,13 +362,23 @@ const CounterSales = () => {
         <>
           <ul className="nav nav-tabs">
             {hoaDons.map(hd => (
-              <li className="nav-item" key={hd.id}>
-                <button
-                  className={`nav-link ${activeTab === hd.id ? 'active' : ''}`}
+              <li className="nav-item d-flex align-items-center" key={hd.id}>
+                <div className={`nav-link d-flex justify-content-between align-items-center ${activeTab === hd.id ? 'active' : ''}`}
+                  style={{ gap: 8, paddingRight: 8, cursor: 'pointer' }}
                   onClick={() => setActiveTab(hd.id)}
                 >
-                  {hd.ma}
-                </button>
+                  <span>{hd.ma}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // tránh chuyển tab khi click X
+                      handleDeleteHoaDon(hd.id);
+                    }}
+                    className="btn btn-sm btn-link text-danger p-0"
+                    title="Xoá hoá đơn"
+                  >
+                    ×
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -325,7 +394,6 @@ const CounterSales = () => {
                       <FontAwesomeIcon icon={faPlus} className="me-1" /> Thêm sản phẩm
                     </button>
                   </div>
-
                   <table className="table table-bordered">
                     <thead className="table-light">
                       <tr>
@@ -389,7 +457,6 @@ const CounterSales = () => {
                 </div>
 
                 <div className="col-md-4">
-                  {/* Thay toàn bộ phần Thông tin khách hàng bằng component Client */}
                   <Client
                     hoaDonId={hd.id}
                     khachHangMap={khachHangMap}
@@ -403,7 +470,16 @@ const CounterSales = () => {
                     setHinhThucNhanHang={val =>
                       setHinhThucNhanHangMap(prev => ({ ...prev, [hd.id]: val }))
                     }
+                    trangThai={trangThaiHoaDonMap[hd.id] || 0}
+                    setTrangThai={val =>
+                      setTrangThaiHoaDonMap(prev => ({ ...prev, [hd.id]: val }))
+                    }
+                    moTa={moTaHoaDonMap[hd.id] || ''}
+                    setMoTa={val =>
+                      setMoTaHoaDonMap(prev => ({ ...prev, [hd.id]: val }))
+                    }
                   />
+
 
                   <h6 className="fw-bold">Thông tin thanh toán</h6>
                   <div className="border p-3">
@@ -427,7 +503,7 @@ const CounterSales = () => {
                           onChange={() =>
                             setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 2 }))
                           }
-                        /> Tiền mặt &nbsp;
+                        /> Tại quầy &nbsp;
                         <input
                           type="radio"
                           name={`tt-${hd.id}`}
@@ -435,7 +511,7 @@ const CounterSales = () => {
                           onChange={() =>
                             setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 3 }))
                           }
-                        /> chuyển khoản
+                        /> Thanh toán qua ví điện tử
                       </>
                     ) : (
                       // Tại quầy: 2 lựa chọn (giá trị 2 và 3)
@@ -455,7 +531,7 @@ const CounterSales = () => {
                           onChange={() =>
                             setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 3 }))
                           }
-                        /> Chuyển Khoản
+                        /> Chuyển khoản
                       </>
                     )}
                     <div className="mt-2">
@@ -491,6 +567,19 @@ const CounterSales = () => {
                     <button className="btn btn-success mt-3 w-100" onClick={() => handleXacNhanDonHang(hd.id)}>
                       Xác nhận đơn hàng
                     </button>
+                    {/* Đặt ở cuối return, ngoài mọi tab, KHÔNG dùng display: none */}
+                    <div style={{ position: 'absolute', top: 0, left: '-9999px' }}>
+                      {hoaDons.map(hd => (
+                        <HoaDonPDFExport
+                          key={hd.id}
+                          ref={el => (hoaDonRefs.current[hd.id] = el)}
+                          hoaDon={hd}
+                          sanPhams={sanPhamsMap[hd.id] || []}
+                          tongTien={calculateTotal(hd.id)}
+                        />
+                      ))}
+                    </div>
+
                   </div>
                 </div>
               </div>
@@ -546,3 +635,4 @@ const CounterSales = () => {
 };
 
 export default CounterSales;
+

@@ -26,24 +26,30 @@ export const getHinhAnhByMauSacId = async (mauSacId) => {
     throw error;
   }
 };
-
 export const uploadHinhAnhMauSac = async (file, mauSacId) => {
-  if (!file || !mauSacId) throw new Error("Thiếu file hoặc màu sắc ID");
-
-  const formData = new FormData();
-  formData.append('file', file);               // ✅ trùng với @RequestParam("file")
-  formData.append('mauSacId', mauSacId);       // ✅ trùng với @RequestParam("mauSacId")
-
   try {
-    const response = await axios.post(
-      'http://localhost:8080/api/hinh-anh-mau-sac/upload',
-      formData
-    
-    );
-    return response.data;
+    if (!file || !mauSacId) {
+      throw new Error('Vui lòng chọn tệp ảnh và mã màu sắc.');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('mauSacId', mauSacId);
+
+    const response = await axios.post(`${BASE_URL}/api/hinh-anh-mau-sac/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 10000,
+    });
+
+    return response.data; // Trả về DTO ảnh hoặc tên ảnh tùy backend
   } catch (error) {
-    console.error("Upload thất bại", error);
-    throw error;
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      'Lỗi không xác định từ server khi tải ảnh';
+    throw new Error(message);
   }
 };
 

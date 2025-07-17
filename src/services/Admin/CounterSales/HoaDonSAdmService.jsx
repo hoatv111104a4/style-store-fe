@@ -135,5 +135,36 @@ export const getHoaDonByNgayBatDauVaKetThuc = async (startDate, endDate) => {
         throw new Error(
             error.response?.data?.error || 'Không thể lấy hóa đơn theo khoảng ngày'
         );
+    }    
+};
+
+// Hàm gọi API tìm kiếm hóa đơn theo ngày bắt đầu và kết thúc k trangj thasi
+export const getHoaDonByNgayBatDauVaKetThucT = async (startDate, endDate) => {
+    try {
+        const response = await axiosInstance.get('/theo-ngayt', {
+            params: {
+                start: startDate,
+                end: endDate,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(
+            error.response?.data?.error || 'Không thể lấy hóa đơn theo khoảng ngày'
+        );
     }
 };
+
+//Hàm gọi API xoas hóa đơn theo id
+export const deleteHD = async (id) => {
+    try {
+        const response = await axiosInstance.put(`/delete/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi xoá hóa đơn:', error);
+        throw new Error(
+            error.response?.data?.error || 'Không thể tìm kiếm hóa đơn theo ID'
+        );
+    }
+}
+

@@ -42,18 +42,19 @@ export const addMauSac = async (mauSac) => {
   }
 };
 
-// Cập nhật màu sắc
 export const updateMauSac = async (id, mauSac) => {
   try {
-    if (!id || !mauSac || typeof mauSac !== 'object' || !mauSac.ma || !mauSac.ten) {
-      throw new Error('ID hoặc dữ liệu Màu Sắc không hợp lệ. Vui lòng cung cấp mã và tên.');
+    if (!id || !mauSac || typeof mauSac !== 'object') {
+      throw new Error('ID hoặc dữ liệu Màu Sắc không hợp lệ.');
     }
+
     const response = await axiosInstance.put(`/${id}`, mauSac);
-    return response.data; // Trả về dữ liệu từ server
+    return response.data;
   } catch (error) {
     handleError(error);
   }
 };
+
 
 // Xóa màu sắc
 export const deleteMauSac = async (id) => {

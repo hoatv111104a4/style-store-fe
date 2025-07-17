@@ -10,7 +10,7 @@ import {
     Legend,
 } from 'chart.js';
 import dayjs from 'dayjs';
-import { getHoaDonByNgayBatDauVaKetThuc } from '../../services/Admin/CounterSales/HoaDonSAdmService';
+import { getHoaDonByNgayBatDauVaKetThuc, getHoaDonByNgayBatDauVaKetThucT } from '../../services/Admin/CounterSales/HoaDonSAdmService';
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -27,42 +27,56 @@ const DashboardDoanhSo = ({ hoaDons }) => {
         const endOfMonth = today.endOf('month');
 
         let doanhSoNgay = 0, doanhSoTuan = 0, doanhSoThang = 0;
-        let trangThaiCount = {};
 
         hoaDons.forEach((hd) => {
             const ngayNhan = dayjs(hd.ngayNhan);
             const tien = hd.tongTien || 0;
 
-            // 👇 Doanh số hôm nay
             if (ngayNhan.isSame(today, 'day')) doanhSoNgay += tien;
-
-            // 👇 Doanh số tuần này
             if (ngayNhan.isSame(today, 'week')) doanhSoTuan += tien;
-
-            // 👇 Doanh số từ đầu tháng đến cuối tháng
             if (ngayNhan.isAfter(startOfMonth.subtract(1, 'day')) && ngayNhan.isBefore(endOfMonth.add(1, 'day'))) {
                 doanhSoThang += tien;
             }
-
-            const key = getTrangThaiLabel(hd.trangThai);
-            trangThaiCount[key] = (trangThaiCount[key] || 0) + 1;
         });
 
         setDoanhSoHomNay(doanhSoNgay);
         setDoanhSoTuanNay(doanhSoTuan);
         setDoanhSoThangNay(doanhSoThang);
-        setTongDonTheoTrangThai(trangThaiCount);
+
+        // 📌 Dùng API riêng cho biểu đồ doughnut
+        const fetchTrangThaiData = async () => {
+            try {
+                const start = startOfMonth.format('YYYY-MM-DD');
+                const end = endOfMonth.format('YYYY-MM-DD');
+                const result = await getHoaDonByNgayBatDauVaKetThucT(`${start}T00:00:00`, `${end}T23:59:59`);
+                const countMap = {};
+
+                result.forEach(hd => {
+                    const key = getTrangThaiLabel(hd.trangThai);
+                    countMap[key] = (countMap[key] || 0) + 1;
+                });
+
+                setTongDonTheoTrangThai(countMap);
+            } catch (err) {
+                console.error('Lỗi khi thống kê theo trạng thái:', err);
+            }
+        };
+
+        fetchTrangThaiData();
     }, [hoaDons]);
     
-    
+
+
 
     const getTrangThaiLabel = (code) => {
         switch (code) {
             case 0: return 'Chờ xác nhận';
-            case 1: return 'Đã hoàn thành';
-            case 2: return 'Chờ vận chuyển';
-            case 3: return 'Chờ thanh toán';
-            case 4: return 'Đã huỷ hàng';
+            case 1: return 'Đã thanh toán';
+            case 2: return 'Đang vận chuyển';
+            case 3: return 'Chờ vận chuyển';
+            case 4: return 'Đã huỷ';
+            case 5: return 'Hoàn tiền / Trả hàng';
+            case 6: return 'Hoá đơn chờ tại quầy';
             default: return 'Không xác định';
         }
     };
@@ -81,8 +95,16 @@ const DashboardDoanhSo = ({ hoaDons }) => {
         datasets: [{
             data: Object.values(tongDonTheoTrangThai),
             backgroundColor: [
-                '#6366f1', '#60a5fa', '#38bdf8', '#34d399', '#f87171'
-            ]
+                '#ffca28',
+                '#43a047',
+                '#1976d2',
+                '#a3e635',
+                '#e53935',
+                '#607D8B', 
+                '#795548'  
+            ],
+            borderColor: '#fff',
+            borderWidth: 1
         }]
     };
 
@@ -155,7 +177,7 @@ const AdminDashboard = () => {
             .then(setHoaDons)
             .catch(err => console.error("Lỗi khi lấy hóa đơn:", err));
     }, []);
-    
+
 
     useEffect(() => {
         fetchHoaDons();
