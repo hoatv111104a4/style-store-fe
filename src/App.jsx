@@ -78,11 +78,14 @@ function App() {
           <Route path="/admin/san-pham-chi-tiet/:id" element={<SanPhamCtPage />} />
           <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddProductWithDetailsPage />} />
           <Route path="/admin/giam-gia/them-phieu-giam-gia" element={<AddVoucher />} />
+
           <Route path="/admin/orders/:id" element={<OrderDetailAdmin />} />
           <Route path="/admin/tai-khoan/nhan-vien/them-nhan-vien" element={<AddStaff />} />
           <Route path="/admin/tai-khoan/nhan-vien/chi-tiet/:id" element={<UpdateStaff />} />
           <Route path="/admin/tai-khoan/khach-hang/them-khach-hang" element={<AddCustomer />} />
           <Route path="/admin/tai-khoan/khach-hang/chi-tiet/:id" element={<UpdateCustomer />} />
+
+     <Route path="/admin/orders/:id" element={<OrderDetailAdmin />} />
 
 
         </Route>

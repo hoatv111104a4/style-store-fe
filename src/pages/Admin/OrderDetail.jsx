@@ -111,42 +111,68 @@ const OrderDetail = () => {
       case 0:
         label = "Chờ xác nhận";
         color = "#ffc107";
-        icon = <AccessTimeIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />;
+        icon = (
+          <AccessTimeIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />
+        );
         break;
       case 1:
-        label ="Đã hoàn thành";
+        label = "Chờ vận chuyển";
         color = "#17a2b8";
-        icon = <AccessTimeIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />;
+        icon = (
+          <AccessTimeIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />
+        );
         break;
       case 2:
         label = "Đang vận chuyển";
         color = "#007bff";
-        icon = <LocalShippingOutlinedIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />;
+        icon = (
+          <LocalShippingOutlinedIcon
+            sx={{ color: white, fontSize: isMobile ? 16 : 18 }}
+          />
+        );
         break;
       case 3:
-        label =  "Chờ vận chuyển";
+        label = "Đã hoàn thành";
         color = "#28a745";
-        icon = <DoneAllOutlinedIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />;
+        icon = (
+          <DoneAllOutlinedIcon
+            sx={{ color: white, fontSize: isMobile ? 16 : 18 }}
+          />
+        );
         break;
       case 4:
         label = "Đã hủy";
         color = "#dc3545";
-        icon = <CancelOutlinedIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />;
+        icon = (
+          <CancelOutlinedIcon
+            sx={{ color: white, fontSize: isMobile ? 16 : 18 }}
+          />
+        );
         break;
       case 5:
         label = "Hoàn tiền / Trả hàng";
         color = "#343a40";
-        icon = <MonetizationOnOutlinedIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />;
+        icon = (
+          <MonetizationOnOutlinedIcon
+            sx={{ color: white, fontSize: isMobile ? 16 : 18 }}
+          />
+        );
         break;
       case 6:
         label = "Chờ tại quầy";
         color = "#6610f2";
-        icon = <AccessTimeIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />;
+        icon = (
+          <AccessTimeIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />
+        );
         break;
       default:
         label = "Không xác định";
         color = "#6c757d";
-        icon = <InfoOutlinedIcon sx={{ color: white, fontSize: isMobile ? 16 : 18 }} />;
+        icon = (
+          <InfoOutlinedIcon
+            sx={{ color: white, fontSize: isMobile ? 16 : 18 }}
+          />
+        );
     }
     return (
       <Chip
@@ -217,7 +243,10 @@ const OrderDetail = () => {
   if (error) {
     return (
       <Box m={isMobile ? 1 : 4}>
-        <Alert severity="error" sx={{ mb: 2, borderRadius: 2, fontSize: isMobile ? 13 : 16 }}>
+        <Alert
+          severity="error"
+          sx={{ mb: 2, borderRadius: 2, fontSize: isMobile ? 13 : 16 }}
+        >
           {error}
         </Alert>
       </Box>
@@ -284,7 +313,11 @@ const OrderDetail = () => {
         fontWeight={700}
         color={black}
         align="center"
-        sx={{ letterSpacing: 1.5, mb: isMobile ? 2 : 3, fontSize: isMobile ? 20 : 24 }}
+        sx={{
+          letterSpacing: 1.5,
+          mb: isMobile ? 2 : 3,
+          fontSize: isMobile ? 20 : 24,
+        }}
       >
         CHI TIẾT ĐƠN HÀNG #{order.ma}
       </Typography>
@@ -355,7 +388,14 @@ const OrderDetail = () => {
             >
               Thay Đổi Trạng Thái
             </Typography>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: isMobile ? 1 : 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                flexWrap: "wrap",
+                mb: isMobile ? 1 : 2,
+              }}
+            >
               {order.trangThai === 0 && (
                 <OrangeButton
                   variant="contained"
@@ -408,7 +448,9 @@ const OrderDetail = () => {
               {mockStatusHistory.map((history, index) => (
                 <ListItem key={index} sx={{ py: isMobile ? 0.5 : 1 }}>
                   <ListItemIcon>
-                    <HistoryIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                    <HistoryIcon
+                      sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                    />
                   </ListItemIcon>
                   <ListItemText
                     primary={renderTrangThaiBadge(history.status)}
@@ -421,7 +463,10 @@ const OrderDetail = () => {
                           )
                         : "Chưa cập nhật"
                     }
-                    secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                    secondaryTypographyProps={{
+                      color: "text.secondary",
+                      fontSize: isMobile ? 11 : 13,
+                    }}
                   />
                 </ListItem>
               ))}
@@ -429,6 +474,164 @@ const OrderDetail = () => {
           </Paper>
 
           {/* Product List Section */}
+          {/* <Paper
+            sx={{
+              p: isMobile ? 1.5 : 2.5,
+              borderRadius: 2,
+              boxShadow: "0 2px 6px rgba(255,136,0,0.08)",
+              border: "1px solid #ffe0b2",
+            }}
+          >
+            <Typography
+              variant={isMobile ? "h6" : "h5"}
+              fontWeight={600}
+              color={black}
+              mb={isMobile ? 1 : 2}
+              fontSize={isMobile ? 16 : 20}
+            >
+              Danh Sách Sản Phẩm ({order.chiTietHoaDon?.length || 0})
+            </Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: orange }}>
+                    <TableCell
+                      sx={{
+                        color: white,
+                        fontWeight: 700,
+                        border: 0,
+                        width: "30%",
+                        fontSize: isMobile ? 12 : 14,
+                      }}
+                    >
+                      Tên Sản Phẩm
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        color: white,
+                        fontWeight: 700,
+                        border: 0,
+                        width: "15%",
+                        fontSize: isMobile ? 12 : 14,
+                      }}
+                    >
+                      Giá tiền
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        color: white,
+                        fontWeight: 700,
+                        border: 0,
+                        width: "15%",
+                        fontSize: isMobile ? 12 : 14,
+                      }}
+                    >
+                      Số Lượng
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        color: white,
+                        fontWeight: 700,
+                        border: 0,
+                        width: "20%",
+                        fontSize: isMobile ? 12 : 14,
+                      }}
+                    >
+                      Thành tiền
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {order.chiTietHoaDon && order.chiTietHoaDon.length > 0 ? (
+                    order.chiTietHoaDon.map((item, index) => (
+                      <TableRow
+                        key={index}
+                        hover
+                        sx={{
+                          transition: "background 0.2s",
+                          "&:hover": { backgroundColor: "#fffaf3" },
+                          borderBottom: "1px solid #ffe0b2",
+                        }}
+                      >
+                        <TableCell
+                          sx={{
+                            fontWeight: 500,
+                            color: black,
+                            border: 0,
+                            fontSize: isMobile ? 12 : 14,
+                          }}
+                        >
+                          {item.tenSanPham || "N/A"}
+                        </TableCell>
+                        <TableCell sx={{ border: 0 }}>
+                          <Box
+                            component="img"
+                            src={
+                              item.anhSanPham ||
+                              "https://via.placeholder.com/50"
+                            }
+                            alt={item.tenSanPham}
+                            sx={{
+                              width: isMobile ? 40 : 60,
+                              height: isMobile ? 40 : 60,
+                              objectFit: "cover",
+                              borderRadius: 1,
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 600,
+                            color: black,
+                            border: 0,
+                            fontSize: isMobile ? 12 : 14,
+                          }}
+                        >
+                          {item.soLuong || 0}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 500,
+                            color: black,
+                            border: 0,
+                            fontSize: isMobile ? 12 : 14,
+                          }}
+                        >
+                          {(item.donGia || 0).toLocaleString()} VNĐ
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 600,
+                            color: black,
+                            border: 0,
+                            fontSize: isMobile ? 12 : 14,
+                          }}
+                        >
+                          {(item.soLuong * item.donGia || 0).toLocaleString()}{" "}
+                          VNĐ
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        align="center"
+                        sx={{ border: 0, py: isMobile ? 1 : 2 }}
+                      >
+                        <Typography
+                          color="text.secondary"
+                          fontSize={isMobile ? 14 : 16}
+                        >
+                          Không có sản phẩm trong đơn hàng.
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper> */}
           <Paper
             sx={{
               p: isMobile ? 1.5 : 2.5,
@@ -450,20 +653,49 @@ const OrderDetail = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: orange }}>
-                    <TableCell sx={{ color: white, fontWeight: 700, border: 0, width: "30%", fontSize: isMobile ? 12 : 14 }}>
-                      Sản Phẩm
+                    <TableCell
+                      sx={{
+                        color: white,
+                        fontWeight: 700,
+                        border: 0,
+                        width: "30%",
+                        fontSize: isMobile ? 12 : 14,
+                      }}
+                    >
+                      Tên Sản Phẩm
                     </TableCell>
-                    <TableCell sx={{ color: white, fontWeight: 700, border: 0, width: "15%", fontSize: isMobile ? 12 : 14 }}>
-                      Hình Ảnh
+                    <TableCell
+                      sx={{
+                        color: white,
+                        fontWeight: 700,
+                        border: 0,
+                        width: "25%",
+                        fontSize: isMobile ? 12 : 14,
+                      }}
+                    >
+                      Giá Tiền
                     </TableCell>
-                    <TableCell sx={{ color: white, fontWeight: 700, border: 0, width: "15%", fontSize: isMobile ? 12 : 14 }}>
+                    <TableCell
+                      sx={{
+                        color: white,
+                        fontWeight: 700,
+                        border: 0,
+                        width: "20%",
+                        fontSize: isMobile ? 12 : 14,
+                      }}
+                    >
                       Số Lượng
                     </TableCell>
-                    <TableCell sx={{ color: white, fontWeight: 700, border: 0, width: "20%", fontSize: isMobile ? 12 : 14 }}>
-                      Đơn Giá
-                    </TableCell>
-                    <TableCell sx={{ color: white, fontWeight: 700, border: 0, width: "20%", fontSize: isMobile ? 12 : 14 }}>
-                      Tổng
+                    <TableCell
+                      sx={{
+                        color: white,
+                        fontWeight: 700,
+                        border: 0,
+                        width: "25%",
+                        fontSize: isMobile ? 12 : 14,
+                      }}
+                    >
+                      Thành Tiền
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -479,37 +711,63 @@ const OrderDetail = () => {
                           borderBottom: "1px solid #ffe0b2",
                         }}
                       >
-                        <TableCell sx={{ fontWeight: 500, color: black, border: 0, fontSize: isMobile ? 12 : 14 }}>
+                        <TableCell
+                          sx={{
+                            fontWeight: 500,
+                            color: black,
+                            border: 0,
+                            fontSize: isMobile ? 12 : 14,
+                          }}
+                        >
                           {item.tenSanPham || "N/A"}
                         </TableCell>
-                        <TableCell sx={{ border: 0 }}>
-                          <Box
-                            component="img"
-                            src={item.anhSanPham || "https://via.placeholder.com/50"}
-                            alt={item.tenSanPham}
-                            sx={{
-                              width: isMobile ? 40 : 60,
-                              height: isMobile ? 40 : 60,
-                              objectFit: "cover",
-                              borderRadius: 1,
-                            }}
-                          />
+                        <TableCell
+                          sx={{
+                            fontWeight: 500,
+                            color: black,
+                            border: 0,
+                            fontSize: isMobile ? 12 : 14,
+                          }}
+                        >
+                          {item.giaTien != null && item.giaTien > 0
+                            ? item.giaTien.toLocaleString() + " VNĐ"
+                            : "Chưa có giá"}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: black, border: 0, fontSize: isMobile ? 12 : 14 }}>
+                        <TableCell
+                          sx={{
+                            fontWeight: 600,
+                            color: black,
+                            border: 0,
+                            fontSize: isMobile ? 12 : 14,
+                          }}
+                        >
                           {item.soLuong || 0}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 500, color: black, border: 0, fontSize: isMobile ? 12 : 14 }}>
-                          {(item.donGia || 0).toLocaleString()} VNĐ
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: black, border: 0, fontSize: isMobile ? 12 : 14 }}>
-                          {(item.soLuong * item.donGia || 0).toLocaleString()} VNĐ
+                        <TableCell
+                          sx={{
+                            fontWeight: 600,
+                            color: black,
+                            border: 0,
+                            fontSize: isMobile ? 12 : 14,
+                          }}
+                        >
+                          {item.thanhTien != null && item.thanhTien > 0
+                            ? item.thanhTien.toLocaleString() + " VNĐ"
+                            : "Chưa có giá"}
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ border: 0, py: isMobile ? 1 : 2 }}>
-                        <Typography color="text.secondary" fontSize={isMobile ? 14 : 16}>
+                      <TableCell
+                        colSpan={4}
+                        align="center"
+                        sx={{ border: 0, py: isMobile ? 1 : 2 }}
+                      >
+                        <Typography
+                          color="text.secondary"
+                          fontSize={isMobile ? 14 : 16}
+                        >
                           Không có sản phẩm trong đơn hàng.
                         </Typography>
                       </TableCell>
@@ -543,62 +801,89 @@ const OrderDetail = () => {
             <List dense>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <PersonIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <PersonIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Người Đặt Hàng"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
                   secondary={order.nguoiDatHang || "N/A"}
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <PersonIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <PersonIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Người Nhận Hàng"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
                   secondary={order.nguoiNhanHang || "N/A"}
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <EmailIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <EmailIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Email"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
                   secondary={order.email || "N/A"}
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <PhoneIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <PhoneIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Số Điện Thoại"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
                   secondary={order.sdt || "N/A"}
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <HomeIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <HomeIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Địa Chỉ"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
                   secondary={order.diaChi || "N/A"}
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
             </List>
 
-            <Divider sx={{ my: isMobile ? 1.5 : 2.5, borderColor: "#ffe0b2" }} />
+            <Divider
+              sx={{ my: isMobile ? 1.5 : 2.5, borderColor: "#ffe0b2" }}
+            />
 
             <Typography
               variant={isMobile ? "h6" : "h5"}
@@ -612,46 +897,71 @@ const OrderDetail = () => {
             <List dense>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <InfoOutlinedIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <InfoOutlinedIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Hình Thức Thanh Toán"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
                   secondary={renderPaymentType(order.hinhThucThanhToan)}
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <MonetizationOnOutlinedIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <MonetizationOnOutlinedIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Tổng Tiền Sản Phẩm"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
-                  secondary={`${(order.tongTienSanPham || 0).toLocaleString()} VNĐ`}
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondary={`${(
+                    order.tongTienSanPham || 0
+                  ).toLocaleString()} VNĐ`}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <MonetizationOnOutlinedIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <MonetizationOnOutlinedIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Phí Vận Chuyển"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
-                  secondary={`${(order.phiVanChuyen || 0).toLocaleString()} VNĐ`}
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondary={`${(
+                    order.phiVanChuyen || 0
+                  ).toLocaleString()} VNĐ`}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <MonetizationOnOutlinedIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <MonetizationOnOutlinedIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Tổng Thành Toán"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
                   secondary={
-                    <Typography fontWeight={700} color={orange} fontSize={isMobile ? 13 : 15}>
+                    <Typography
+                      fontWeight={700}
+                      color={orange}
+                      fontSize={isMobile ? 13 : 15}
+                    >
                       {(order.tongTien || 0).toLocaleString()} VNĐ
                     </Typography>
                   }
@@ -659,7 +969,9 @@ const OrderDetail = () => {
               </ListItem>
             </List>
 
-            <Divider sx={{ my: isMobile ? 1.5 : 2.5, borderColor: "#ffe0b2" }} />
+            <Divider
+              sx={{ my: isMobile ? 1.5 : 2.5, borderColor: "#ffe0b2" }}
+            />
 
             <Typography
               variant={isMobile ? "h6" : "h5"}
@@ -673,7 +985,9 @@ const OrderDetail = () => {
             <List dense>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <AccessTimeIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <AccessTimeIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Ngày Đặt"
@@ -685,12 +999,17 @@ const OrderDetail = () => {
                         })
                       : "N/A"
                   }
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
               <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
                 <ListItemIcon>
-                  <AccessTimeIcon sx={{ color: orange, fontSize: isMobile ? 18 : 22 }} />
+                  <AccessTimeIcon
+                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
+                  />
                 </ListItemIcon>
                 <ListItemText
                   primary="Ngày Nhận Dự Kiến"
@@ -702,7 +1021,10 @@ const OrderDetail = () => {
                         })
                       : "N/A"
                   }
-                  secondaryTypographyProps={{ color: "text.secondary", fontSize: isMobile ? 11 : 13 }}
+                  secondaryTypographyProps={{
+                    color: "text.secondary",
+                    fontSize: isMobile ? 11 : 13,
+                  }}
                 />
               </ListItem>
             </List>
