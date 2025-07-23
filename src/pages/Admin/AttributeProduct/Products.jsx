@@ -7,13 +7,6 @@ import {
   Typography,
   TextField,
   IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
   Tooltip,
   Dialog,
@@ -31,7 +24,6 @@ import { useTheme, styled } from '@mui/material/styles';
 import {
   Add as AddIcon,
   Visibility as VisibilityIcon,
-  Edit as EditIcon,
   Sync as SyncIcon,
   Search as SearchIcon,
   Close as CloseIcon,
@@ -276,183 +268,129 @@ const Products = () => {
           </OrangeButton>
         </Grid>
       </Grid>
-      <TableContainer
-        component={Paper}
-        sx={{
-          borderRadius: 3,
-          boxShadow: 2,
-          border: '1px solid #ffe0b2',
-          mt: 1,
-        }}
+      <div
+        className="table-responsive"
+        style={{ borderRadius: 8, boxShadow: "0 0 8px rgba(0,0,0,0.05)" }}
       >
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: orange }}>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '5%', border: 0 }}>#</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>MÃ SẢN PHẨM</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TÊN SẢN PHẨM</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TỔNG SỐ LƯỢNG</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY TẠO</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>NGÀY SỬA</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '15%', border: 0 }}>TRẠNG THÁI</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, width: '20%', border: 0 }}>HÀNH ĐỘNG</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+        <table className="table table-hover" style={{ textAlign: "center", fontSize: "0.85rem" }}>
+          <thead style={{ backgroundColor: orange, color: white }}>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">MÃ SẢN PHẨM</th>
+              <th scope="col">TÊN SẢN PHẨM</th>
+              <th scope="col" className="d-none d-md-table-cell">TỔNG SỐ LƯỢNG</th>
+              <th scope="col" className="d-none d-lg-table-cell">NGÀY TẠO</th>
+              <th scope="col" className="d-none d-lg-table-cell">NGÀY SỬA</th>
+              <th scope="col">TRẠNG THÁI</th>
+              <th scope="col">HÀNH ĐỘNG</th>
+            </tr>
+          </thead>
+          <tbody>
             {Array.isArray(products) && products.length > 0 ? (
               products.map((product, index) => (
-                <TableRow
-                  key={product.id}
-                  hover及时
-                  sx={{
-                    transition: 'background 0.2s',
-                    '&:hover': { backgroundColor: '#fffaf3' },
-                    borderBottom: '1px solid #ffe0b2',
-                  }}
-                >
-                  <TableCell align="center" sx={{ fontWeight: 600, color: black, border: 0 }}>
-                    {index + 1 + currentPage * pageSize}
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: black, letterSpacing: 1, border: 0 }}>
-                    {product.ma}
-                  </TableCell>
-                  <TableCell sx={{ color: black, fontWeight: 500, border: 0 }}>
+                <tr key={product.id}>
+                  <th scope="row">{index + 1 + currentPage * pageSize}</th>
+                  <td style={{ fontWeight: 600 }}>{product.ma}</td>
+                  <td style={{ fontWeight: 500, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     <Tooltip title={product.ten} arrow>
-                      <span style={{
-                        display: 'inline-block',
-                        maxWidth: 180,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>{product.ten}</span>
+                      <span>{product.ten}</span>
                     </Tooltip>
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: black, border: 0 }}>
+                  </td>
+                  <td className="d-none d-md-table-cell" style={{ fontWeight: 600 }}>
                     {product.totalQuantity || 0}
-                  </TableCell>
-                  <TableCell sx={{ color: black, border: 0 }}>
-                    {product.ngayTao?.slice(0, 10) || '-'}
-                  </TableCell>
-                  <TableCell sx={{ color: black, border: 0 }}>
-                    {product.ngaySua?.slice(0, 10) || '-'}
-                  </TableCell>
-                  <TableCell align="center" sx={{ border: 0 }}>
-                    <Chip
-                      label={getStatusLabel(product.trangThai, product.totalQuantity)}
-                      icon={
-                        product.totalQuantity === 0 ? (
-                          <RemoveShoppingCartIcon sx={{ color: '#fff !important' }} />
-                        ) : product.trangThai === 1 ? (
-                          <CheckCircleIcon sx={{ color: '#fff !important' }} />
-                        ) : (
-                          <PauseCircleIcon sx={{ color: '#fff !important' }} />
-                        )
-                      }
-                      sx={{
-                        bgcolor:
-                          product.totalQuantity === 0 ? '#e53935' :
-                          product.trangThai === 1 ? '#a3e635' : '#6c757d',
-                        color: white,
-                        fontWeight: 600,
-                        px: 1.5,
-                        fontSize: 14,
-                        borderRadius: '16px',
+                  </td>
+                  <td className="d-none d-lg-table-cell">{product.ngayTao?.slice(0, 10) || '-'}</td>
+                  <td className="d-none d-lg-table-cell">{product.ngaySua?.slice(0, 10) || '-'}</td>
+                  <td style={{ width: 160 }}>
+                    <span
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 12,
+                        fontSize: "0.85rem",
+                        fontWeight: 500,
+                        backgroundColor:
+                          product.totalQuantity === 0
+                            ? "#f8d7da"
+                            : product.trangThai === 1
+                              ? "#d1e7dd"
+                              : "#e2e3e5",
+                        color:
+                          product.totalQuantity === 0
+                            ? "#842029"
+                            : product.trangThai === 1
+                              ? "#0f5132"
+                              : "#444",
                       }}
-                    />
-                  </TableCell>
-                  <TableCell align="center" sx={{ border: 0 }}>
-                    <Box display="flex" justifyContent="center" gap={0.5}>
+                    >
+                      {getStatusLabel(product.trangThai, product.totalQuantity)}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="d-flex justify-content-center gap-1">
                       <Tooltip title="Xem chi tiết" arrow>
-                        <IconButton
-                          sx={{
-                            color: '#1976d2',
-                            bgcolor: '#f4f8fd',
-                            borderRadius: '50%',
-                            width: 30,
-                            height: 30,
-                            transition: 'all 0.2s',
-                            '&:hover': { bgcolor: '#e3f2fd', color: '#0d47a1' },
-                          }}
+                        <button
                           onClick={() => handleViewOrEdit(product, true)}
-                          size="small"
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      {/* <Tooltip title="Sửa" arrow>
-                        <IconButton
-                          sx={{
-                            color: '#ffca28',
-                            bgcolor: '#fff7f0',
-                            borderRadius: '50%',
-                            width: 30,
-                            height: 30,
-                            transition: 'all 0.2s',
-                            '&:hover': { bgcolor: '#ffe0b2', color: '#ff6f00' },
+                          style={{
+                            backgroundColor: "#212529",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "6px 12px",
+                            fontSize: "0.85rem",
                           }}
-                          onClick={() => handleViewOrEdit(product, false)}
-                          size="small"
                         >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip> */}
-                      <Tooltip title={product.totalQuantity === 0 ? 'Không thể chuyển đổi trạng thái' : (product.trangThai === 1 ? 'Tạm ngưng' : 'Đang kinh doanh')} arrow>
-                        <span>
-                          <IconButton
-                            sx={{
-                              color: product.totalQuantity === 0
-                                ? '#b0bec5'
-                                : product.trangThai === 1
-                                  ? '#e53935' // đỏ khi đang kinh doanh (chuyển sang tạm ngưng)
-                                  : '#43a047', // xanh lá khi tạm ngưng (chuyển sang đang kinh doanh)
-                              bgcolor: product.totalQuantity === 0
-                                ? '#eceff1'
-                                : product.trangThai === 1
-                                  ? '#ffebee' // nền đỏ nhạt khi đang kinh doanh
-                                  : '#e8f5e9', // nền xanh nhạt khi tạm ngưng
-                              borderRadius: '50%',
-                              width: 30,
-                              height: 30,
-                              transition: 'all 0.2s',
-                              '&:hover': product.totalQuantity === 0
-                                ? {}
-                                : product.trangThai === 1
-                                  ? { bgcolor: '#ffcdd2', color: '#b71c1c' } // hover đỏ đậm
-                                  : { bgcolor: '#c8e6c9', color: '#1b5e20' }, // hover xanh đậm
-                            }}
-                            onClick={() =>
-                              product.totalQuantity !== 0 &&
-                              setConfirmModal({
-                                open: true,
-                                id: product.id,
-                                currentStatus: product.trangThai,
-                              })
-                            }
-                            disabled={product.totalQuantity === 0}
-                            size="small"
-                          >
-                            <SyncIcon fontSize="small" />
-                          </IconButton>
-                        </span>
+                          <VisibilityIcon fontSize="small" style={{ marginRight: 4 }} />
+                          <span className="d-none d-md-inline">Xem</span>
+                        </button>
                       </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
+                      <Tooltip title={product.totalQuantity === 0 ? 'Không thể chuyển đổi trạng thái' : (product.trangThai === 1 ? 'Tạm ngưng' : 'Đang kinh doanh')} arrow>
+                        <button
+                          onClick={() =>
+                            product.totalQuantity !== 0 &&
+                            setConfirmModal({
+                              open: true,
+                              id: product.id,
+                              currentStatus: product.trangThai,
+                            })
+                          }
+                          disabled={product.totalQuantity === 0}
+                          style={{
+                            backgroundColor: product.totalQuantity === 0
+                              ? "#6c757d"
+                              : product.trangThai === 1
+                                ? "#dc3545"
+                                : "#28a745",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "6px 12px",
+                            fontSize: "0.85rem",
+                            opacity: product.totalQuantity === 0 ? 0.65 : 1,
+                            cursor: product.totalQuantity === 0 ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          <SyncIcon fontSize="small" style={{ marginRight: 4 }} />
+                          <span className="d-none d-md-inline">
+                            {product.trangThai === 1 ? "Ngưng" : "Kinh doanh"}
+                          </span>
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </td>
+                </tr>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
-                  <Typography color="text.secondary" fontSize={18}>
-                    {searchTerm
-                      ? `Không tìm thấy sản phẩm phù hợp với "${searchTerm}"`
-                      : 'Không có sản phẩm nào'}
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              <tr>
+                <td colSpan="8" className="text-center text-muted py-4">
+                  {searchTerm
+                    ? `Không tìm thấy sản phẩm phù hợp với "${searchTerm}"`
+                    : 'Không có sản phẩm nào'}
+                </td>
+              </tr>
             )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
       <Box display="flex" justifyContent="space-between" alignItems="center" mt={3} flexWrap="wrap" gap={2}>
         <Pagination
           count={totalPages}

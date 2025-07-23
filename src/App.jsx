@@ -9,7 +9,7 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 import CounterSales from "./pages/Admin/AttibuteSales/CounterSales";
 import Discounts from "./pages/Admin/Discounts";
 import OrderManagement from "./pages/Admin/OrderManagement";
-import OrderDetail from "./pages/Admin/OrderDetail";
+import OrderDetailAdmin from "./pages/Admin/OrderDetail";
 import ReturnManagement from "./pages/Admin/ReturnManagement";
 import Logout from "./pages/Admin/Logout";
 import AboutPage from "./pages/Website/AboutPage";
@@ -30,8 +30,14 @@ import ScrollToTop from "./components/ScrollToTop";
 import { ToastContainer } from "react-toastify";
 import HistoryOrder from "./pages/Website/HistoryOrder";
 import AddVoucher from "./pages/Website/AddVocher";
-import OrderDetail from "./pages/Website/OrderDetail";
 import PaymentSuccess from "./pages/Website/PaymentSuccess";
+import StaffList from "./pages/Admin/Staff";
+import CustomerList from "./pages/Admin/Customer";
+import AddStaff from "./pages/Admin/AddStaff";
+import UpdateStaff from "./pages/Admin/UpdateStaff";
+import AddCustomer from "./pages/Admin/AddCustomer";
+import UpdateCustomer from "./pages/Admin/UpdateCustomer";
+import OrderDetail from "./pages/Website/OrderDetail";
 function App() {
   return (
     <BrowserRouter>
@@ -61,8 +67,8 @@ function App() {
           <Route path="/admin/giam-gia" element={<Discounts />} />
           <Route path="/admin/quan-ly-tra-hang" element={<ReturnManagement />} />
           <Route path="/dang-xuat" element={<Logout />} />
-          <Route path="/admin/tai-khoan/khach-hang" element={<Customer />} />
-          <Route path="/admin/tai-khoan/nhan-vien" element={<StaffPage />} />
+          <Route path="/admin/tai-khoan/khach-hang" element={<CustomerList />} />
+          <Route path="/admin/tai-khoan/nhan-vien" element={<StaffList />} />
           <Route path="/admin/quan-ly-sp/mau-sac" element={<ColorPage />} />
           <Route path="/admin/quan-ly-sp/thuong-hieu" element={<BrandPage />} />
           <Route path="/admin/quan-ly-sp/chat-lieu" element={<MaterialPage />} />
@@ -72,7 +78,12 @@ function App() {
           <Route path="/admin/san-pham-chi-tiet/:id" element={<SanPhamCtPage />} />
           <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddProductWithDetailsPage />} />
           <Route path="/admin/giam-gia/them-phieu-giam-gia" element={<AddVoucher />} />
-           <Route path="/admin/orders/:id" element={<OrderDetail />} />
+          <Route path="/admin/orders/:id" element={<OrderDetailAdmin />} />
+          <Route path="/admin/tai-khoan/nhan-vien/them-nhan-vien" element={<AddStaff />} />
+          <Route path="/admin/tai-khoan/nhan-vien/chi-tiet/:id" element={<UpdateStaff />} />
+          <Route path="/admin/tai-khoan/khach-hang/them-khach-hang" element={<AddCustomer />} />
+          <Route path="/admin/tai-khoan/khach-hang/chi-tiet/:id" element={<UpdateCustomer />} />
+
 
         </Route>
       </Routes>

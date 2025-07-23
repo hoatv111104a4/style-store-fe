@@ -132,14 +132,14 @@ const AdminAside = () => {
             </ul>
           )}
         </li>
-        <li className="nav-item mb-2">
+        {/* <li className="nav-item mb-2">
           <NavLink
             className={`admin-nav-link${!isProductRoute && !isAccountRoute && location.pathname === "/admin/quan-ly-tra-hang" ? " active" : ""}`}
             onClick={() => { setOpenProduct(false); setOpenAccount(false); }}
             to="/admin/quan-ly-tra-hang" >
             <i className="bi bi-arrow-counterclockwise me-2"></i> Quản lý trả hàng            
           </NavLink>
-        </li>
+        </li> */}
         <li className="my-3">
           <hr />
         </li>

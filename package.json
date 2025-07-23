@@ -40,7 +40,9 @@
     "react-slick": "^0.30.3",
     "react-step-progress-bar": "^1.0.3",
     "react-toastify": "^11.0.5",
-    "slick-carousel": "^1.8.1"
+    "slick-carousel": "^1.8.1",
+    "sweetalert2": "^11.22.2",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
