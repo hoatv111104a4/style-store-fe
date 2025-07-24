@@ -211,7 +211,7 @@ const Products = () => {
             <TextField
               variant="outlined"
               size="small"
-              placeholder="Nhập tên sản phẩm..."
+              placeholder="Nhập tên, mã sp.."
               value={searchInput}
               onChange={handleSearchInput}
               onKeyPress={handleKeyPress}

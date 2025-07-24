@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { getAllMauSac, addMauSac, updateMauSac, deleteMauSac, searchMauSacByKeyword } from '../../../services/Admin/MauSacService';
 import HinhAnhMauSacService from '../../../services/Admin/HinhAnhMauSacService';
+import { debounce } from 'lodash';
 
 // Map common Vietnamese color names to hex codes
 const colorMap = {
@@ -134,7 +135,6 @@ const Color = () => {
     }
     try {
       setImageLoading(true);
-      console.log('Xóa hình ảnh với ID:', imageId); // Debug
       await HinhAnhMauSacService.deleteHinhAnhMauSac(imageId);
       const updatedImages = await HinhAnhMauSacService.getHinhAnhByMauSacId(selectedColor.id);
       setHinhAnhList(updatedImages);
@@ -165,6 +165,7 @@ const Color = () => {
     } finally {
       setLoading(false);
       if (keyword) setSearchLoading(false);
+      setSkipFetch(false); // Đặt lại skipFetch
     }
   }, []);
 
@@ -194,12 +195,6 @@ const Color = () => {
       return () => clearTimeout(timer);
     }
   }, [alertMessage]);
-
-  useEffect(() => {
-    if (skipFetch && currentPage === 0) {
-      setSkipFetch(false);
-    }
-  }, [currentPage, skipFetch]);
 
   const validateForm = useCallback(async () => {
     const errors = {};
@@ -316,14 +311,17 @@ const Color = () => {
           ngayXoa: formData.trangThai === 0 ? now : null,
         };
         if (selectedColor) {
-          await updateMauSac(selectedColor.id, colorToSave);
+          // Cập nhật màu sắc
+          const updatedColor = await updateMauSac(selectedColor.id, colorToSave);
           setColors((prev) =>
-            prev.map((c) => (c.id === selectedColor.id ? { ...c, ...colorToSave } : c))
+            prev.map((c) => (c.id === selectedColor.id ? { ...c, ...updatedColor } : c))
           );
           setAlertMessage(`Cập nhật màu sắc "${colorToSave.ten}" thành công`);
         } else {
+          // Thêm màu sắc mới
           const newColor = await addMauSac(colorToSave);
-          setColors((prev) => [...prev, newColor]);
+          setColors((prev) => [newColor, ...prev]); // Thêm vào đầu danh sách
+          setTotalElements((prev) => prev + 1); // Cập nhật tổng số phần tử
           setAlertMessage(`Thêm màu sắc "${colorToSave.ten}" thành công`);
           await fetchImages(newColor.id); // Làm mới hình ảnh cho màu mới
         }
@@ -336,7 +334,7 @@ const Color = () => {
         setFormSaving(false);
       }
     },
-    [formData, selectedColor, validateForm]
+    [formData, selectedColor, validateForm, fetchImages]
   );
 
   const handleDelete = useCallback(async () => {
@@ -357,15 +355,24 @@ const Color = () => {
     setCurrentPage(value - 1);
   }, []);
 
+  const debouncedSearch = useCallback(
+    debounce(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(0);
+    }, 300),
+    [searchInput]
+  );
+
   const handleSearchInput = useCallback((e) => {
     setSearchInput(e.target.value);
-    setError(null);
-  }, []);
-
-  const handleSearch = useCallback(() => {
-    setSearchTerm(searchInput);
-    setCurrentPage(0);
-  }, [searchInput]);
+    if (e.target.value.trim()) {
+      debouncedSearch();
+    } else {
+      setSearchTerm('');
+      setCurrentPage(0);
+      setError(null);
+    }
+  }, [debouncedSearch]);
 
   const handleClearSearch = useCallback(() => {
     setSearchInput('');
@@ -376,9 +383,9 @@ const Color = () => {
 
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter' && searchInput.trim()) {
-      handleSearch();
+      debouncedSearch();
     }
-  }, [handleSearch, searchInput]);
+  }, [debouncedSearch, searchInput]);
 
   const handleTenChange = useCallback((e) => {
     const newTen = e.target.value;
@@ -457,7 +464,7 @@ const Color = () => {
                     ) : (
                       <IconButton
                         color="warning"
-                        onClick={handleSearch}
+                        onClick={debouncedSearch}
                         disabled={!!error || !searchInput.trim()}
                         edge="end"
                         size="small"

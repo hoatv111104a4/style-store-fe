@@ -192,7 +192,7 @@ const OrderManagement = () => {
     { label: "Chờ xác nhận", status: 0 },
     { label: "Chờ vận chuyển", status: 1 },
     { label: "Đang vận chuyển", status: 2 },
-    { label: "Đã hoàn thành", status: 3 },
+    { label: "Đã hoàn thành", status: 3},
     { label: "Đã hủy", status: 4 },
     { label: "Hoàn tiền / Trả hàng", status: 5 }, // Thêm trạng thái này
     { label: "Chờ tại quầy", status: 6 }, // Thêm trạng thái này

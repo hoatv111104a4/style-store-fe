@@ -34,3 +34,28 @@ export const searchUserById = async (id) => {
         );
     }
 }
+
+export const addNguoiDung = async (data) => {
+    try {
+        const response = await axiosInstance.post('/addND', data); // <-- dùng axiosInstance
+        return response.data;
+    } catch (error) {
+        if (error.response?.status === 401) {
+            throw new Error('Vui lòng đăng nhập lại');
+        }
+        throw new Error(error.response?.data?.message || 'Lỗi hệ thống');
+    }
+};
+
+export const getDCNhan = async (id) => {
+    try {
+        const response = await axiosInstance.get(`/idDC/${id}`);
+        console.log(response.data); // kiểm tra dữ liệu
+        return Array.isArray(response.data) ? response.data[0] : response.data;
+    } catch (error) {
+        throw new Error(
+            error.response?.data?.error || 'Không tìm thấy địa chỉ theo id khách hàng'
+        );
+    }
+};
+
