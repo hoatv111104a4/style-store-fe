@@ -84,10 +84,6 @@ function App() {
           <Route path="/admin/tai-khoan/nhan-vien/chi-tiet/:id" element={<UpdateStaff />} />
           <Route path="/admin/tai-khoan/khach-hang/them-khach-hang" element={<AddCustomer />} />
           <Route path="/admin/tai-khoan/khach-hang/chi-tiet/:id" element={<UpdateCustomer />} />
-
-     <Route path="/admin/orders/:id" element={<OrderDetailAdmin />} />
-
-
         </Route>
       </Routes>
     </BrowserRouter>

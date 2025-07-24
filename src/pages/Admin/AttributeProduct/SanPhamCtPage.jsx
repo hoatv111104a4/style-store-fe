@@ -51,6 +51,7 @@ import {
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
+import { red } from '@mui/material/colors';
 
 const orange = '#ff8800';
 const black = '#222';
@@ -70,6 +71,8 @@ const OrangeButton = styled(Button)(({ theme }) => ({
   boxShadow: '0 2px 8px rgba(255,136,0,0.3)',
   padding: '8px 20px',
 }));
+
+
 
 const StyledFormControl = styled(FormControl)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
@@ -556,7 +559,7 @@ const handleImageUpload = async (e) => {
           color={black}
           sx={{ letterSpacing: 2 }}
         >
-          QUẢN LÝ SẢN PHẨM CHI TIẾT
+          Sản phẩm chi tiết
         </Typography>
       </Box>
       {error && (
@@ -628,94 +631,164 @@ const handleImageUpload = async (e) => {
         <Grid item xs={12}>
           <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
             <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
-              <InputLabel sx={{ fontSize: '0.9rem' }}>Màu Sắc</InputLabel>
               <Select
                 name="mauSacId"
                 value={filterData.mauSacId || ''}
                 onChange={handleFilterChange}
-                label="Màu Sắc"
+                displayEmpty
                 size="small"
-                sx={{ borderRadius: 2 }}
+                sx={{
+                  minWidth: 160,
+                  fontSize: '0.95rem',
+                  borderRadius: 2,
+                }}
+                MenuProps={{ disableScrollLock: true }}
+                renderValue={(selected) => {
+                  if (!selected) return "Màu sắc";
+                  const selectedOption = dropdownData.mauSac.find(
+                    (item) => item.id === selected
+                  );
+                  return selectedOption ? selectedOption.ten : "Không xác định";
+                }}
               >
-                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="" sx={{ fontStyle: 'italic', color: '#777' }}>
+                  Tất cả
+                </MenuItem>
                 {dropdownData.mauSac.map((option) => (
-                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
+                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.95rem' }}>
                     {option.ten}
                   </MenuItem>
                 ))}
               </Select>
+
             </StyledFormControl>
             <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
-              <InputLabel sx={{ fontSize: '0.9rem' }}>Thương Hiệu</InputLabel>
               <Select
                 name="thuongHieuId"
                 value={filterData.thuongHieuId || ''}
                 onChange={handleFilterChange}
-                label="Thương Hiệu"
+                displayEmpty
                 size="small"
-                sx={{ borderRadius: 2 }}
+                sx={{
+                  minWidth: 160,
+                  fontSize: '0.95rem',
+                  borderRadius: 2,
+                }}
+                MenuProps={{ disableScrollLock: true }}
+                renderValue={(selected) => {
+                  if (!selected) return "Thương hiệu";
+                  const selectedOption = dropdownData.thuongHieu.find(
+                    (item) => item.id === selected
+                  );
+                  return selectedOption ? selectedOption.ten : "Không xác định";
+                }}
               >
-                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="" sx={{ fontStyle: 'italic', color: '#777' }}>
+                  Tất cả
+                </MenuItem>
                 {dropdownData.thuongHieu.map((option) => (
-                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
+                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.95rem' }}>
                     {option.ten}
                   </MenuItem>
                 ))}
               </Select>
+
             </StyledFormControl>
             <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
-              <InputLabel sx={{ fontSize: '0.9rem' }}>Kích Thước</InputLabel>
               <Select
                 name="kichThuocId"
                 value={filterData.kichThuocId || ''}
                 onChange={handleFilterChange}
-                label="Kích Thước"
+                displayEmpty
                 size="small"
-                sx={{ borderRadius: 2 }}
+                sx={{
+                  minWidth: 160,
+                  fontSize: '0.95rem',
+                  borderRadius: 2,
+                }}
+                MenuProps={{ disableScrollLock: true }}
+                renderValue={(selected) => {
+                  if (!selected) return "Kích thước";
+                  const selectedOption = dropdownData.kichThuoc.find(
+                    (item) => item.id === selected
+                  );
+                  return selectedOption ? selectedOption.ten : "Không xác định";
+                }}
               >
-                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="" sx={{ fontStyle: 'italic', color: '#777' }}>
+                  Tất cả
+                </MenuItem>
                 {dropdownData.kichThuoc.map((option) => (
-                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
+                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.95rem' }}>
                     {option.ten}
                   </MenuItem>
                 ))}
               </Select>
+
             </StyledFormControl>
             <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
-              <InputLabel sx={{ fontSize: '0.9rem' }}>Xuất Xứ</InputLabel>
               <Select
                 name="xuatXuId"
                 value={filterData.xuatXuId || ''}
                 onChange={handleFilterChange}
-                label="Xuất Xứ"
+                displayEmpty
                 size="small"
-                sx={{ borderRadius: 2 }}
+                sx={{
+                  minWidth: 160,
+                  fontSize: '0.95rem',
+                  borderRadius: 2,
+                }}
+                MenuProps={{ disableScrollLock: true }}
+                renderValue={(selected) => {
+                  if (!selected) return "Xuất xứ";
+                  const selectedOption = dropdownData.xuatXu.find(
+                    (item) => item.id === selected
+                  );
+                  return selectedOption ? selectedOption.ten : "Không xác định";
+                }}
               >
-                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="" sx={{ fontStyle: 'italic', color: '#777' }}>
+                  Tất cả
+                </MenuItem>
                 {dropdownData.xuatXu.map((option) => (
-                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
+                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.95rem' }}>
                     {option.ten}
                   </MenuItem>
                 ))}
               </Select>
+
             </StyledFormControl>
             <StyledFormControl sx={{ minWidth: isMobile ? 100 : 120 }}>
-              <InputLabel sx={{ fontSize: '0.9rem' }}>Chất Liệu</InputLabel>
               <Select
-                name="chatLieuId"
-                value={filterData.chatLieuId || ''}
-                onChange={handleFilterChange}
-                label="Chất Liệu"
-                size="small"
-                sx={{ borderRadius: 2 }}
-              >
-                <MenuItem value="">Tất cả</MenuItem>
-                {dropdownData.chatLieu.map((option) => (
-                  <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.9rem' }}>
-                    {option.ten}
-                  </MenuItem>
-                ))}
-              </Select>
+              name="chatLieuId"
+              value={filterData.chatLieuId || ''}
+              onChange={handleFilterChange}
+              displayEmpty
+              size="small"
+              sx={{
+                minWidth: 160,
+                fontSize: '0.95rem',
+                borderRadius: 2,
+              }}
+              MenuProps={{ disableScrollLock: true }}
+              renderValue={(selected) => {
+                if (!selected) return "Chất liệu";
+                const selectedOption = dropdownData.chatLieu.find(
+                  (item) => item.id === selected
+                );
+                return selectedOption ? selectedOption.ten : "Không xác định";
+              }}
+            >
+              <MenuItem value="" sx={{ fontStyle: 'italic', color: '#777' }}>
+                Tất cả
+              </MenuItem>
+              {dropdownData.chatLieu.map((option) => (
+                <MenuItem key={option.id} value={option.id} sx={{ fontSize: '0.95rem' }}>
+                  {option.ten}
+                </MenuItem>
+              ))}
+            </Select>
+
             </StyledFormControl>
           </Box>
         </Grid>
@@ -733,31 +806,29 @@ const handleImageUpload = async (e) => {
       <TableContainer
         component={Paper}
         sx={{
-          borderRadius: 3,
+          borderRadius: 2,
           boxShadow: 2,
-          border: '1px solid #ffe0b2',
           mt: 1,
           maxWidth: '100%',
-          minHeight: '60vh',
           overflowX: 'auto',
         }}
       >
         <Table size="small" sx={{ tableLayout: 'fixed' }}>
           <TableHead>
-            <TableRow sx={{ bgcolor: orange }}>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '4%', p: 1 }}>#</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '6%', p: 1 }}>H.ẢNH</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '12%', p: 1 }}>TÊN</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>MÃ</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>MÀU</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>K.THUỚC</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>T.HIỆU</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>X.XỨ</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>C.LIỆU</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '10%', p: 1 }}>GIÁ</TableCell>
-              <TableCell sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '6%', p: 1 }}>SL</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '10%', p: 1 }}>T.THAI</TableCell>
-              <TableCell align="center" sx={{ color: white, fontWeight: 700, fontSize: '0.9rem', width: '10%', p: 1 }}>H.ĐỘNG</TableCell>
+            <TableRow sx={{ bgcolor: white }}>
+              <TableCell align="center" sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '4%', p: 1 }}>#</TableCell>
+              <TableCell align="center" sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '6%', p: 1 }}>H.ẢNH</TableCell>
+              <TableCell sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '12%', p: 1 }}>TÊN</TableCell>
+              <TableCell sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>MÃ</TableCell>
+              <TableCell sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>MÀU</TableCell>
+              <TableCell sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>K.THUỚC</TableCell>
+              <TableCell sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>T.HIỆU</TableCell>
+              <TableCell sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>X.XỨ</TableCell>
+              <TableCell sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '8%', p: 1 }}>C.LIỆU</TableCell>
+              <TableCell sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '10%', p: 1 }}>GIÁ</TableCell>
+              <TableCell sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '6%', p: 1 }}>SL</TableCell>
+              <TableCell align="center" sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '10%', p: 1 }}>T.THAI</TableCell>
+              <TableCell align="center" sx={{ color: black, fontWeight: 700, fontSize: '0.9rem', width: '10%', p: 1 }}>H.ĐỘNG</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -819,8 +890,8 @@ const handleImageUpload = async (e) => {
                     <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.tenThuongHieu || 'N/A'}</TableCell>
                     <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.tenXuatXu || 'N/A'}</TableCell>
                     <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.tenChatLieu || 'N/A'}</TableCell>
-                    <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>
-                      {spct.giaBan ? spct.giaBan.toLocaleString('vi-VN') : 'N/A'}
+                    <TableCell sx={{ color: red, fontSize: '0.9rem', p: 1 }}>
+                      {spct.giaBan ? spct.giaBan.toLocaleString('vi-VN') : 'N/A'} VND
                     </TableCell>
                     <TableCell sx={{ color: black, fontSize: '0.9rem', p: 1 }}>{spct.soLuong}</TableCell>
                     <TableCell align="center" sx={{ p: 1 }}>
@@ -843,8 +914,7 @@ const handleImageUpload = async (e) => {
                                 : spct.trangThai === 2
                                   ? '#ffca28'
                                   : '#6c757d',
-                          color: spct.soLuong === 0 ? white : spct.trangThai === 1 ? '#1a2e05' : white,
-                          fontWeight: 600,
+                          color: spct.soLuong === 0 ? white : spct.trangThai === 1 ? '#fbfbfbff' : white,
                           fontSize: '0.8rem',
                           height: '24px',
                           borderRadius: '12px',

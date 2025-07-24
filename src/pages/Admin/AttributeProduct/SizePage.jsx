@@ -5,7 +5,6 @@ import {
   Button,
   Typography,
   TextField,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -25,6 +24,7 @@ import {
   Sync as SyncIcon,
   Search as SearchIcon,
   Close as CloseIcon,
+  ArrowBack as ArrowBackIcon, // Thay ArrowBackIcon bằng ArrowBack
 } from '@mui/icons-material';
 
 const orange = '#ff8800';
@@ -394,48 +394,60 @@ const Size = () => {
                   </td>
                   <td>
                     <div className="d-flex justify-content-center gap-1">
-                      <button
+                      <IconButton
                         onClick={() => handleViewOrEdit(size, true)}
-                        style={{
-                          backgroundColor: "#212529",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 6,
-                          padding: "6px 12px",
-                          fontSize: "0.85rem",
+                        sx={{
+                          bgcolor: '#212529',
+                          color: '#fff',
+                          borderRadius: 1.5,
+                          padding: '6px 12px',
+                          fontSize: '0.85rem',
+                          '&:hover': {
+                            bgcolor: '#343a40',
+                          },
+                          display: 'flex',
+                          alignItems: 'center',
                         }}
                       >
-                        <VisibilityIcon fontSize="small" style={{ marginRight: 4 }} />
+                        <VisibilityIcon fontSize="small" sx={{ mr: 0.5 }} />
                         <span className="d-none d-md-inline">Xem</span>
-                      </button>
-                      <button
+                      </IconButton>
+                      <IconButton
                         onClick={() => handleViewOrEdit(size, false)}
-                        style={{
-                          backgroundColor: "#ffca28",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 6,
-                          padding: "6px 12px",
-                          fontSize: "0.85rem",
+                        sx={{
+                          bgcolor: '#ffca28',
+                          color: '#fff',
+                          borderRadius: 1.5,
+                          padding: '6px 12px',
+                          fontSize: '0.85rem',
+                          '&:hover': {
+                            bgcolor: '#ffb300',
+                          },
+                          display: 'flex',
+                          alignItems: 'center',
                         }}
                       >
-                        <EditIcon fontSize="small" style={{ marginRight: 4 }} />
+                        <EditIcon fontSize="small" sx={{ mr: 0.5 }} />
                         <span className="d-none d-md-inline">Sửa</span>
-                      </button>
-                      <button
+                      </IconButton>
+                      <IconButton
                         onClick={() => setConfirmModal({ open: true, id: size.id })}
-                        style={{
-                          backgroundColor: size.trangThai === 1 ? "#dc3545" : "#28a745",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 6,
-                          padding: "6px 12px",
-                          fontSize: "0.85rem",
+                        sx={{
+                          bgcolor: size.trangThai === 1 ? '#dc3545' : '#28a745',
+                          color: '#fff',
+                          borderRadius: 1.5,
+                          padding: '6px 12px',
+                          fontSize: '0.85rem',
+                          '&:hover': {
+                            bgcolor: size.trangThai === 1 ? '#c82333' : '#218838',
+                          },
+                          display: 'flex',
+                          alignItems: 'center',
                         }}
                       >
-                        <SyncIcon fontSize="small" style={{ marginRight: 4 }} />
-                        <span className="d-none d-md-inline">{size.trangThai === 1 ? "Ngưng" : "Hoạt động"}</span>
-                      </button>
+                        <SyncIcon fontSize="small" sx={{ mr: 0.5 }} />
+                        <span className="d-none d-md-inline">{size.trangThai === 1 ? 'Ngưng' : 'Hoạt động'}</span>
+                      </IconButton>
                     </div>
                   </td>
                 </tr>

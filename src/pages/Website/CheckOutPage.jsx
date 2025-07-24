@@ -14,7 +14,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createOder, submitVNPayOrder } from "../../services/Website/OrderApi";
-
+import AddAddressModal from "./AddAddressModal";
 const API_PROVINCE = "https://provinces.open-api.vn/api/";
 
 const fallbackProvinces = [
@@ -43,14 +43,14 @@ const CheckOutPage = () => {
   const [shippingFee] = useState(30000);
   const [expectedDate, setExpectedDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [openModal, setOpenModal] = useState(false); // State for modal
   const navigate = useNavigate();
   const location = useLocation();
   const selectedItems = location.state?.selectedItems || [];
 
   useEffect(() => {
-    // Use selectedItems directly instead of loading from localStorage
-    const items = location.state?.selectedItems?.length > 0 
-      ? location.state.selectedItems 
+    const items = location.state?.selectedItems?.length > 0
+      ? location.state.selectedItems
       : JSON.parse(localStorage.getItem("cart") || []);
     setCartItems(items);
 
@@ -160,7 +160,6 @@ const CheckOutPage = () => {
       item.id === id ? { ...item, quantity } : item
     );
     setCartItems(newCart);
-    // Update localStorage to reflect the quantity change
     const fullCart = JSON.parse(localStorage.getItem("cart") || "[]");
     const updatedFullCart = fullCart.map((item) =>
       item.id === id ? { ...item, quantity } : item
@@ -171,7 +170,6 @@ const CheckOutPage = () => {
   const handleRemoveItem = (id) => {
     const newCart = cartItems.filter((item) => item.id !== id);
     setCartItems(newCart);
-    // Update localStorage to remove the item
     const fullCart = JSON.parse(localStorage.getItem("cart") || "[]");
     const updatedFullCart = fullCart.filter((item) => item.id !== id);
     localStorage.setItem("cart", JSON.stringify(updatedFullCart));
@@ -214,16 +212,32 @@ const CheckOutPage = () => {
       })),
     };
 
+    const handleSelectAddress = (address) => {
+        // Tìm mã tỉnh, huyện, xã dựa trên tên từ provinces, districts, wards
+        const provinceCode = provinces.find(p => p.name === address.tinh)?.code || "";
+        const districtCode = districts.find(d => d.name === address.huyen)?.code || "";
+        const wardCode = wards.find(w => w.name === address.xa)?.code || "";
+
+        setForm({
+          ...form,
+          name: address.tenNguoiNhan,
+          phone: address.soDienThoai,
+          province: provinceCode, // Cập nhật mã tỉnh
+          district: districtCode, // Cập nhật mã huyện
+          ward: wardCode,        // Cập nhật mã xã
+          address: address.soNha,
+        });
+        setOpenModal(false); // Đóng modal sau khi chọn
+      };
+
     try {
       if (form.payment === "online") {
-        console.log("Đặt hàng online với dữ liệu:", donHangData);
         const vnpayUrl = await submitVNPayOrder(donHangData);
         window.location.href = vnpayUrl;
         return;
       } else {
         await createOder(donHangData);
         toast.success("Đặt hàng thành công!");
-        // Remove only selected items from localStorage
         const fullCart = JSON.parse(localStorage.getItem("cart") || "[]");
         const updatedFullCart = fullCart.filter(
           (item) => !cartItems.some((selected) => selected.id === item.id)
@@ -255,6 +269,58 @@ const CheckOutPage = () => {
     0
   );
 
+  const handleSelectAddress = async (address) => {
+  // Find the province code
+  const provinceCode = provinces.find((p) => p.name === address.tinh)?.code || "";
+  
+  // Fetch districts for the selected province if not already loaded
+  let districtCode = "";
+  let wardCode = "";
+  
+  if (provinceCode) {
+    try {
+      const res = await fetch(`${API_PROVINCE}p/${provinceCode}?depth=2`);
+      if (!res.ok) throw new Error("Không thể tải dữ liệu quận huyện");
+      const data = await res.json();
+      const names = {};
+      data.districts.forEach((d) => (names[d.code] = d.name));
+      setDistricts(data.districts || []);
+      setDistrictNames(names);
+      
+      // Find the district code
+      districtCode = data.districts.find((d) => d.name === address.huyen)?.code || "";
+      
+      if (districtCode) {
+        // Fetch wards for the selected district
+        const wardRes = await fetch(`${API_PROVINCE}d/${districtCode}?depth=2`);
+        if (!wardRes.ok) throw new Error("Không thể tải dữ liệu phường xã");
+        const wardData = await wardRes.json();
+        const wardNames = {};
+        wardData.wards.forEach((w) => (wardNames[w.code] = w.name));
+        setWards(wardData.wards || []);
+        setWardNames(wardNames);
+        
+        // Find the ward code
+        wardCode = wardData.wards.find((w) => w.name === address.xa)?.code || "";
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy dữ liệu địa phương:", error);
+      toast.error("Không thể tải dữ liệu địa phương!");
+    }
+  }
+
+  // Update the form with the selected address details
+  setForm({
+    ...form,
+    name: address.tenNguoiNhan,
+    phone: address.soDienThoai,
+    province: provinceCode,
+    district: districtCode,
+    ward: wardCode,
+    address: address.soNha,
+  });
+};
+
   return (
     <div className="container py-4">
       <nav aria-label="breadcrumb" style={{ marginBottom: 24 }}>
@@ -280,7 +346,17 @@ const CheckOutPage = () => {
         sx={{ background: "#fff", borderRadius: 2, boxShadow: 2, p: { xs: 2, md: 4 } }}
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <h5 className="mb-3 fw-bold">Thông tin người nhận</h5>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+            <h5 className="fw-bold">Thông tin người nhận</h5>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => setOpenModal(true)}
+              sx={{ fontWeight: 700 }}
+            >
+            Chọn địa chỉ nhận
+            </Button>
+          </Box>
           <form onSubmit={handleOrder}>
             <TextField
               label="Họ và tên"
@@ -491,7 +567,8 @@ const CheckOutPage = () => {
           )}
         </Box>
       </Box>
-      <ToastContainer />
+        <AddAddressModal open={openModal} onClose={() => setOpenModal(false)} onSelectAddress={handleSelectAddress} />
+        <ToastContainer />
     </div>
   );
 };
