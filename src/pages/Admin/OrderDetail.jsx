@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   getHoaDonById,
-  updateHoaDon,
+  updateStatusHoaDon,
 } from "../../services/Admin/HoaDonService";
 import {
   Box,
@@ -206,10 +206,11 @@ const OrderDetail = () => {
     async (newStatus) => {
       try {
         setLoading(true);
-        const updatedOrder = await updateHoaDon(order.id, {
-          ...order,
-          trangThai: newStatus,
-        });
+        // const updatedOrder = await updateStatusHoaDon(order.id, {
+        //   ...order,
+        //   trangThai: newStatus,
+        // });
+        const updatedOrder = await updateStatusHoaDon(order.id, newStatus);
         setOrder(updatedOrder);
         setAlertMessage(
           `Cập nhật trạng thái thành công: ${
@@ -473,165 +474,6 @@ const OrderDetail = () => {
             </List>
           </Paper>
 
-          {/* Product List Section */}
-          {/* <Paper
-            sx={{
-              p: isMobile ? 1.5 : 2.5,
-              borderRadius: 2,
-              boxShadow: "0 2px 6px rgba(255,136,0,0.08)",
-              border: "1px solid #ffe0b2",
-            }}
-          >
-            <Typography
-              variant={isMobile ? "h6" : "h5"}
-              fontWeight={600}
-              color={black}
-              mb={isMobile ? 1 : 2}
-              fontSize={isMobile ? 16 : 20}
-            >
-              Danh Sách Sản Phẩm ({order.chiTietHoaDon?.length || 0})
-            </Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: orange }}>
-                    <TableCell
-                      sx={{
-                        color: white,
-                        fontWeight: 700,
-                        border: 0,
-                        width: "30%",
-                        fontSize: isMobile ? 12 : 14,
-                      }}
-                    >
-                      Tên Sản Phẩm
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        color: white,
-                        fontWeight: 700,
-                        border: 0,
-                        width: "15%",
-                        fontSize: isMobile ? 12 : 14,
-                      }}
-                    >
-                      Giá tiền
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        color: white,
-                        fontWeight: 700,
-                        border: 0,
-                        width: "15%",
-                        fontSize: isMobile ? 12 : 14,
-                      }}
-                    >
-                      Số Lượng
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        color: white,
-                        fontWeight: 700,
-                        border: 0,
-                        width: "20%",
-                        fontSize: isMobile ? 12 : 14,
-                      }}
-                    >
-                      Thành tiền
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {order.chiTietHoaDon && order.chiTietHoaDon.length > 0 ? (
-                    order.chiTietHoaDon.map((item, index) => (
-                      <TableRow
-                        key={index}
-                        hover
-                        sx={{
-                          transition: "background 0.2s",
-                          "&:hover": { backgroundColor: "#fffaf3" },
-                          borderBottom: "1px solid #ffe0b2",
-                        }}
-                      >
-                        <TableCell
-                          sx={{
-                            fontWeight: 500,
-                            color: black,
-                            border: 0,
-                            fontSize: isMobile ? 12 : 14,
-                          }}
-                        >
-                          {item.tenSanPham || "N/A"}
-                        </TableCell>
-                        <TableCell sx={{ border: 0 }}>
-                          <Box
-                            component="img"
-                            src={
-                              item.anhSanPham ||
-                              "https://via.placeholder.com/50"
-                            }
-                            alt={item.tenSanPham}
-                            sx={{
-                              width: isMobile ? 40 : 60,
-                              height: isMobile ? 40 : 60,
-                              objectFit: "cover",
-                              borderRadius: 1,
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 600,
-                            color: black,
-                            border: 0,
-                            fontSize: isMobile ? 12 : 14,
-                          }}
-                        >
-                          {item.soLuong || 0}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 500,
-                            color: black,
-                            border: 0,
-                            fontSize: isMobile ? 12 : 14,
-                          }}
-                        >
-                          {(item.donGia || 0).toLocaleString()} VNĐ
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 600,
-                            color: black,
-                            border: 0,
-                            fontSize: isMobile ? 12 : 14,
-                          }}
-                        >
-                          {(item.soLuong * item.donGia || 0).toLocaleString()}{" "}
-                          VNĐ
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        align="center"
-                        sx={{ border: 0, py: isMobile ? 1 : 2 }}
-                      >
-                        <Typography
-                          color="text.secondary"
-                          fontSize={isMobile ? 14 : 16}
-                        >
-                          Không có sản phẩm trong đơn hàng.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper> */}
           <Paper
             sx={{
               p: isMobile ? 1.5 : 2.5,

@@ -294,7 +294,7 @@ useEffect(() => {
       showCancelButton: true,
       confirmButtonColor: "#ff6600",
       cancelButtonColor: "#888",
-      confirmButtonText: "Xóa",
+      confirmButtonText: "Cập nhật",
       cancelButtonText: "Hủy",
     });
 
