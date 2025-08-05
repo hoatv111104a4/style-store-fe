@@ -212,7 +212,7 @@ const Discounts = () => {
                   </td>
                   <td>
                     <button
-                      onClick={() => navigate(`/website/giam-gia/chi-tiet/${voucher.id}`)}
+                      onClick={() => navigate(`/admin/giam-gia/chi-tiet/${voucher.id}`)}
                       style={{ backgroundColor: "#212529", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px" }}
                     >
                       <i className="bi bi-eye-fill me-1"></i> Xem

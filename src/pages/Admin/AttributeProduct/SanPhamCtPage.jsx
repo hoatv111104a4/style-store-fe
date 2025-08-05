@@ -1441,7 +1441,7 @@ const SanPhamCtPage = () => {
               {!isViewMode && (
                 <OrangeButton type="submit" variant="contained" disabled={loading}>
                   {loading ? (
-                    <CircularProgress size={20} color="inherit" />
+                    <CircularProgress size={10} color="inherit" />
                   ) : selectedSanPhamCt ? (
                     'Cập nhật'
                   ) : (

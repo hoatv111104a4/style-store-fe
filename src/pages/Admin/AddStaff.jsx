@@ -140,6 +140,7 @@ const AddStaff = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
     const {
       hoTen,
@@ -155,24 +156,8 @@ const AddStaff = () => {
       cccd,
     } = form;
 
-    if (
-      !hoTen ||
-      !soDienThoai ||
-      !email ||
-      !province ||
-      !district ||
-      !ward ||
-      !address ||
-      !namSinh
-    ) {
-      toast.error("Vui lòng nhập đầy đủ thông tin!");
-      return;
-    }
-
-    setIsLoading(true);
-
     // Đảm bảo định dạng YYYY-MM-DD
-    const formattedDate = new Date(namSinh).toISOString().split("T")[0];
+    const formattedDate = namSinh ? new Date(namSinh).toISOString().split("T")[0] : "";
 
     const payload = {
       hoTen,
@@ -187,6 +172,7 @@ const AddStaff = () => {
       xa: wardNames[ward] || "",
       ...(cccd ? { cccd } : {}),
     };
+
     const result = await Swal.fire({
       title: "Xác nhận thêm nhân viên",
       text: "Bạn có chắc chắn muốn thêm nhân viên này không?",
@@ -197,34 +183,36 @@ const AddStaff = () => {
       confirmButtonText: "Thêm",
       cancelButtonText: "Hủy",
     });
+
     if (result.isConfirmed) {
       try {
-      console.log("Payload gửi đi:", payload);
-      await createNhanVien(payload);
-      toast.success("Thêm nhân viên thành công!");
-      setForm({
-        hoTen: "",
-        soDienThoai: "",
-        email: "",
-        province: "",
-        district: "",
-        ward: "",
-        address: "",
-        gioiTinh: "1",
-        namSinh: "",
-        trangThai: "1",
-        cccd: "",
-      });
-    } catch (err) {
-      toast.error("Lỗi khi thêm nhân viên!");
-      console.error("Chi tiết lỗi:", err);
-    } finally {
+        console.log("Payload gửi đi:", payload);
+        await createNhanVien(payload);
+        toast.success("Thêm nhân viên thành công!");
+        setForm({
+          hoTen: "",
+          soDienThoai: "",
+          email: "",
+          province: "",
+          district: "",
+          ward: "",
+          address: "",
+          gioiTinh: "1",
+          namSinh: "",
+          trangThai: "1",
+          cccd: "",
+        });
+      } catch (err) {
+        // Hiển thị lỗi từ backend, lấy giá trị từ result
+        const errorMessage = err.response?.data?.result || "Lỗi khi thêm nhân viên!";
+        toast.error(errorMessage);
+        console.error("Chi tiết lỗi:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
       setIsLoading(false);
     }
-    }else {
-      setIsLoading(false);
-    }
-    
   };
 
   return (
@@ -246,7 +234,6 @@ const AddStaff = () => {
               value={form.hoTen}
               onChange={handleChange}
               fullWidth
-              required
               label="Họ và tên"
               sx={{ mb: 2 }}
             />
@@ -255,7 +242,6 @@ const AddStaff = () => {
               value={form.soDienThoai}
               onChange={handleChange}
               fullWidth
-              required
               label="Số điện thoại"
               sx={{ mb: 2 }}
             />
@@ -264,9 +250,7 @@ const AddStaff = () => {
               value={form.email}
               onChange={handleChange}
               fullWidth
-              required
               label="Email"
-              type="email"
               sx={{ mb: 2 }}
             />
             <TextField
@@ -282,7 +266,6 @@ const AddStaff = () => {
               value={form.namSinh}
               onChange={handleChange}
               fullWidth
-              required
               type="date"
               label="Ngày sinh"
               InputLabelProps={{ shrink: true }}
@@ -328,7 +311,6 @@ const AddStaff = () => {
               value={form.province}
               onChange={handleChange}
               fullWidth
-              required
               label="Tỉnh/Thành phố"
               sx={{ mb: 2 }}
             >
@@ -346,7 +328,6 @@ const AddStaff = () => {
               value={form.district}
               onChange={handleChange}
               fullWidth
-              required
               label="Quận/Huyện"
               sx={{ mb: 2 }}
               disabled={!form.province}
@@ -365,7 +346,6 @@ const AddStaff = () => {
               value={form.ward}
               onChange={handleChange}
               fullWidth
-              required
               label="Phường/Xã"
               sx={{ mb: 2 }}
               disabled={!form.district}
@@ -383,7 +363,6 @@ const AddStaff = () => {
               value={form.address}
               onChange={handleChange}
               fullWidth
-              required
               label="Địa chỉ cụ thể"
               sx={{ mb: 2 }}
             />

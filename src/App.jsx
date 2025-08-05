@@ -38,6 +38,8 @@ import UpdateStaff from "./pages/Admin/UpdateStaff";
 import AddCustomer from "./pages/Admin/AddCustomer";
 import UpdateCustomer from "./pages/Admin/UpdateCustomer";
 import OrderDetail from "./pages/Website/OrderDetail";
+import UpdateVoucher from "./pages/Admin/UpdateVoucher";
+import AccessDenied from "./pages/AccessDenied";
 function App() {
   return (
     <BrowserRouter>
@@ -78,13 +80,15 @@ function App() {
           <Route path="/admin/san-pham-chi-tiet/:id" element={<SanPhamCtPage />} />
           <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddProductWithDetailsPage />} />
           <Route path="/admin/giam-gia/them-phieu-giam-gia" element={<AddVoucher />} />
-
+          <Route path="/admin/giam-gia/chi-tiet/:id" element={<UpdateVoucher />} />
           <Route path="/admin/orders/:id" element={<OrderDetailAdmin />} />
           <Route path="/admin/tai-khoan/nhan-vien/them-nhan-vien" element={<AddStaff />} />
           <Route path="/admin/tai-khoan/nhan-vien/chi-tiet/:id" element={<UpdateStaff />} />
           <Route path="/admin/tai-khoan/khach-hang/them-khach-hang" element={<AddCustomer />} />
           <Route path="/admin/tai-khoan/khach-hang/chi-tiet/:id" element={<UpdateCustomer />} />
         </Route>
+                <Route path="/access-denied" element={<AccessDenied />} />
+
       </Routes>
     </BrowserRouter>
   );

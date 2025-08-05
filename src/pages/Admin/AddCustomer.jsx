@@ -12,10 +12,9 @@ import {
   Typography,
   MenuItem,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { createKhachHang} from "../../services/Website/UserApi2";
+import { createKhachHang } from "../../services/Website/UserApi2";
 import Swal from "sweetalert2";
 
 const API_PROVINCE = "https://provinces.open-api.vn/api/";
@@ -26,7 +25,6 @@ const fallbackProvinces = [
 ];
 
 const AddCustomer = () => {
-  const navigate = useNavigate();
   const [form, setForm] = useState({
     hoTen: "",
     soDienThoai: "",
@@ -140,6 +138,7 @@ const AddCustomer = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
     const {
       hoTen,
@@ -155,24 +154,8 @@ const AddCustomer = () => {
       cccd,
     } = form;
 
-    if (
-      !hoTen ||
-      !soDienThoai ||
-      !email ||
-      !province ||
-      !district ||
-      !ward ||
-      !address ||
-      !namSinh
-    ) {
-      toast.error("Vui lòng nhập đầy đủ thông tin!");
-      return;
-    }
-
-    setIsLoading(true);
-
     // Đảm bảo định dạng YYYY-MM-DD
-    const formattedDate = new Date(namSinh).toISOString().split("T")[0];
+    const formattedDate = namSinh ? new Date(namSinh).toISOString().split("T")[0] : "";
 
     const payload = {
       hoTen,
@@ -187,6 +170,7 @@ const AddCustomer = () => {
       xa: wardNames[ward] || "",
       ...(cccd ? { cccd } : {}),
     };
+
     const result = await Swal.fire({
       title: "Xác nhận thêm khách hàng",
       text: "Bạn có chắc chắn muốn thêm khách hàng này không?",
@@ -194,44 +178,44 @@ const AddCustomer = () => {
       showCancelButton: true,
       confirmButtonColor: "#ff6600",
       cancelButtonColor: "#888",
-      confirmButtonText: "Xóa",
+      confirmButtonText: "Thêm",
       cancelButtonText: "Hủy",
     });
-    if(result.isConfirmed){
+
+    if (result.isConfirmed) {
       try {
-      console.log("Payload gửi đi:", payload);
-      await createKhachHang(payload);
-      toast.success("Thêm khách hàng thành công!");
-      setForm({
-        hoTen: "",
-        soDienThoai: "",
-        email: "",
-        province: "",
-        district: "",
-        ward: "",
-        address: "",
-        gioiTinh: "1",
-        namSinh: "",
-        trangThai: "1",
-        cccd: "",
-      });
-      navigate("/admin/tai-khoan/khach-hang");
-    } catch (err) {
-      toast.error("Lỗi khi thêm khách hàng!");
-      console.error("Chi tiết lỗi:", err);
-    } finally {
+        console.log("Payload gửi đi:", payload);
+        await createKhachHang(payload);
+        toast.success("Thêm khách hàng thành công!");
+        setForm({
+          hoTen: "",
+          soDienThoai: "",
+          email: "",
+          province: "",
+          district: "",
+          ward: "",
+          address: "",
+          gioiTinh: "1",
+          namSinh: "",
+          trangThai: "1",
+          cccd: "",
+        });
+      } catch (err) {
+        const errorMessage = err.response?.data?.result || "Lỗi khi thêm khách hàng!";
+        toast.error(errorMessage);
+        console.error("Chi tiết lỗi:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
       setIsLoading(false);
     }
-    }else{
-      setIsLoading(false);
-    }
-    
   };
 
   return (
     <Box sx={{ maxWidth: 1100, mx: "auto", p: { xs: 2, sm: 4 } }}>
       <Typography variant="h4" fontWeight={700} gutterBottom color="#ff6600">
-        Thêm nhân viên
+        Thêm khách hàng
       </Typography>
 
       <Box
@@ -247,7 +231,6 @@ const AddCustomer = () => {
               value={form.hoTen}
               onChange={handleChange}
               fullWidth
-              required
               label="Họ và tên"
               sx={{ mb: 2 }}
             />
@@ -256,7 +239,6 @@ const AddCustomer = () => {
               value={form.soDienThoai}
               onChange={handleChange}
               fullWidth
-              required
               label="Số điện thoại"
               sx={{ mb: 2 }}
             />
@@ -265,9 +247,7 @@ const AddCustomer = () => {
               value={form.email}
               onChange={handleChange}
               fullWidth
-              required
               label="Email"
-              type="email"
               sx={{ mb: 2 }}
             />
             <TextField
@@ -283,7 +263,6 @@ const AddCustomer = () => {
               value={form.namSinh}
               onChange={handleChange}
               fullWidth
-              required
               type="date"
               label="Ngày sinh"
               InputLabelProps={{ shrink: true }}
@@ -329,7 +308,6 @@ const AddCustomer = () => {
               value={form.province}
               onChange={handleChange}
               fullWidth
-              required
               label="Tỉnh/Thành phố"
               sx={{ mb: 2 }}
             >
@@ -347,7 +325,6 @@ const AddCustomer = () => {
               value={form.district}
               onChange={handleChange}
               fullWidth
-              required
               label="Quận/Huyện"
               sx={{ mb: 2 }}
               disabled={!form.province}
@@ -366,7 +343,6 @@ const AddCustomer = () => {
               value={form.ward}
               onChange={handleChange}
               fullWidth
-              required
               label="Phường/Xã"
               sx={{ mb: 2 }}
               disabled={!form.district}
@@ -384,7 +360,6 @@ const AddCustomer = () => {
               value={form.address}
               onChange={handleChange}
               fullWidth
-              required
               label="Địa chỉ cụ thể"
               sx={{ mb: 2 }}
             />

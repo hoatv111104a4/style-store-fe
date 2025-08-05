@@ -44,19 +44,25 @@ export const applyVoucher = async (applyData) => {
   }
 };
 
-// Cập nhật phiếu giảm giá cho sản phẩm
-export const updateVoucher = async (updateData) => {
-  try {
-    const response = await apiClient.post("/ap-phieu-giam-gia-san-pham", updateData, {
-      headers: getAuthHeaders(),
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Lỗi khi cập nhật phiếu giảm giá:", error);
-    throw error;
-  }
+export const updateGiamGia = async (id, apDungGGUpdateRequest) => {
+    try {
+        const response = await apiClient.put(`/cap-nhat/${id}`, apDungGGUpdateRequest);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi gọi API cập nhật mã giảm giá", error);
+        throw error;
+    }
 };
 
+export const getGiamGiaDetail = async (id) => {
+    try {
+        const response = await apiClient.get(`/chi-tiet/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi gọi API lấy chi tiết mã giảm giá", error);
+        throw error;
+    }
+};
 // Lấy danh sách phiếu giảm giá (phân trang)
 export const getPageGiamGia = async (
   page = 0,

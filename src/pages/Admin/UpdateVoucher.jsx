@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getPageSanPham, getListSanPhamGiamGia } from "../../services/Website/ProductApis";
-import { applyVoucher } from "../../services/Website/VocherApi";
+import { getGiamGiaDetail, updateGiamGia } from "../../services/Website/VocherApi";
 import "../../styles/TableCss.css";
 import {
   TextField,
@@ -15,8 +15,9 @@ import { useTheme } from "@mui/material/styles";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const AddVoucher = () => {
+const UpdateVoucher = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -41,6 +42,49 @@ const AddVoucher = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 5;
+
+  // Fetch chi tiết mã giảm giá khi component mount
+  useEffect(() => {
+    const fetchGiamGiaDetail = async () => {
+      try {
+        setLoading(true);
+        const response = await getGiamGiaDetail(id);
+        const { result } = response;
+        setFormData({
+          tenDotGiam: result.tenDotGiam || "",
+          giamGia: result.giamGia?.toString() || "",
+          giamToiDa: result.giamToiDa?.toString() || "",
+          dieuKienGiam: result.dieuKienGiam?.toString() || "",
+          ngayBatDau: result.ngayBatDau ? new Date(result.ngayBatDau).toISOString().split("T")[0] : "",
+          ngayKetThuc: result.ngayKetThuc ? new Date(result.ngayKetThuc).toISOString().split("T")[0] : "",
+          moTa: result.moTa || "",
+        });
+        // Tích tự động các sản phẩm
+        setSelectedIds(result.idSanPham || []);
+        // Tích tự động các chi tiết sản phẩm
+        setSelectedChiTietIds(result.idChiTietSanPham || []);
+
+        // Lấy chi tiết sản phẩm dựa trên idSanPham
+        const chiTietPromises = (result.idSanPham || []).map(async (sanPhamId) => {
+          const data = await getListSanPhamGiamGia({ sanPhamId });
+          return data;
+        });
+        const chiTietList = (await Promise.all(chiTietPromises)).flat().filter(ct => ct?.id);
+        // Loại bỏ trùng lặp
+        const uniqueChiTietList = Array.from(new Map(chiTietList.map(item => [item.id, item])).values());
+        setChiTietSanPhamList(uniqueChiTietList);
+      } catch (error) {
+        console.error("Lỗi khi lấy chi tiết mã giảm giá:", error);
+        toast.error(error.response?.data?.result || "Không thể tải thông tin mã giảm giá.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchGiamGiaDetail();
+    }
+  }, [id]);
 
   const fetchData = async (pageIndex) => {
     try {
@@ -71,9 +115,7 @@ const AddVoucher = () => {
   const getChiTietSanPhamBySanPhamId = async (sanPhamId) => {
     try {
       const data = await getListSanPhamGiamGia({ sanPhamId });
-      // Loại bỏ các chi tiết sản phẩm trùng lặp dựa trên id
-      const uniqueData = Array.from(new Map(data.map(item => [item.id, item])).values());
-      return uniqueData;
+      return Array.from(new Map(data.map(item => [item.id, item])).values()) || [];
     } catch (err) {
       console.error("Lỗi khi gọi chi tiết sản phẩm:", err);
       toast.error("Không thể tải chi tiết sản phẩm.");
@@ -84,15 +126,12 @@ const AddVoucher = () => {
   const handleSelect = async (id) => {
     let newSelectedIds;
     if (selectedIds.includes(id)) {
-      // Bỏ chọn sản phẩm
       newSelectedIds = selectedIds.filter((i) => i !== id);
       setChiTietSanPhamList((prev) => prev.filter((ct) => ct.sanPhamId !== id));
       setSelectedChiTietIds((prev) => prev.filter((ctId) => !chiTietSanPhamList.find(ct => ct.id === ctId && ct.sanPhamId === id)));
     } else {
-      // Chọn sản phẩm mới
       newSelectedIds = [...selectedIds, id];
       const chiTietList = await getChiTietSanPhamBySanPhamId(id);
-      // Chỉ thêm các chi tiết sản phẩm chưa có trong chiTietSanPhamList
       setChiTietSanPhamList((prev) => {
         const existingIds = new Set(prev.map(ct => ct.id));
         const newChiTiet = chiTietList.filter(ct => !existingIds.has(ct.id));
@@ -100,7 +139,7 @@ const AddVoucher = () => {
       });
     }
     setSelectedIds(newSelectedIds);
-    setSelectedAll(false);
+    setSelectedAll(newSelectedIds.length === allProducts.length);
   };
 
   const handleSelectAll = async () => {
@@ -115,9 +154,10 @@ const AddVoucher = () => {
         const chiTiet = await getChiTietSanPhamBySanPhamId(id);
         allChiTiet.push(...chiTiet);
       }
-      // Loại bỏ trùng lặp trong allChiTiet
-      const uniqueChiTiet = Array.from(new Map(allChiTiet.map(item => [item.id, item])).values());
-      setChiTietSanPhamList(uniqueChiTiet);
+      setChiTietSanPhamList((prev) => {
+        const uniqueChiTiet = Array.from(new Map([...prev, ...allChiTiet].map(item => [item.id, item])).values());
+        return uniqueChiTiet;
+      });
     } else {
       setSelectedIds([]);
       setChiTietSanPhamList([]);
@@ -147,21 +187,6 @@ const AddVoucher = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Kiểm tra các trường bắt buộc
-    const requiredFields = ['tenDotGiam', 'giamGia', 'giamToiDa', 'dieuKienGiam', 'ngayBatDau', 'ngayKetThuc'];
-    const isFormEmpty = requiredFields.some(field => !formData[field]);
-    
-    if (isFormEmpty) {
-      toast.error("Vui lòng nhập đầy đủ thông tin!");
-      return;
-    }
-
-    if (selectedChiTietIds.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một sản phẩm chi tiết!");
-      return;
-    }
-
     setLoading(true);
 
     const voucherData = {
@@ -175,12 +200,16 @@ const AddVoucher = () => {
     };
 
     try {
-      await applyVoucher(voucherData);
-      toast.success("Áp dụng giảm giá thành công!");
+      await updateGiamGia(id, voucherData);
+      toast.success("Cập nhật mã giảm giá thành công!");
       setTimeout(() => navigate("/admin/giam-gia"), 2000);
     } catch (error) {
-      const errorMessage = error.response?.data?.result || "Lỗi khi tạo voucher!";
-      toast.error(errorMessage);
+      const errorMessage = error.response?.data?.result || "Lỗi khi cập nhật voucher!";
+      if (error.response?.data?.errorCode === 1104) {
+        toast.error("Ngày kết thúc phải sau ngày bắt đầu!");
+      } else {
+        toast.error(errorMessage);
+      }
       console.error("Chi tiết lỗi:", error);
     } finally {
       setLoading(false);
@@ -193,18 +222,94 @@ const AddVoucher = () => {
       <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={3} mt={3}>
         <Box flex={isMobile ? 1 : 0.4}>
           <Typography variant="h5" sx={{ color: "#ff6600", textAlign: "left" }}>
-            Tạo Phiếu Giảm Giá
+            Cập nhật Phiếu Giảm Giá
           </Typography>
           <form onSubmit={handleSubmit}>
             <Box sx={{ padding: 1 }}>
-              <TextField fullWidth size="small" label="Tên đợt giảm giá" name="tenDotGiam" value={formData.tenDotGiam} onChange={handleChange} margin="dense" sx={{mb:2}}/>
-              <TextField fullWidth size="small" label="Giảm giá (%)" name="giamGia" type="number" value={formData.giamGia} onChange={handleChange} margin="dense" sx={{mb:2}}/>
-              <TextField fullWidth size="small" label="Giảm tối đa (VND)" name="giamToiDa" type="number" value={formData.giamToiDa} onChange={handleChange} margin="dense" sx={{mb:2}} />
-              <TextField fullWidth size="small" label="Điều kiện giảm (VND)" name="dieuKienGiam" type="number" value={formData.dieuKienGiam} onChange={handleChange} margin="dense" sx={{mb:2}} />
-              <TextField fullWidth size="small" label="Ngày bắt đầu" name="ngayBatDau" type="date" value={formData.ngayBatDau} onChange={handleChange} margin="dense" InputLabelProps={{ shrink: true }} sx={{mb:2}} />
-              <TextField fullWidth size="small" label="Ngày kết thúc" name="ngayKetThuc" type="date" value={formData.ngayKetThuc} onChange={handleChange} margin="dense" InputLabelProps={{ shrink: true }} sx={{mb:2}} />
-              <Button type="submit" variant="contained" disabled={loading} sx={{ mt: 2, backgroundColor: "#ff6600", "&:hover": { backgroundColor: "#e65c00" } }}>
-                {loading ? "Đang tạo..." : "Tạo Voucher"}
+              <TextField
+                fullWidth
+                size="small"
+                label="Tên đợt giảm giá"
+                name="tenDotGiam"
+                value={formData.tenDotGiam}
+                onChange={handleChange}
+                margin="dense"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Giảm giá (%)"
+                name="giamGia"
+                type="number"
+                value={formData.giamGia}
+                onChange={handleChange}
+                margin="dense"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Giảm tối đa (VND)"
+                name="giamToiDa"
+                type="number"
+                value={formData.giamToiDa}
+                onChange={handleChange}
+                margin="dense"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Điều kiện giảm (VND)"
+                name="dieuKienGiam"
+                type="number"
+                value={formData.dieuKienGiam}
+                onChange={handleChange}
+                margin="dense"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Ngày bắt đầu"
+                name="ngayBatDau"
+                type="date"
+                value={formData.ngayBatDau}
+                onChange={handleChange}
+                margin="dense"
+                InputLabelProps={{ shrink: true }}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Ngày kết thúc"
+                name="ngayKetThuc"
+                type="date"
+                value={formData.ngayKetThuc}
+                onChange={handleChange}
+                margin="dense"
+                InputLabelProps={{ shrink: true }}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Mô tả"
+                name="moTa"
+                value={formData.moTa}
+                onChange={handleChange}
+                margin="dense"
+                sx={{ mb: 2 }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={loading}
+                sx={{ mt: 2, backgroundColor: "#ff6600", "&:hover": { backgroundColor: "#e65c00" } }}
+              >
+                {loading ? "Đang cập nhật..." : "Cập nhật Voucher"}
               </Button>
             </Box>
           </form>
@@ -224,7 +329,13 @@ const AddVoucher = () => {
               <tbody>
                 {products.map((sp) => (
                   <tr key={sp.id}>
-                    <td><input type="checkbox" checked={selectedIds.includes(sp.id)} onChange={() => handleSelect(sp.id)} /></td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(sp.id)}
+                        onChange={() => handleSelect(sp.id)}
+                      />
+                    </td>
                     <td>{sp.ma}</td>
                     <td>{sp.ten}</td>
                     <td>{sp.trangThai == "1" ? "Đang kinh doanh" : "Ngưng kinh doanh"}</td>
@@ -234,7 +345,13 @@ const AddVoucher = () => {
             </table>
           </div>
           <Box mt={2} display="flex" justifyContent="center">
-            <Pagination count={totalPages} page={page} onChange={(_, newPage) => setPage(newPage)} color="primary" shape="rounded" />
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(_, newPage) => setPage(newPage)}
+              color="primary"
+              shape="rounded"
+            />
           </Box>
         </Box>
       </Box>
@@ -263,9 +380,30 @@ const AddVoucher = () => {
               <tbody>
                 {chiTietSanPhamList.map((ct, index) => (
                   <tr key={ct.id}>
-                    <td><input type="checkbox" checked={selectedChiTietIds.includes(ct.id)} onChange={() => handleChiTietSelect(ct.id)} /></td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedChiTietIds.includes(ct.id)}
+                        onChange={() => handleChiTietSelect(ct.id)}
+                      />
+                    </td>
                     <td>{index + 1}</td>
-                    <td><img src={ct.tenHinhAnhSp ? `http://localhost:8080/uploads/${ct.tenHinhAnhSp}` : "/placeholder-image.png"} alt={ct.tenSanPham} style={{ objectFit: "cover", height: "80px", width: "80px", borderRadius: "8px" }} /></td>
+                    <td>
+                      <img
+                        src={
+                          ct.tenHinhAnhSp
+                            ? `http://localhost:8080/uploads/${ct.tenHinhAnhSp}`
+                            : "/placeholder-image.png"
+                        }
+                        alt={ct.tenSanPham}
+                        style={{
+                          objectFit: "cover",
+                          height: "80px",
+                          width: "80px",
+                          borderRadius: "8px",
+                        }}
+                      />
+                    </td>
                     <td>{ct.ma}</td>
                     <td>{ct.tenSanPham}</td>
                     <td>{ct.giaBan?.toLocaleString()}₫</td>
@@ -284,4 +422,4 @@ const AddVoucher = () => {
   );
 };
 
-export default AddVoucher;
+export default UpdateVoucher;

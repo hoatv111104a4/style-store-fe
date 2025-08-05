@@ -239,7 +239,7 @@ const Products = () => {
                       </IconButton>
                     )}
                     {searchLoading ? (
-                      <CircularProgress size={20} color="warning" />
+                      <CircularProgress size={10} color="warning" />
                     ) : (
                       <IconButton
                         color="warning"
