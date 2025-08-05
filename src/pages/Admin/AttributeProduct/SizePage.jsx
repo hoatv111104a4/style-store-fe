@@ -17,7 +17,6 @@ import {
   Pagination,
   IconButton,
 } from '@mui/material';
-import IconButton from '@mui/material/IconButton';
 
 import { useTheme, styled } from '@mui/material/styles';
 import {

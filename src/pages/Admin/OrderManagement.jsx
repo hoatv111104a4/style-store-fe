@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import { listHoaDon } from "../../services/Admin/HoaDonService";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 import {
   Box,
@@ -44,22 +43,27 @@ const OrderManagement = () => {
   const navigate = useNavigate();
 
   const fetchAllHoaDon = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await listHoaDon();
-      setAllHoaDon(data);
-      setError(null);
-    } catch (err) {
+  try {
+    setLoading(true);
+    const data = await listHoaDon();
+    setAllHoaDon(data);
+    setError(null);
+  } catch (err) {
+    if (err.response && err.response.status === 401) {
+      // Chuyển hướng đến trang AccessDenied khi gặp lỗi 401
+      navigate("/access-denied");
+    } else {
       setError(err.message || "Không thể tải danh sách hóa đơn");
       setAllHoaDon([]);
       toast.error("Không thể tải danh sách hóa đơn.", {
         position: "top-right",
         autoClose: 3000,
       });
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  } finally {
+    setLoading(false);
+  }
+}, [navigate]);
 
   useEffect(() => {
     fetchAllHoaDon();
