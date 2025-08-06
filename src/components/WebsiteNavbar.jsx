@@ -70,7 +70,15 @@ const WebsiteNavbar = () => {
     // Kiểm tra nếu không phải đang ở trang thanh toán thì mới load từ localStorage
     if (!window.location.pathname.includes("/dat-hang")) {
       const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      setCartItems(cart);
+      // Chuẩn hóa dữ liệu từ localStorage
+      const normalizedCart = cart.map(item => ({
+        ...item,
+        tenSanPham: item.tenSanPham || item.sanPham?.ten || "Không xác định",
+        hinhAnhSp: item.hinhAnhSp || item.hinhAnhSp?.hinhAnh || "/placeholder-image.png",
+        giaBan: item.giaBan || item.giaTien || 0,
+        quantity: item.quantity || 1,
+      }));
+      setCartItems(normalizedCart);
     }
     setOpenCart(true);
   };
@@ -407,18 +415,15 @@ const WebsiteNavbar = () => {
                       <td style={{ border: "none", padding: 10, textAlign: "center" }}>{idx + 1}</td>
                       <td style={{ border: "none", padding: 10, textAlign: "center" }}>
                         <img
-                          src={
-                            item.hinhAnhSp?.hinhAnh
-                              ? `http://localhost:8080/uploads/${item.hinhAnhSp.hinhAnh}`
-                              : "/placeholder-image.png"
-                          }
-                          alt={item.sanPham?.ten}
+                          src={`http://localhost:8080/uploads/${item.hinhAnhSp}`}
+                          alt={item.tenSanPham}
                           width={40}
                           height={40}
                           style={{ objectFit: "cover", borderRadius: 6 }}
+                          onError={(e) => { e.target.src = "/placeholder-image.png"; }}
                         />
                       </td>
-                      <td style={{ border: "none", padding: 10 }}>{item.sanPham?.ten}</td>
+                      <td style={{ border: "none", padding: 10 }}>{item.tenSanPham}</td>
                       <td style={{ border: "none", padding: 10, textAlign: "center" }}>
                         <TextField
                           type="number"

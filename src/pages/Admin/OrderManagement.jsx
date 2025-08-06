@@ -50,7 +50,6 @@ const OrderManagement = () => {
     setError(null);
   } catch (err) {
     if (err.response && err.response.status === 401) {
-      // Chuyển hướng đến trang AccessDenied khi gặp lỗi 401
       navigate("/access-denied");
     } else {
       setError(err.message || "Không thể tải danh sách hóa đơn");

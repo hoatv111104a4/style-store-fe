@@ -7,7 +7,6 @@ import "../../styles/Website/DetailProductCss.css";
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 
-
 const DetailProduct = () => {
   const { id } = useParams();
   const [productDetail, setProductDetail] = useState(null);
@@ -16,9 +15,14 @@ const DetailProduct = () => {
 
   useEffect(() => {
     const fetchDetail = async () => {
-      const data = await getByIdSanPhamCt(id);
-      setProductDetail(data);
-      setQuantity(1); // reset về 1 khi đổi sản phẩm
+      try {
+        const data = await getByIdSanPhamCt(id);
+        setProductDetail(data);
+        console.log("Chi tiết sản phẩm:", data);
+        setQuantity(1); // reset về 1 khi đổi sản phẩm
+      } catch (error) {
+        toast.error("Không thể tải chi tiết sản phẩm!");
+      }
     };
     fetchDetail();
   }, [id]);
@@ -31,38 +35,68 @@ const DetailProduct = () => {
   };
 
   const handleAddToCart = () => {
+    if (!productDetail) {
+      toast.error("Không có thông tin sản phẩm!");
+      return;
+    }
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     const existIndex = cart.findIndex(item => item.id === productDetail.id);
+    const productToAdd = {
+      id: productDetail.id,
+      tenSanPham: productDetail.tenSanPham,
+      hinhAnhSp: productDetail.hinhAnhSp,
+      giaBan: productDetail.giaBan,
+      soLuong: productDetail.soLuong,
+      tenMauSac: productDetail.tenMauSac,
+      maMauSac: productDetail.maMauSac,
+      tenThuongHieu: productDetail.tenThuongHieu,
+      tenKichThuoc: productDetail.tenKichThuoc,
+      tenXuatXu: productDetail.tenXuatXu,
+      tenChatLieu: productDetail.tenChatLieu,
+      moTa: productDetail.moTa,
+      giaBanGoc: productDetail.giaBanGoc,
+      quantity,
+    };
     if (existIndex !== -1) {
       cart[existIndex].quantity += quantity;
     } else {
-      cart.push({
-        ...productDetail,
-        quantity,
-      });
+      cart.push(productToAdd);
     }
     localStorage.setItem("cart", JSON.stringify(cart));
     toast.success("Đã thêm vào giỏ hàng!");
   };
 
   const handleOrderNow = () => {
-    // Lấy giỏ hàng hiện tại
+    if (!productDetail) {
+      toast.error("Không có thông tin sản phẩm!");
+      return;
+    }
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     const existIndex = cart.findIndex(item => item.id === productDetail.id);
+    const productToAdd = {
+      id: productDetail.id,
+      tenSanPham: productDetail.tenSanPham,
+      hinhAnhSp: productDetail.hinhAnhSp,
+      giaBan: productDetail.giaBan,
+      soLuong: productDetail.soLuong,
+      tenMauSac: productDetail.tenMauSac,
+      maMauSac: productDetail.maMauSac,
+      tenThuongHieu: productDetail.tenThuongHieu,
+      tenKichThuoc: productDetail.tenKichThuoc,
+      tenXuatXu: productDetail.tenXuatXu,
+      tenChatLieu: productDetail.tenChatLieu,
+      moTa: productDetail.moTa,
+      giaBanGoc: productDetail.giaBanGoc,
+      quantity,
+    };
     if (existIndex !== -1) {
       cart[existIndex].quantity += quantity;
     } else {
-      cart.push({
-        ...productDetail,
-        quantity,
-      });
+      cart.push(productToAdd);
     }
-    // Lưu lại giỏ hàng mới
     localStorage.setItem("cart", JSON.stringify(cart));
-    // Lưu thông tin đặt hàng tạm thời 
-    localStorage.setItem("orderNow", JSON.stringify(cart));
-    // Chuyển sang trang đặt hàng
-    navigate("/website/dat-hang");
+    localStorage.setItem("orderNow", JSON.stringify([productToAdd]));
+    navigate("/website/dat-hang", { state: { selectedItems: [productToAdd] } });
   };
 
   return (
@@ -81,7 +115,7 @@ const DetailProduct = () => {
             </Link>
           </li>
           <li className="breadcrumb-item active" aria-current="page" style={{ color: "#ff6600", fontWeight: 600 }}>
-            {productDetail?.sanPham?.ten ? `Chi tiết: ${productDetail.sanPham.ten}` : "Thông tin sản phẩm"}
+            {productDetail?.tenSanPham ? `Chi tiết: ${productDetail.tenSanPham}` : "Thông tin sản phẩm"}
           </li>
         </ol>
       </nav>
@@ -114,11 +148,11 @@ const DetailProduct = () => {
             >
               <img
                 src={
-                  productDetail.hinhAnhSp?.hinhAnh
-                    ? `http://localhost:8080/uploads/${productDetail.hinhAnhSp.hinhAnh}`
+                  productDetail.hinhAnhSp
+                    ? `http://localhost:8080/uploads/${productDetail.hinhAnhSp}`
                     : "/placeholder-image.png"
                 }
-                alt={productDetail.sanPham?.ten}
+                alt={productDetail.tenSanPham}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -135,7 +169,7 @@ const DetailProduct = () => {
             style={{ flex: "0 0 50%", maxWidth: "50%" }}
           >
             <h2 className="fw-bold mb-3" style={{ color: "#ff6600" }}>
-              {productDetail.sanPham?.ten}
+              {productDetail.tenSanPham}
             </h2>
             <div className="mb-2 d-flex align-items-center">
               <b className="me-2">Màu sắc:</b>
@@ -145,23 +179,24 @@ const DetailProduct = () => {
                   width: 22,
                   height: 22,
                   borderRadius: "50%",
-                  backgroundColor: productDetail.mauSac?.ma,
+                  backgroundColor: productDetail.maMauSac,
                   border: "1px solid #ccc",
                   marginRight: 8,
                 }}
               />
+              <span>{productDetail.tenMauSac}</span>
             </div>
             <div className="mb-2">
-              <b>Thương hiệu:</b> {productDetail.thuongHieu?.ten}
+              <b>Thương hiệu:</b> {productDetail.tenThuongHieu}
             </div>
             <div className="mb-2">
-              <b>Kích thước:</b> {productDetail.kichThuoc?.ten}
+              <b>Kích thước:</b> {productDetail.tenKichThuoc}
             </div>
             <div className="mb-2">
-              <b>Xuất xứ:</b> {productDetail.xuatXu?.ten}
+              <b>Xuất xứ:</b> {productDetail.tenXuatXu}
             </div>
             <div className="mb-2">
-              <b>Chất liệu:</b> {productDetail.chatLieu?.ten}
+              <b>Chất liệu:</b> {productDetail.tenChatLieu}
             </div>
             <div className="mb-2">
               <b>Giá bán:</b>{" "}

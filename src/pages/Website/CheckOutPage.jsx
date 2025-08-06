@@ -43,15 +43,14 @@ const CheckOutPage = () => {
   const [shippingFee] = useState(30000);
   const [expectedDate, setExpectedDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [openModal, setOpenModal] = useState(false); // State for modal
+  const [openModal, setOpenModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const selectedItems = location.state?.selectedItems || [];
 
   useEffect(() => {
     const items = location.state?.selectedItems?.length > 0
       ? location.state.selectedItems
-      : JSON.parse(localStorage.getItem("cart") || []);
+      : JSON.parse(localStorage.getItem("cart") || "[]");
     setCartItems(items);
 
     const date = new Date();
@@ -175,6 +174,52 @@ const CheckOutPage = () => {
     localStorage.setItem("cart", JSON.stringify(updatedFullCart));
   };
 
+  const handleSelectAddress = async (address) => {
+    const provinceCode = provinces.find((p) => p.name === address.tinh)?.code || "";
+    let districtCode = "";
+    let wardCode = "";
+
+    if (provinceCode) {
+      try {
+        const res = await fetch(`${API_PROVINCE}p/${provinceCode}?depth=2`);
+        if (!res.ok) throw new Error("Không thể tải dữ liệu quận huyện");
+        const data = await res.json();
+        const names = {};
+        data.districts.forEach((d) => (names[d.code] = d.name));
+        setDistricts(data.districts || []);
+        setDistrictNames(names);
+
+        districtCode = data.districts.find((d) => d.name === address.huyen)?.code || "";
+
+        if (districtCode) {
+          const wardRes = await fetch(`${API_PROVINCE}d/${districtCode}?depth=2`);
+          if (!wardRes.ok) throw new Error("Không thể tải dữ liệu phường xã");
+          const wardData = await wardRes.json();
+          const wardNames = {};
+          wardData.wards.forEach((w) => (wardNames[w.code] = w.name));
+          setWards(wardData.wards || []);
+          setWardNames(wardNames);
+
+          wardCode = wardData.wards.find((w) => w.name === address.xa)?.code || "";
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu địa phương:", error);
+        toast.error("Không thể tải dữ liệu địa phương!");
+      }
+    }
+
+    setForm({
+      ...form,
+      name: address.tenNguoiNhan,
+      phone: address.soDienThoai,
+      province: provinceCode,
+      district: districtCode,
+      ward: wardCode,
+      address: address.soNha,
+    });
+    setOpenModal(false);
+  };
+
   const handleOrder = async (e) => {
     e.preventDefault();
     if (
@@ -205,30 +250,12 @@ const CheckOutPage = () => {
       moTa: form.note,
       chiTietDonHang: cartItems.map((item) => ({
         sanPhamctId: item.id,
-        tenSanPham: item.sanPham?.ten || '',
+        tenSanPham: item.tenSanPham || '',
         giaTien: item.giaBan,
         soLuong: item.quantity,
         thanhTien: item.quantity * item.giaBan,
       })),
     };
-
-    const handleSelectAddress = (address) => {
-        // Tìm mã tỉnh, huyện, xã dựa trên tên từ provinces, districts, wards
-        const provinceCode = provinces.find(p => p.name === address.tinh)?.code || "";
-        const districtCode = districts.find(d => d.name === address.huyen)?.code || "";
-        const wardCode = wards.find(w => w.name === address.xa)?.code || "";
-
-        setForm({
-          ...form,
-          name: address.tenNguoiNhan,
-          phone: address.soDienThoai,
-          province: provinceCode, // Cập nhật mã tỉnh
-          district: districtCode, // Cập nhật mã huyện
-          ward: wardCode,        // Cập nhật mã xã
-          address: address.soNha,
-        });
-        setOpenModal(false); // Đóng modal sau khi chọn
-      };
 
     try {
       if (form.payment === "online") {
@@ -269,58 +296,6 @@ const CheckOutPage = () => {
     0
   );
 
-  const handleSelectAddress = async (address) => {
-  // Find the province code
-  const provinceCode = provinces.find((p) => p.name === address.tinh)?.code || "";
-  
-  // Fetch districts for the selected province if not already loaded
-  let districtCode = "";
-  let wardCode = "";
-  
-  if (provinceCode) {
-    try {
-      const res = await fetch(`${API_PROVINCE}p/${provinceCode}?depth=2`);
-      if (!res.ok) throw new Error("Không thể tải dữ liệu quận huyện");
-      const data = await res.json();
-      const names = {};
-      data.districts.forEach((d) => (names[d.code] = d.name));
-      setDistricts(data.districts || []);
-      setDistrictNames(names);
-      
-      // Find the district code
-      districtCode = data.districts.find((d) => d.name === address.huyen)?.code || "";
-      
-      if (districtCode) {
-        // Fetch wards for the selected district
-        const wardRes = await fetch(`${API_PROVINCE}d/${districtCode}?depth=2`);
-        if (!wardRes.ok) throw new Error("Không thể tải dữ liệu phường xã");
-        const wardData = await wardRes.json();
-        const wardNames = {};
-        wardData.wards.forEach((w) => (wardNames[w.code] = w.name));
-        setWards(wardData.wards || []);
-        setWardNames(wardNames);
-        
-        // Find the ward code
-        wardCode = wardData.wards.find((w) => w.name === address.xa)?.code || "";
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu địa phương:", error);
-      toast.error("Không thể tải dữ liệu địa phương!");
-    }
-  }
-
-  // Update the form with the selected address details
-  setForm({
-    ...form,
-    name: address.tenNguoiNhan,
-    phone: address.soDienThoai,
-    province: provinceCode,
-    district: districtCode,
-    ward: wardCode,
-    address: address.soNha,
-  });
-};
-
   return (
     <div className="container py-4">
       <nav aria-label="breadcrumb" style={{ marginBottom: 24 }}>
@@ -354,7 +329,7 @@ const CheckOutPage = () => {
               onClick={() => setOpenModal(true)}
               sx={{ fontWeight: 700 }}
             >
-            Chọn địa chỉ nhận
+              Chọn địa chỉ nhận
             </Button>
           </Box>
           <form onSubmit={handleOrder}>
@@ -508,16 +483,16 @@ const CheckOutPage = () => {
                         <div className="d-flex align-items-center gap-2">
                           <img
                             src={
-                              item.hinhAnhSp?.hinhAnh
-                                ? `http://localhost:8080/uploads/${item.hinhAnhSp.hinhAnh}`
+                              item.hinhAnhSp
+                                ? `http://localhost:8080/uploads/${item.hinhAnhSp}`
                                 : "/placeholder-image.png"
                             }
-                            alt={item.sanPham?.ten}
+                            alt={item.tenSanPham}
                             width={36}
                             height={36}
                             style={{ objectFit: "cover", borderRadius: 6, marginRight: 8 }}
                           />
-                          <span>{item.sanPham?.ten}</span>
+                          <span>{item.tenSanPham}</span>
                         </div>
                       </td>
                       <td style={{ textAlign: "center" }}>
@@ -567,8 +542,8 @@ const CheckOutPage = () => {
           )}
         </Box>
       </Box>
-        <AddAddressModal open={openModal} onClose={() => setOpenModal(false)} onSelectAddress={handleSelectAddress} />
-        <ToastContainer />
+      <AddAddressModal open={openModal} onClose={() => setOpenModal(false)} onSelectAddress={handleSelectAddress} />
+      <ToastContainer />
     </div>
   );
 };

@@ -237,135 +237,476 @@ const Client = ({
 
     return (
         <div>
-            <h6 className="fw-bold">Thông tin khách hàng</h6>
-            <div className="border p-3 mb-3">
+            <h6 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1a202c', marginBottom: '1rem' }}>
+                Thông tin khách hàng
+            </h6>
+            <div style={{
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '16px',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                marginBottom: '1rem',
+            }}>
                 {showSearchInput && !khachHang && (
-                    <div className="input-group mb-3">
-                        <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            placeholder="Nhập SĐT khách hàng..."
-                            value={searchSdt}
-                            onChange={(e) => setSearchSdt(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleLocalSearch()}
-                        />
-                        <button className="btn btn-sm btn-primary" type="button" onClick={handleLocalSearch} disabled={loading}>
-                            <FontAwesomeIcon icon={faSearch} />
-                        </button>
-                    </div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    placeholder="Nhập SĐT khách hàng..."
+                    value={searchSdt}
+                    onChange={(e) => setSearchSdt(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleLocalSearch()}
+                    style={{
+                        padding: '8px 12px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                    }}
+                    onFocus={(e) => (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                    onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                    />
+                    <button
+                    className="btn btn-sm btn-primary"
+                    type="button"
+                    onClick={handleLocalSearch}
+                    disabled={loading}
+                    style={{
+                        padding: '8px 12px',
+                        backgroundColor: 'orange',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        transition: 'background-color 0.2s',
+                    }}
+                    onMouseOver={(e) => !loading && (e.target.style.backgroundColor = '#2b6cb0')}
+                    onMouseOut={(e) => !loading && (e.target.style.backgroundColor = 'orange')}
+                    >
+                    <FontAwesomeIcon icon={faSearch} />
+                    </button>
+                </div>
                 )}
 
                 {khachHang && (
-                    <div className="alert alert-info py-2 px-3 mb-2">
-                        <div className="d-flex justify-content-between align-items-start">
-                            <h6 className="fw-bold mb-1">{khachHang.hoTen}</h6>
-                            <button className="btn btn-sm btn-outline-danger" title="Chọn lại khách hàng" onClick={handleReload}>
-                                <FontAwesomeIcon icon={faSyncAlt} />
-                            </button>
-                        </div>
-                        <p className="mb-1 small">
-                            <strong>SĐT:</strong> {khachHang.sdt || khachHang.soDienThoai}
-                        </p>
-                        <p className="mb-0 small">
-                            <strong>Địa chỉ:</strong> {[
-                                khachHang.diaChiNguoiDung,
-                                khachHang.xaNguoiDung,
-                                khachHang.huyenNguoiDung,
-                                khachHang.tinhNguoiDung
-                            ].filter(Boolean).join(', ')}
-                        </p>
-                        <div className="d-flex justify-content-between align-items-center mt-2">
-                            <button
-                                className="btn btn-sm btn-success"
-                                onClick={() => handleUpdateHoaDonWithKhachHang(hoaDonId, khachHang)}
-                            >
-                                Xác nhận khách hàng
-                            </button>
-                        </div>
+                <div style={{
+                    backgroundColor: '#ebf8ff',
+                    padding: '12px 16px',
+                    borderRadius: '6px',
+                    marginBottom: '12px',
+                    border: '1px solid #bee3f8',
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <h6 style={{ fontSize: '1rem', fontWeight: '600', color: '#2b6cb0', margin: 0 }}>
+                        {khachHang.hoTen}
+                    </h6>
+                    <button
+                        className="btn btn-sm btn-outline-danger"
+                        title="Chọn lại khách hàng"
+                        onClick={handleReload}
+                        style={{
+                        padding: '4px 8px',
+                        border: '1px solid #e53e3e',
+                        borderRadius: '6px',
+                        color: '#e53e3e',
+                        backgroundColor: 'transparent',
+                        fontSize: '0.75rem',
+                        transition: 'background-color 0.2s, color 0.2s',
+                        }}
+                        onMouseOver={(e) => (e.target.style.backgroundColor = '#e53e3e', e.target.style.color = '#ffffff')}
+                        onMouseOut={(e) => (e.target.style.backgroundColor = 'transparent', e.target.style.color = '#e53e3e')}
+                    >
+                        <FontAwesomeIcon icon={faSyncAlt} />
+                    </button>
                     </div>
+                    <p style={{ marginBottom: '4px', fontSize: '0.875rem', color: '#4a5568' }}>
+                    <strong>SĐT:</strong> {khachHang.sdt || khachHang.soDienThoai}
+                    </p>
+                    <p style={{ marginBottom: '0', fontSize: '0.875rem', color: '#4a5568' }}>
+                    <strong>Địa chỉ:</strong> {[
+                        khachHang.diaChiNguoiDung,
+                        khachHang.xaNguoiDung,
+                        khachHang.huyenNguoiDung,
+                        khachHang.tinhNguoiDung
+                    ].filter(Boolean).join(', ')}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                    <button
+                        className="btn btn-sm btn-success"
+                        onClick={() => handleUpdateHoaDonWithKhachHang(hoaDonId, khachHang)}
+                        style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#38a169',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s',
+                        }}
+                        onMouseOver={(e) => (e.target.style.backgroundColor = '#2f855a')}
+                        onMouseOut={(e) => (e.target.style.backgroundColor = '#38a169')}
+                    >
+                        Xác nhận khách hàng
+                    </button>
+                    </div>
+                </div>
                 )}
 
                 {!khachHang && !showSearchInput && (
-                    <div className="d-flex gap-2 mb-2">
-                        <button className="btn btn-sm btn-outline-primary" type="button" onClick={() => setShowSearchInput(true)}>
-                            <FontAwesomeIcon icon={faSearch} className="me-1" /> Tìm kiếm
-                        </button>
-                    </div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    <button
+                    className="btn btn-sm btn-outline-primary"
+                    type="button"
+                    onClick={() => setShowSearchInput(true)}
+                    style={{
+                        padding: '8px 12px',
+                        border: '1px solid orange',
+                        borderRadius: '6px',
+                        color: 'orange',
+                        backgroundColor: 'transparent',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        transition: 'background-color 0.2s, color 0.2s',
+                    }}
+                    onMouseOver={(e) => (e.target.style.backgroundColor = 'orange', e.target.style.color = '#ffffff')}
+                    onMouseOut={(e) => (e.target.style.backgroundColor = 'transparent', e.target.style.color = 'orange')}
+                    >
+                    <FontAwesomeIcon icon={faSearch} style={{ marginRight: '4px' }} /> Tìm kiếm
+                    </button>
+                </div>
                 )}
 
                 {!khachHang && !showSearchInput && (
-                    <p>Khách hàng: <strong>Khách lẻ</strong></p>
+                <p style={{ fontSize: '0.875rem', color: '#4a5568' }}>
+                    Khách hàng: <strong style={{ color: '#1a202c' }}>Khách lẻ</strong>
+                </p>
                 )}
             </div>
 
             {showAddModal && (
-                <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-lg modal-dialog-scrollable">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">Thêm khách hàng mới</h5>
-                                <button type="button" className="btn-close" onClick={() => setShowAddModal(false)}></button>
-                            </div>
-                            <div className="modal-body">
-                                <div className="row">
-                                    <div className="col-md-6 mb-2">
-                                        <label className="form-label">Họ và tên</label>
-                                        <input type="text" name="hoTen" className="form-control" value={newCustomer.hoTen} onChange={handleInputChange} />
-                                    </div>
-                                    <div className="col-md-6 mb-2">
-                                        <label className="form-label">Số điện thoại</label>
-                                        <input type="text" name="soDienThoai" className="form-control" value={newCustomer.soDienThoai} onChange={handleInputChange} />
-                                    </div>
-                                    <div className="col-md-6 mb-2">
-                                        <label className="form-label">Email</label>
-                                        <input type="email" name="email" className="form-control" value={newCustomer.email} onChange={handleInputChange} />
-                                    </div>
-                                    <div className="col-md-6 mb-2">
-                                        <label className="form-label">Năm sinh</label>
-                                        <input type="number" name="namSinh" className="form-control" value={newCustomer.namSinh} onChange={handleInputChange} />
-                                    </div>
-                                    <div className="col-md-6 mb-2">
-                                        <label className="form-label">Giới tính</label>
-                                        <select name="gioiTinh" className="form-select" value={newCustomer.gioiTinh} onChange={handleInputChange}>
-                                            <option value="1">Nam</option>
-                                            <option value="0">Nữ</option>
-                                        </select>
-                                    </div>
-                                    <div className="col-md-12 mb-2">
-                                        <label className="form-label">Địa chỉ (Số nhà, tên đường)</label>
-                                        <input type="text" name="diaChi" className="form-control" value={newCustomer.diaChi} onChange={handleInputChange} />
-                                    </div>
-                                    <div className="col-md-4 mb-2">
-                                        <label className="form-label">Tỉnh/Thành phố</label>
-                                        <select className="form-select" value={selectedProvince} onChange={e => setSelectedProvince(e.target.value)}>
-                                            <option value="">Chọn tỉnh</option>
-                                            {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="col-md-4 mb-2">
-                                        <label className="form-label">Quận/Huyện</label>
-                                        <select className="form-select" value={selectedDistrict} onChange={e => setSelectedDistrict(e.target.value)} disabled={!selectedProvince}>
-                                            <option value="">Chọn quận/huyện</option>
-                                            {districts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="col-md-4 mb-2">
-                                        <label className="form-label">Phường/Xã</label>
-                                        <select className="form-select" value={selectedWard} onChange={e => setSelectedWard(e.target.value)} disabled={!selectedDistrict}>
-                                            <option value="">Chọn phường/xã</option>
-                                            {wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Hủy</button>
-                                <button type="button" className="btn btn-primary" onClick={handleAddNewCustomer} disabled={loading}>
-                                    {loading ? 'Đang lưu...' : 'Lưu khách hàng'}
-                                </button>
-                            </div>
+                <div
+                className="modal fade show d-block"
+                tabIndex="-1"
+                style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}
+                >
+                <div
+                    className="modal-dialog modal-lg modal-dialog-scrollable"
+                    style={{ maxWidth: '700px', width: '90%' }}
+                >
+                    <div
+                    className="modal-content"
+                    style={{
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        backgroundColor: '#ffffff',
+                    }}
+                    >
+                    <div
+                        className="modal-header"
+                        style={{
+                        padding: '16px 24px',
+                        borderBottom: '1px solid #e2e8f0',
+                        }}
+                    >
+                        <h5 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1a202c', margin: 0 }}>
+                        Thêm khách hàng mới
+                        </h5>
+                        <button
+                        type="button"
+                        className="btn-close"
+                        onClick={() => setShowAddModal(false)}
+                        style={{
+                            fontSize: '1rem',
+                            color: '#4a5568',
+                            cursor: 'pointer',
+                        }}
+                        >
+                        ×
+                        </button>
+                    </div>
+                    <div className="modal-body" style={{ padding: '24px' }}>
+                        <div className="row">
+                        <div className="col-md-6 mb-2">
+                            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
+                            Họ và tên
+                            </label>
+                            <input
+                            type="text"
+                            name="hoTen"
+                            className="form-control"
+                            value={newCustomer.hoTen}
+                            onChange={handleInputChange}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                            }}
+                            onFocus={(e) => (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                            onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                            />
+                        </div>
+                        <div className="col-md-6 mb-2">
+                            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
+                            Số điện thoại
+                            </label>
+                            <input
+                            type="text"
+                            name="soDienThoai"
+                            className="form-control"
+                            value={newCustomer.soDienThoai}
+                            onChange={handleInputChange}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                            }}
+                            onFocus={(e) => (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                            onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                            />
+                        </div>
+                        <div className="col-md-6 mb-2">
+                            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
+                            Email
+                            </label>
+                            <input
+                            type="email"
+                            name="email"
+                            className="form-control"
+                            value={newCustomer.email}
+                            onChange={handleInputChange}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                            }}
+                            onFocus={(e) => (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                            onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                            />
+                        </div>
+                        <div className="col-md-6 mb-2">
+                            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
+                            Năm sinh
+                            </label>
+                            <input
+                            type="number"
+                            name="namSinh"
+                            className="form-control"
+                            value={newCustomer.namSinh}
+                            onChange={handleInputChange}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                            }}
+                            onFocus={(e) => (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                            onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                            />
+                        </div>
+                        <div className="col-md-6 mb-2">
+                            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
+                            Giới tính
+                            </label>
+                            <select
+                            name="gioiTinh"
+                            className="form-select"
+                            value={newCustomer.gioiTinh}
+                            onChange={handleInputChange}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                            }}
+                            onFocus={(e) => (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                            onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                            >
+                            <option value="1">Nam</option>
+                            <option value="0">Nữ</option>
+                            </select>
+                        </div>
+                        <div className="col-md-12 mb-2">
+                            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
+                            Địa chỉ (Số nhà, tên đường)
+                            </label>
+                            <input
+                            type="text"
+                            name="diaChi"
+                            className="form-control"
+                            value={newCustomer.diaChi}
+                            onChange={handleInputChange}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                            }}
+                            onFocus={(e) => (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                            onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                            />
+                        </div>
+                        <div className="col-md-4 mb-2">
+                            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
+                            Tỉnh/Thành phố
+                            </label>
+                            <select
+                            className="form-select"
+                            value={selectedProvince}
+                            onChange={e => setSelectedProvince(e.target.value)}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                            }}
+                            onFocus={(e) => (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                            onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                            >
+                            <option value="">Chọn tỉnh</option>
+                            {provinces.map(p => (
+                                <option key={p.code} value={p.code}>{p.name}</option>
+                            ))}
+                            </select>
+                        </div>
+                        <div className="col-md-4 mb-2">
+                            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
+                            Quận/Huyện
+                            </label>
+                            <select
+                            className="form-select"
+                            value={selectedDistrict}
+                            onChange={e => setSelectedDistrict(e.target.value)}
+                            disabled={!selectedProvince}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                                opacity: !selectedProvince ? 0.5 : 1,
+                            }}
+                            onFocus={(e) => !selectedProvince || (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                            onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                            >
+                            <option value="">Chọn quận/huyện</option>
+                            {districts.map(d => (
+                                <option key={d.code} value={d.code}>{d.name}</option>
+                            ))}
+                            </select>
+                        </div>
+                        <div className="col-md-4 mb-2">
+                            <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
+                            Phường/Xã
+                            </label>
+                            <select
+                            className="form-select"
+                            value={selectedWard}
+                            onChange={e => setSelectedWard(e.target.value)}
+                            disabled={!selectedDistrict}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                                opacity: !selectedDistrict ? 0.5 : 1,
+                            }}
+                            onFocus={(e) => !selectedDistrict || (e.target.style.borderColor = 'orange', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
+                            onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
+                            >
+                            <option value="">Chọn phường/xã</option>
+                            {wards.map(w => (
+                                <option key={w.code} value={w.code}>{w.name}</option>
+                            ))}
+                            </select>
+                        </div>
                         </div>
                     </div>
+                    <div
+                        className="modal-footer"
+                        style={{
+                        padding: '16px 24px',
+                        borderTop: '1px solid #e2e8f0',
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '12px',
+                        }}
+                    >
+                        <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setShowAddModal(false)}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#a0aec0',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s',
+                        }}
+                        onMouseOver={(e) => (e.target.style.backgroundColor = '#718096')}
+                        onMouseOut={(e) => (e.target.style.backgroundColor = '#a0aec0')}
+                        >
+                        Hủy
+                        </button>
+                        <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={handleAddNewCustomer}
+                        disabled={loading}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: 'orange',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            transition: 'background-color 0.2s',
+                            opacity: loading ? 0.5 : 1,
+                        }}
+                        onMouseOver={(e) => !loading && (e.target.style.backgroundColor = '#2b6cb0')}
+                        onMouseOut={(e) => !loading && (e.target.style.backgroundColor = 'orange')}
+                        >
+                        {loading ? 'Đang lưu...' : 'Lưu khách hàng'}
+                        </button>
+                    </div>
+                    </div>
+                </div>
                 </div>
             )}
             <CustomAlert
@@ -381,7 +722,7 @@ const Client = ({
                 onCancel={() => setConfirmOpen(false)}
                 onConfirm={handleConfirm}
             />
-        </div>
+            </div>
     );
 };
 
