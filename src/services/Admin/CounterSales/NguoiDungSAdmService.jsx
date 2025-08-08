@@ -23,6 +23,18 @@ export const getKHBySdt = async (sdt) => {
     }
 };
 
+export const getKHByEmail = async (sdt) => {
+    try {
+        const response = await axiosInstance.get(`/email/${email}`);
+        console.log(response.data); // kiểm tra dữ liệu
+        return Array.isArray(response.data) ? response.data[0] : response.data;
+    } catch (error) {
+        throw new Error(
+            error.response?.data?.error || 'Không tìm thấy khách hàng theo email'
+        );
+    }
+};
+
 //Hàm gọi API tìm kiếm User theo id
 export const searchUserById = async (id) => {
     try {
@@ -34,7 +46,7 @@ export const searchUserById = async (id) => {
         );
     }
 }
-
+// su dung dia chi
 export const addNguoiDung = async (data) => {
     try {
         const response = await axiosInstance.post('/addND', data); // <-- dùng axiosInstance
@@ -51,7 +63,7 @@ export const getDCNhan = async (id) => {
     try {
         const response = await axiosInstance.get(`/idDC/${id}`);
         console.log(response.data); // kiểm tra dữ liệu
-        return Array.isArray(response.data) ? response.data[0] : response.data;
+        return response.data; // Trả luôn danh sách (array)
     } catch (error) {
         throw new Error(
             error.response?.data?.error || 'Không tìm thấy địa chỉ theo id khách hàng'
@@ -59,3 +71,23 @@ export const getDCNhan = async (id) => {
     }
 };
 
+
+export const getDiaChiNhanByNguoiDungId = async (idNguoiDung) => {
+    try {
+        const response = await axiosInstance.get(`/dcn/${idNguoiDung}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Lỗi khi lấy địa chỉ nhận theo id người dùng ${idNguoiDung}:`, error);
+        throw error;
+    }
+};
+
+export const addDiaChiNhan = async (diaChi) => {
+    try {
+        const response = await axiosInstance.post(`/addDCN`, diaChi);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi thêm địa chỉ nhận:", error);
+        throw error;
+    }
+};

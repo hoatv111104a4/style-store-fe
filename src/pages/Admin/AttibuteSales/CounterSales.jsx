@@ -17,6 +17,7 @@ import { submitVNPayOrder } from "../../../services/Website/OrderApi";
 import QRCode from "react-qr-code";
 
 
+
 const CounterSales = () => {
   const [hoaDons, setHoaDons] = useState([]);
   const [sanPhamsMap, setSanPhamsMap] = useState({});
@@ -28,10 +29,13 @@ const CounterSales = () => {
   const [connectError, setConnectError] = useState(false);
   const [searchSdt, setSearchSdt] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
-
+  const [xacNhanKhachHangMap, setXacNhanKhachHangMap] = useState({});
   const [alertMessage, setAlertMessage] = useState('');
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertSeverity, setAlertSeverity] = useState('success');
+  const [daXacNhanKhachHang, setDaXacNhanKhachHang] = useState(false);
+  const [diaChiNhanIdMap, setDiaChiNhanIdMap] = useState({});
+
 
   const showAlert = (message) => {
     setAlertMessage(message);
@@ -60,17 +64,25 @@ const CounterSales = () => {
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmLabel, setConfirmLabel] = useState('Xác nhận');
+  const [confirmColor, setConfirmColor] = useState('error');
   const [confirmTitle, setConfirmTitle] = useState('');
   const [onConfirmAction, setOnConfirmAction] = useState(() => () => { });
   const [showVnpayQR, setShowVnpayQR] = useState(false);
   const [vnpayUrl, setVnpayUrl] = useState('');
 
-  const showConfirmDialog = (message, title, onConfirm) => {
-    setConfirmMessage(message);
+  const showConfirmDialog = ({ title, message, onConfirm, label = 'Xác nhận', color = 'error' }) => {
     setConfirmTitle(title);
-    setOnConfirmAction(() => onConfirm);
+    setConfirmMessage(message);
+    setConfirmLabel(label);
+    setConfirmColor(color);
+    setOnConfirmAction(() => () => {
+      onConfirm();
+      setConfirmOpen(false);
+    });
     setConfirmOpen(true);
   };
+
 
   const handleConfirm = () => {
     onConfirmAction();
@@ -79,13 +91,16 @@ const CounterSales = () => {
 
 
   const fetchHoaDons = async () => {
+    console.log("Đang gọi fetchHoaDons...");
     try {
       const result = await getHoaDonByTrangThai(6); // Trạng thái 6 là "Đang xử lý"
+      console.log("Kết quả gọi API:", result);
       const list = result.content || [];
       setHoaDons(list);
       if (list.length > 0) setActiveTab(list[0].id);
       setConnectError(false);
     } catch (err) {
+      console.error("❌ Chi tiết lỗi từ server:", err.response);
       setConnectError(true);
       console.error('Lỗi khi load hóa đơn:', err.message);
     }
@@ -262,16 +277,17 @@ const CounterSales = () => {
   };
 
   const handleDeleteHoaDon = async (hoaDonId) => {
-    showConfirmDialog(
-      'Bạn có chắc muốn xoá hoá đơn này?',
-      'Xác nhận xoá',
-      async () => {
+    showConfirmDialog({
+      title: 'Xác nhận xoá',
+      message: 'Bạn có chắc muốn xoá hoá đơn này?',
+      label: 'Xoá',
+      color: 'error',
+      onConfirm: async () => {
         try {
           await deleteHD(hoaDonId); // API soft delete hoặc chuyển trạng thái
           setHoaDons(prev => prev.filter(hd => hd.id !== hoaDonId));
           setActiveTab(prev => {
             if (prev === hoaDonId && hoaDons.length > 1) {
-              // Nếu xóa tab đang mở, chuyển sang tab đầu tiên còn lại
               const remaining = hoaDons.filter(hd => hd.id !== hoaDonId);
               return remaining[0]?.id || null;
             }
@@ -287,15 +303,17 @@ const CounterSales = () => {
           setConnectError(true);
         }
       }
-    );
+    });
   };
 
 
   const handleDeleteProduct = async (sp, hoaDonId) => {
-    showConfirmDialog(
-      "Bạn có chắc muốn xoá sản phẩm này khỏi hoá đơn?",
-      "Xoá sản phẩm",
-      async () => {
+    showConfirmDialog({
+      title: 'Xoá sản phẩm',
+      message: 'Bạn có chắc muốn xoá sản phẩm này khỏi hoá đơn?',
+      label: 'Xoá',
+      color: 'error',
+      onConfirm: async () => {
         try {
           await deleteHDCT(sp.id);
           const result = await getHoaDonCTByHoaDonId(hoaDonId);
@@ -309,7 +327,8 @@ const CounterSales = () => {
           setConnectError(true);
         }
       }
-    );
+    });
+
   };
 
   // Hàm lấy số lượng tồn kho thực tế từ API cho từng sản phẩm chi tiết
@@ -400,19 +419,24 @@ const CounterSales = () => {
     }
   };
 
-  const handleUpdateHoaDonWithKhachHang = async (hoaDonId, khachHang, hinhThucNhanHang = 0) => {
+  const handleUpdateHoaDonWithKhachHang = async (hoaDonId, khachHang, hinhThucNhanHang = 0, diaChiNhanId = null) => {
     try {
-      console.log('Gửi lên API:', { hoaDonId, khachHangId: khachHang?.id, hinhThucNhanHang });
-      await updateHDCTWithKH(hoaDonId, khachHang.id, hinhThucNhanHang);
+      await updateHDCTWithKH(hoaDonId, khachHang.id, hinhThucNhanHang, diaChiNhanId);
       showAlert('Cập nhật khách hàng cho hóa đơn thành công!');
       setAlertSeverity('success');
       setAlertOpen(true);
+      setXacNhanKhachHangMap(prev => ({
+        ...prev,
+        [hoaDonId]: true
+      }));
     } catch (err) {
       showAlert('Cập nhật khách hàng thất bại: ' + err.message);
       setAlertSeverity('error');
       setAlertOpen(true);
     }
   };
+
+
 
   const handleXacNhanDonHang = async (hoaDonId) => {
     const sanPhams = sanPhamsMap[hoaDonId] || [];
@@ -540,68 +564,21 @@ const CounterSales = () => {
         <p className="text-muted text-center mt-5">Không có đơn hàng nào có trạng thái là "Đang xử lý"</p>
       ) : (
         <>
-          <ul style={{ 
-            display: 'flex', 
-            listStyle: 'none', 
-            padding: 0, 
-            margin: 0, 
-            borderBottom: '1px solid #e2e8f0', 
-            backgroundColor: '#f7fafc', 
-            borderRadius: '8px 8px 0 0', 
-            overflowX: 'auto' 
-          }}>
+          <ul className="nav nav-tabs">
             {hoaDons.map(hd => (
-              <li 
-                key={hd.id} 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  marginRight: '4px' 
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '8px 12px',
-                    gap: '8px',
-                    backgroundColor: activeTab === hd.id ? '#ffffff' : 'transparent',
-                    border: activeTab === hd.id ? '1px solid #e2e8f0' : '1px solid transparent',
-                    borderBottom: activeTab === hd.id ? 'none' : '1px solid #e2e8f0',
-                    borderRadius: activeTab === hd.id ? '6px 6px 0 0' : '0',
-                    color: activeTab === hd.id ? '#3182ce' : '#4a5568',
-                    fontSize: '0.875rem',
-                    fontWeight: activeTab === hd.id ? '600' : '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease-in-out',
-                    position: 'relative',
-                    top: activeTab === hd.id ? '1px' : '0',
-                  }}
+              <li className="nav-item d-flex align-items-center" key={hd.id}>
+                <div className={`nav-link d-flex justify-content-between align-items-center ${activeTab === hd.id ? 'active' : ''}`}
+                  style={{ gap: 8, paddingRight: 8, cursor: 'pointer' }}
                   onClick={() => setActiveTab(hd.id)}
-                  onMouseOver={(e) => activeTab !== hd.id && (e.currentTarget.style.backgroundColor = '#edf2f7', e.currentTarget.style.color = '#3182ce')}
-                  onMouseOut={(e) => activeTab !== hd.id && (e.currentTarget.style.backgroundColor = 'transparent', e.currentTarget.style.color = '#4a5568')}
                 >
                   <span>{hd.ma}</span>
                   <button
                     onClick={(e) => {
-                      e.stopPropagation();
+                      e.stopPropagation(); // tránh chuyển tab khi click X
                       handleDeleteHoaDon(hd.id);
                     }}
-                    style={{
-                      padding: '2px 6px',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      color: '#e53e3e',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'color 0.2s, transform 0.2s',
-                      lineHeight: 1,
-                    }}
+                    className="btn btn-sm btn-link text-danger p-0"
                     title="Xoá hoá đơn"
-                    onMouseOver={(e) => (e.currentTarget.style.color = '#c53030', e.currentTarget.style.transform = 'scale(1.2)')}
-                    onMouseOut={(e) => (e.currentTarget.style.color = '#e53e3e', e.currentTarget.style.transform = 'scale(1)')}
                   >
                     ×
                   </button>
@@ -707,6 +684,9 @@ const CounterSales = () => {
                     setHinhThucNhanHang={val =>
                       setHinhThucNhanHangMap(prev => ({ ...prev, [hd.id]: val }))
                     }
+                    daXacNhan={xacNhanKhachHangMap[hd.id] || false}
+                    setXacNhanKhachHangMap={setXacNhanKhachHangMap}
+                    handleXacNhanKhachHang={handleUpdateHoaDonWithKhachHang}
                     trangThai={trangThaiHoaDonMap[hd.id] || 0}
                     setTrangThai={val =>
                       setTrangThaiHoaDonMap(prev => ({ ...prev, [hd.id]: val }))
@@ -715,59 +695,49 @@ const CounterSales = () => {
                     setMoTa={val =>
                       setMoTaHoaDonMap(prev => ({ ...prev, [hd.id]: val }))
                     }
+                    diaChiNhanId={diaChiNhanIdMap[hd.id] || null}
+                    setDiaChiNhanId={val =>
+                      setDiaChiNhanIdMap(prev => ({ ...prev, [hd.id]: val }))
+                    }
+
                   />
 
-                  <h6 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1a202c', marginBottom: '1rem' }}>
-                    Thông tin thanh toán
-                  </h6>
-                  <div style={{
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    backgroundColor: '#ffffff',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-                  }}>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
-                      Hình thức thanh toán:
-                    </label>
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', color: '#4a5568' }}>
-                        <input
-                          type="radio"
-                          name={`tt-${hd.id}`}
-                          checked={hinhThucThanhToanMap[hd.id] === 2}
-                          onChange={() => setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 2 }))}
-                          style={{ marginRight: '8px', accentColor: '#38a169' }}
-                        />
-                        Tiền mặt
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', color: '#4a5568' }}>
-                        <input
-                          type="radio"
-                          name={`tt-${hd.id}`}
-                          checked={hinhThucThanhToanMap[hd.id] === 3}
-                          onChange={() => setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 3 }))}
-                          style={{ marginRight: '8px', accentColor: '#38a169' }}
-                        />
-                        Chuyển khoản
-                      </label>
-                    </div>
 
-                    <div style={{ marginTop: '12px', fontSize: '0.875rem', color: '#4a5568' }}>
-                      <p style={{ marginBottom: '8px' }}>Tổng tiền: {OriginalPrice(hd.id).toLocaleString()} ₫</p>
-                      <p style={{ marginBottom: '8px' }}>Phí vận chuyển: 0 ₫</p>
-                      <p style={{ marginBottom: '8px' }}>
-                        Giảm giá: <span style={{ fontWeight: '600', color: '#e53e3e' }}>
-                          {(OriginalPrice(hd.id) - calculateTotal(hd.id)).toLocaleString()} ₫
-                        </span>
-                      </p>
-                    </div>
 
+                  <h6 className="fw-bold">Thông tin thanh toán</h6>
+                  <div className="border p-3">
+                    <label>Hình thức thanh toán:</label><br />
+                    <>
+                      <input
+                        type="radio"
+                        name={`tt-${hd.id}`}
+                        checked={hinhThucThanhToanMap[hd.id] === 2}
+                        onChange={() =>
+                          setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 2 }))
+                        }
+                      /> Tiền mặt &nbsp;
+                      <input
+                        type="radio"
+                        name={`tt-${hd.id}`}
+                        checked={hinhThucThanhToanMap[hd.id] === 3}
+                        onChange={() =>
+                          setHinhThucThanhToanMap(prev => ({ ...prev, [hd.id]: 3 }))
+                        }
+                      /> Chuyển khoản
+                    </>
+
+                    <div className="mt-2">
+                      <p>Tổng tiền: {OriginalPrice(hd.id).toLocaleString()} ₫</p>
+                      <p>Phí vận chuyển: 0 ₫</p>
+                      <p>Giảm giá: <strong>
+                        {(OriginalPrice(hd.id) - calculateTotal(hd.id)).toLocaleString()}
+                        &nbsp;₫
+                      </strong></p>
+                      {/* <input className="form-control" placeholder="Nhập mã giảm giá" /> */}
+                    </div>
                     {hinhThucThanhToanMap[hd.id] !== 3 && (
-                      <div style={{ marginTop: '16px' }}>
-                        <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4a5568', marginBottom: '8px', display: 'block' }}>
-                          Số tiền khách đưa:
-                        </label>
+                      <div className="mt-3">
+                        <label>Số tiền khách đưa:</label>
                         <input
                           type="number"
                           className="form-control"
@@ -778,59 +748,35 @@ const CounterSales = () => {
                             setTienKhachDuaMap(prev => ({ ...prev, [hd.id]: value }));
                           }}
                           placeholder="Nhập số tiền khách đưa"
-                          style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '6px',
-                            fontSize: '0.875rem',
-                            outline: 'none',
-                            transition: 'border-color 0.2s, box-shadow 0.2s',
-                          }}
-                          onFocus={(e) => (e.target.style.borderColor = '#3182ce', e.target.style.boxShadow = '0 0 0 3px rgba(49, 130, 206, 0.1)')}
-                          onBlur={(e) => (e.target.style.borderColor = '#e2e8f0', e.target.style.boxShadow = 'none')}
                         />
-                        <div style={{ marginTop: '12px', fontSize: '0.875rem', color: '#4a5568' }}>
-                          Tiền thừa: <span style={{ fontWeight: '600', color: '#38a169' }}>
+                        <div className="mt-2">
+                          Tiền thừa:&nbsp;
+                          <strong>
                             {tienKhachDuaMap[hd.id]
                               ? (tienKhachDuaMap[hd.id] - calculateTotal(hd.id)).toLocaleString()
-                              : 0} ₫
-                          </span>
+                              : 0}
+                            &nbsp;₫
+                          </strong>
                         </div>
                       </div>
                     )}
-
-                    <h6 style={{ marginTop: '16px', fontSize: '1.125rem', fontWeight: '600', color: '#1a202c' }}>
-                      Tổng thanh toán: {calculateTotal(hd.id).toLocaleString()} ₫
-                    </h6>
+                    <h6 className="mt-3">Tổng thanh toán: {calculateTotal(hd.id).toLocaleString()} ₫</h6>
                     <button
                       className="btn btn-success mt-3 w-100"
                       onClick={() => handleXacNhanDonHang(hd.id)}
                       disabled={
-                        hinhThucThanhToanMap[hd.id] !== 3 && (
-                          !tienKhachDuaMap[hd.id] ||
-                          tienKhachDuaMap[hd.id] < calculateTotal(hd.id)
+                        !xacNhanKhachHangMap[hd.id] || (
+                          hinhThucThanhToanMap[hd.id] !== 3 &&
+                          (
+                            !tienKhachDuaMap[hd.id] ||
+                            tienKhachDuaMap[hd.id] < calculateTotal(hd.id)
+                          )
                         )
                       }
-                      style={{
-                        padding: '10px 16px',
-                        backgroundColor: '#38a169',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '0.875rem',
-                        fontWeight: '500',
-                        width: '100%',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s',
-                        opacity: (hinhThucThanhToanMap[hd.id] !== 3 && (!tienKhachDuaMap[hd.id] || tienKhachDuaMap[hd.id] < calculateTotal(hd.id))) ? '0.5' : '1',
-                      }}
-                      onMouseOver={(e) => (e.target.style.backgroundColor = '#2f855a')}
-                      onMouseOut={(e) => (e.target.style.backgroundColor = '#38a169')}
+
                     >
                       Xác nhận đơn hàng
                     </button>
-
                     <div style={{ position: 'absolute', top: 0, left: '-9999px' }}>
                       {hoaDons.map(hd => (
                         <HoaDonPDFExport
@@ -842,99 +788,103 @@ const CounterSales = () => {
                         />
                       ))}
                     </div>
-
                     {showVnpayQR && vnpayUrl && (
                       <div
                         style={{
-                          position: 'fixed',
+                          position: "fixed",
                           top: 0,
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                          backgroundColor: "rgba(0,0,0,0.5)",
                           zIndex: 9999,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
                         <div
                           style={{
-                            backgroundColor: '#ffffff',
-                            padding: '24px',
-                            borderRadius: '12px',
-                            textAlign: 'center',
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                            width: 'fit-content',
-                            maxWidth: '90%',
+                            background: "white",
+                            padding: "24px 32px",
+                            borderRadius: "12px",
+                            textAlign: "center",
+                            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+                            width: "fit-content",
+                            position: "relative",
                           }}
                         >
-                          <div style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '12px' }}>
-                            <span style={{ color: '#e53e3e' }}>VN</span>
-                            <span style={{ color: '#0072bc' }}>PAY</span>
-                            <sup style={{ color: '#e53e3e', fontSize: '0.75rem' }}>QR</sup>
+                          {/* Logo chữ VNPAYQR */}
+                          <div style={{ fontWeight: "bold", fontSize: 24, marginBottom: 10 }}>
+                            <span style={{ color: "red" }}>VN</span>
+                            <span style={{ color: "#0072bc" }}>PAY</span>
+                            <sup style={{ color: "red", fontSize: 12 }}>QR</sup>
                           </div>
 
-                          <div style={{ position: 'relative', display: 'inline-block', padding: '8px' }}>
-                            <QRCode value={vnpayUrl} size={180} />
+                          {/* QR code + góc xanh */}
+                          <div style={{ position: "relative", display: "inline-block" }}>
+                            <QRCode value={vnpayUrl} size={200} />
+
+                            {/* Viền 4 góc xanh giống mẫu */}
+                            {/* Trên trái */}
                             <div style={{
-                              position: 'absolute',
-                              top: -4,
-                              left: -4,
-                              width: 16,
-                              height: 16,
-                              borderTop: '3px solid #0072bc',
-                              borderLeft: '3px solid #0072bc',
+                              position: "absolute",
+                              top: -8,
+                              left: -8,
+                              width: 20,
+                              height: 20,
+                              borderTop: "3px solid #0072bc",
+                              borderLeft: "3px solid #0072bc",
                             }} />
+                            {/* Trên phải */}
                             <div style={{
-                              position: 'absolute',
-                              top: -4,
-                              right: -4,
-                              width: 16,
-                              height: 16,
-                              borderTop: '3px solid #0072bc',
-                              borderRight: '3px solid #0072bc',
+                              position: "absolute",
+                              top: -8,
+                              right: -8,
+                              width: 20,
+                              height: 20,
+                              borderTop: "3px solid #0072bc",
+                              borderRight: "3px solid #0072bc",
                             }} />
+                            {/* Dưới trái */}
                             <div style={{
-                              position: 'absolute',
-                              bottom: -4,
-                              left: -4,
-                              width: 16,
-                              height: 16,
-                              borderBottom: '3px solid #0072bc',
-                              borderLeft: '3px solid #0072bc',
+                              position: "absolute",
+                              bottom: -8,
+                              left: -8,
+                              width: 20,
+                              height: 20,
+                              borderBottom: "3px solid #0072bc",
+                              borderLeft: "3px solid #0072bc",
                             }} />
+                            {/* Dưới phải */}
                             <div style={{
-                              position: 'absolute',
-                              bottom: -4,
-                              right: -4,
-                              width: 16,
-                              height: 16,
-                              borderBottom: '3px solid #0072bc',
-                              borderRight: '3px solid #0072bc',
+                              position: "absolute",
+                              bottom: -8,
+                              right: -8,
+                              width: 20,
+                              height: 20,
+                              borderBottom: "3px solid #0072bc",
+                              borderRight: "3px solid #0072bc",
                             }} />
                           </div>
 
-                          <div style={{ marginTop: '12px', color: '#0072bc', fontStyle: 'italic', fontSize: '0.875rem' }}>
+                          {/* Scan to Pay */}
+                          <div style={{ marginTop: 8, color: "#0072bc", fontStyle: "italic" }}>
                             Scan to Pay
                           </div>
 
-                          <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                          {/* Nút xác nhận và đóng */}
+                          <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 24 }}>
                             <button
                               onClick={() => handleXacNhanThanhToan(hd.id)}
                               style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#38a169',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '0.875rem',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                transition: 'background-color 0.2s',
+                                padding: "8px 16px",
+                                backgroundColor: "#38a169",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
                               }}
-                              onMouseOver={(e) => (e.target.style.backgroundColor = '#2f855a')}
-                              onMouseOut={(e) => (e.target.style.backgroundColor = '#38a169')}
                             >
                               Xác nhận thanh toán
                             </button>
@@ -942,18 +892,13 @@ const CounterSales = () => {
                             <button
                               onClick={() => setShowVnpayQR(false)}
                               style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#e53e3e',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '0.875rem',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                transition: 'background-color 0.2s',
+                                padding: "8px 16px",
+                                backgroundColor: "#e53e3e",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
                               }}
-                              onMouseOver={(e) => (e.target.style.backgroundColor = '#c53030')}
-                              onMouseOut={(e) => (e.target.style.backgroundColor = '#e53e3e')}
                             >
                               Đóng
                             </button>
@@ -961,6 +906,9 @@ const CounterSales = () => {
                         </div>
                       </div>
                     )}
+
+
+
                   </div>
                 </div>
                 <CustomAlert
@@ -975,6 +923,9 @@ const CounterSales = () => {
                   message={confirmMessage}
                   onCancel={() => setConfirmOpen(false)}
                   onConfirm={handleConfirm}
+                  confirmLabel={confirmLabel}
+                  confirmColor={confirmColor}
+                  confirmVariant="contained"
                 />
 
               </div>

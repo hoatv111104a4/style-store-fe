@@ -7,8 +7,13 @@ const HoaDonPDFExport = forwardRef(({ hoaDon, sanPhams, tongTien }, ref) => {
         <div ref={ref} style={{ padding: 20, fontFamily: 'Arial' }}>
             <h3 style={{ textAlign: 'center' }}>HOÁ ĐƠN BÁN HÀNG</h3>
 
+            <p><strong>Người tạo</strong>{hoaDon.nguoiTao}</p>
             <p><strong>Mã hoá đơn:</strong> {hoaDon.ma}</p>
             <p><strong>Ngày tạo:</strong> {new Date(hoaDon.ngayTao).toLocaleString()}</p>
+            <p><strong>Khách hàng:</strong> {hoaDon.khachHang?.ten || 'Không xác định'}</p>
+            <p><strong>Địa chỉ:</strong> {hoaDon.khachHang?.diaChi || 'Không xác định'}</p>
+            <p><strong>Số điện thoại:</strong> {hoaDon.khachHang?.dienThoai || 'Không xác định'}</p>
+
 
             <table style={{ width: '100%', borderCollapse: 'collapse' }} border="1">
                 <thead>

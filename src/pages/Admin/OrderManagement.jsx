@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { listHoaDon } from "../../services/Admin/HoaDonService";
+import { listHoaDon, searchHoaDon } from "../../services/Admin/HoaDonService";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
-
 import {
   Box,
   Typography,
@@ -24,7 +23,6 @@ import {
 } from "@mui/icons-material";
 
 const OrderManagement = () => {
-  const [allHoaDon, setAllHoaDon] = useState([]);
   const [hoaDonList, setHoaDonList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,80 +32,65 @@ const OrderManagement = () => {
   const [endDate, setEndDate] = useState("");
   const [activeStatus, setActiveStatus] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const pageSize = 5;
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 5;
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
 
-  const fetchAllHoaDon = useCallback(async () => {
-  try {
-    setLoading(true);
-    const data = await listHoaDon();
-    setAllHoaDon(data);
-    setError(null);
-  } catch (err) {
-    if (err.response && err.response.status === 401) {
-      navigate("/access-denied");
-    } else {
-      setError(err.message || "Không thể tải danh sách hóa đơn");
-      setAllHoaDon([]);
-      toast.error("Không thể tải danh sách hóa đơn.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+  const fetchHoaDon = useCallback(async () => {
+    try {
+      setLoading(true);
+      let data;
+      if (searchTerm.trim()) {
+        // Tìm kiếm theo mã hóa đơn
+        data = await searchHoaDon(searchTerm, currentPage, pageSize);
+      } else {
+        // Lấy danh sách hóa đơn phân trang
+        data = await listHoaDon(currentPage, pageSize);
+      }
+
+      // Lọc theo ngày và trạng thái trên client-side
+      let filteredData = data.content || [];
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filteredData = filteredData.filter((hd) => {
+          const ngayTao = new Date(hd.ngayTao);
+          return ngayTao >= start && ngayTao <= end;
+        });
+      }
+
+      if (activeStatus !== null) {
+        filteredData = filteredData.filter((hd) => hd.trangThai === activeStatus);
+      }
+
+      setHoaDonList(filteredData);
+      setTotalElements(data.totalElements);
+      setTotalPages(data.totalPages);
+      setError(null);
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        navigate("/access-denied");
+      } else {
+        setError(err.message || "Không thể tải danh sách hóa đơn");
+        setHoaDonList([]);
+        toast.error("Không thể tải danh sách hóa đơn.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-}, [navigate]);
+  }, [navigate, searchTerm, currentPage, startDate, endDate, activeStatus]);
 
   useEffect(() => {
-    fetchAllHoaDon();
-  }, [fetchAllHoaDon]);
-
-  useEffect(() => {
-    let filteredData = [...allHoaDon];
-
-    if (searchTerm.trim()) {
-      filteredData = filteredData.filter((hd) =>
-        hd.ma.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      filteredData = filteredData.filter((hd) => {
-        const ngayTao = new Date(hd.ngayTao);
-        return ngayTao >= start && ngayTao <= end;
-      });
-    }
-
-    if (activeStatus !== null) {
-      filteredData = filteredData.filter((hd) => hd.trangThai === activeStatus);
-    }
-
-    const totalFilteredElements = filteredData.length;
-    const startIndex = currentPage * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedData = filteredData.slice(startIndex, endIndex);
-
-    setHoaDonList(paginatedData);
-    setTotalElements(totalFilteredElements);
-    setTotalPages(Math.ceil(totalFilteredElements / pageSize));
-  }, [
-    searchTerm,
-    startDate,
-    endDate,
-    activeStatus,
-    allHoaDon,
-    currentPage,
-    pageSize,
-  ]);
+    fetchHoaDon();
+  }, [fetchHoaDon]);
 
   const renderTrangThaiBadge = (trangThai) => {
     let label = "";
@@ -159,11 +142,11 @@ const OrderManagement = () => {
         style={{
           padding: "4px 10px",
           borderRadius: 12,
-          fontSize: "0.75rem", // Giảm font size từ 0.85rem xuống 0.75rem
+          fontSize: "0.75rem",
           fontWeight: 500,
           backgroundColor,
           color: textColor,
-          whiteSpace: "nowrap", // Đảm bảo chữ không bị xuống dòng
+          whiteSpace: "nowrap",
         }}
       >
         {label}
@@ -183,8 +166,7 @@ const OrderManagement = () => {
   ];
 
   const getStatusCount = (status) => {
-    if (status === null) return allHoaDon.length;
-    return allHoaDon.filter((hd) => hd.trangThai === status).length;
+    return hoaDonList.filter((hd) => hd.trangThai === status).length;
   };
 
   const resetDateFilter = () => {
@@ -390,8 +372,8 @@ const OrderManagement = () => {
                     {hd.nguoiNhanHang || "-"}
                   </td>
                   <td style={{ color: "#222", border: 0, width: "12%" }}>
-                    {hd.ngayDat
-                      ? new Date(hd.ngayDat).toLocaleDateString("vi-VN")
+                    {hd.ngayTao
+                      ? new Date(hd.ngayTao).toLocaleDateString("vi-VN")
                       : "-"}
                   </td>
                   <td style={{ color: "#222", border: 0, width: "12%" }}>

@@ -5,12 +5,54 @@ const apiClient = axios.create({
   timeout: 5000,
 });
 
-export const listHoaDon = async () => {
+export const listHoaDon = async (page = 0, size = 10) => {
   try {
-    const response = await apiClient.get("");
-    return response.data.content;
+    const response = await apiClient.get("", {
+      params: { page, size },
+    });
+    return {
+      content: response.data.content || [],
+      totalPages: response.data.totalPages || 0,
+      totalElements: response.data.totalElements || 0,
+    };
   } catch (error) {
     console.error("Lỗi khi lấy danh sách hóa đơn:", error);
+    throw error;
+  }
+};
+
+export const listAllHoaDon = async () => {
+  try {
+    let allHoaDon = [];
+    let page = 0;
+    let totalPages = 1;
+    while (page < totalPages) {
+      const response = await apiClient.get("", {
+        params: { page, size: 100 }, // Lấy 100 hóa đơn mỗi lần để tối ưu
+      });
+      allHoaDon = [...allHoaDon, ...(response.data.content || [])];
+      totalPages = response.data.totalPages || 1;
+      page++;
+    }
+    return allHoaDon;
+  } catch (error) {
+    console.error("Lỗi khi lấy toàn bộ danh sách hóa đơn:", error);
+    throw error;
+  }
+};
+
+export const searchHoaDon = async (ma, page = 0, size = 10) => {
+  try {
+    const response = await apiClient.get("/search", {
+      params: { ma, page, size },
+    });
+    return {
+      content: response.data.content || [],
+      totalPages: response.data.totalPages || 0,
+      totalElements: response.data.totalElements || 0,
+    };
+  } catch (error) {
+    console.error("Lỗi khi tìm kiếm hóa đơn:", error);
     throw error;
   }
 };
@@ -70,18 +112,6 @@ export const deleteHoaDon = async (id) => {
     await apiClient.delete(`/${id}`);
   } catch (error) {
     console.error(`Lỗi khi xóa hóa đơn với id=${id}:`, error);
-    throw error;
-  }
-};
-
-export const searchHoaDon = async (ma) => {
-  try {
-    const response = await apiClient.get(
-      `/search?ma=${encodeURIComponent(ma)}`
-    );
-    return response.data.content || response.data;
-  } catch (error) {
-    console.error("Lỗi khi tìm kiếm hóa đơn:", error);
     throw error;
   }
 };

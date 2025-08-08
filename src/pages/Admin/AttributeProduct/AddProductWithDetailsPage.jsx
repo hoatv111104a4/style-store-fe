@@ -1313,7 +1313,7 @@ const AddProductWithDetailsPage = () => {
         <DialogTitle sx={{ bgcolor: '#f1f5f9', fontWeight: 700 }}>
           Thêm nhanh {newAttributeModal.attributeType}
         </DialogTitle>
-        <DialogContent sx={{ p: 3, pt: 4 }}>
+        <DialogContent sx={{ p: 3, pt: 6 }}>
           <TextField
             label={`Tên ${newAttributeModal.attributeType}`}
             value={newAttributeModal.inputValue}
@@ -1322,7 +1322,11 @@ const AddProductWithDetailsPage = () => {
             required
             error={!!productErrors.inputValue}
             helperText={productErrors.inputValue}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, mb: 2 }}
+            sx={{
+              mt: 2, // Lùi xuống dưới một chút
+              mb: 2,
+              '& .MuiOutlinedInput-root': { borderRadius: 2 },
+            }}
           />
           {newAttributeModal.attributeType === 'mauSac' && (
             <Box display="flex" alignItems="center" gap={2} mb={2}>

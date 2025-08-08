@@ -206,10 +206,6 @@ const OrderDetail = () => {
     async (newStatus) => {
       try {
         setLoading(true);
-        // const updatedOrder = await updateStatusHoaDon(order.id, {
-        //   ...order,
-        //   trangThai: newStatus,
-        // });
         const updatedOrder = await updateStatusHoaDon(order.id, newStatus);
         setOrder(updatedOrder);
         setAlertMessage(
@@ -747,24 +743,6 @@ const OrderDetail = () => {
                   primary="Hình Thức Thanh Toán"
                   primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
                   secondary={renderPaymentType(order.hinhThucThanhToan)}
-                  secondaryTypographyProps={{
-                    color: "text.secondary",
-                    fontSize: isMobile ? 11 : 13,
-                  }}
-                />
-              </ListItem>
-              <ListItem sx={{ py: isMobile ? 0.5 : 1 }}>
-                <ListItemIcon>
-                  <MonetizationOnOutlinedIcon
-                    sx={{ color: orange, fontSize: isMobile ? 18 : 22 }}
-                  />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Tổng Tiền Sản Phẩm"
-                  primaryTypographyProps={{ fontSize: isMobile ? 13 : 15 }}
-                  secondary={`${(
-                    order.tongTienSanPham || 0
-                  ).toLocaleString()} VNĐ`}
                   secondaryTypographyProps={{
                     color: "text.secondary",
                     fontSize: isMobile ? 11 : 13,

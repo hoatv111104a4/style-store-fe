@@ -1,6 +1,11 @@
 import axios from 'axios';
-
+import Cookies from "js-cookie";
 const API_URL = 'http://localhost:8080/api/admin/hoa-don';
+
+const apiClient = axios.create({
+    baseURL: API_URL,
+    timeout: 20000,
+});
 
 const axiosInstance = axios.create({
     baseURL: API_URL,
@@ -10,11 +15,20 @@ const axiosInstance = axios.create({
     },
 });
 
+
 // Hàm gọi API tạo đơn chờ
 export const addHDC = async () => {
     try {
-        const response = await axiosInstance.post('/addHDC', {
-            nguoiTaoId: 1, // Gán trực tiếp ID người tạo
+        const token = Cookies.get("token");
+        if (!token) {
+            throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+        }
+        
+        const response = await apiClient.post("/addHDC",{},{
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`, 
+            },
         });
         return response.data;
     } catch (error) {
@@ -43,7 +57,7 @@ export const getHoaDonByTrangThai = async (trangThai, page = 0, size = 10) => {
     if (!Number.isInteger(trangThai) || page < 0 || size <= 0) {
       throw new Error('Trạng thái, page hoặc size không hợp lệ');
     }
-    const response = await axiosInstance.get(`/trang-thai/${trangThai}`, {
+      const response = await axiosInstance.get(`/trang-thai/${trangThai}`, {
         params: { page, size },
       }
     );
@@ -68,11 +82,12 @@ export const getHoaDonByMa = async (ma) => {
 };
 
 // Hàm gọi API update Khach Hang
-export const updateHDCTWithKH = async (hoaDonId, khachHangId, hinhThucNhanHang = 0) => {
+export const updateHDCTWithKH = async (hoaDonId, khachHangId, hinhThucNhanHang = 0, diaChiNhanId = null) => {
     try {
         const response = await axiosInstance.put(`/updateKH/${hoaDonId}`, {
             khachHangId,
-            hinhThucNhanHang
+            hinhThucNhanHang,
+            diaChiNhanId
         });
         return response.data;
     } catch (error) {
@@ -82,10 +97,21 @@ export const updateHDCTWithKH = async (hoaDonId, khachHangId, hinhThucNhanHang =
     }
 };
 
+
 // Hàm gọi API cập nhật hoá đon
 export const updateHoaDonFull = async (hoaDonId, hoaDonData) => {
     try {
-        const response = await axiosInstance.put(`/updateHD/${hoaDonId}`, hoaDonData);
+        const token = Cookies.get("token");
+        if (!token) {
+            throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+        }
+
+        const response = await apiClient.put(`/updateHD/${hoaDonId}`, hoaDonData, {
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+            },
+        });
         return response.data;
     } catch (error) {
         console.error('Lỗi khi cập nhật hóa đơn:', error);

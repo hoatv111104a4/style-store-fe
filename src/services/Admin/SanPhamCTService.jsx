@@ -328,14 +328,16 @@ export const addSanPhamCt = async (sanPhamCtDTO) => {
       error.response?.data?.error || 'Thêm sản phẩm chi tiết thất bại'
     );
   }
-};
-
+};// SanPhamCTService.jsx
+// SanPhamCTService.jsx
 // Cập nhật sản phẩm chi tiết
 export const updateSanPhamCt = async (id, sanPhamCtDTO) => {
   try {
+    // Kiểm tra ID và DTO
     if (!id || id <= 0 || !sanPhamCtDTO || typeof sanPhamCtDTO !== 'object') {
       throw new Error('ID hoặc dữ liệu sản phẩm chi tiết không hợp lệ');
     }
+    // Kiểm tra các trường bắt buộc
     if (!sanPhamCtDTO.sanPhamId || sanPhamCtDTO.sanPhamId <= 0) {
       throw new Error('ID sản phẩm không hợp lệ');
     }
@@ -357,24 +359,63 @@ export const updateSanPhamCt = async (id, sanPhamCtDTO) => {
     if (sanPhamCtDTO.hinhAnhMauSacId && sanPhamCtDTO.hinhAnhMauSacId <= 0) {
       throw new Error('ID hình ảnh màu sắc không hợp lệ');
     }
+    if (!sanPhamCtDTO.giaBanGoc || isNaN(Number(sanPhamCtDTO.giaBanGoc)) || Number(sanPhamCtDTO.giaBanGoc) <= 0) {
+      throw new Error('Giá bán gốc phải là số và lớn hơn 0');
+    }
     if (!sanPhamCtDTO.giaBan || isNaN(Number(sanPhamCtDTO.giaBan)) || Number(sanPhamCtDTO.giaBan) <= 0) {
       throw new Error('Giá bán phải là số và lớn hơn 0');
     }
-    if (sanPhamCtDTO.soLuong === null || isNaN(Number(sanPhamCtDTO.soLuong)) || Number(sanPhamCtDTO.soLuong) <= 0) {
+    if (sanPhamCtDTO.soLuong === null || isNaN(Number(sanPhamCtDTO.soLuong)) || Number(sanPhamCtDTO.soLuong) < 0) {
       throw new Error('Số lượng phải là số và không được nhỏ hơn 0');
     }
     if (!sanPhamCtDTO.ma || sanPhamCtDTO.ma.trim().length === 0) {
       throw new Error('Mã sản phẩm chi tiết không hợp lệ');
     }
+
     const response = await retry(() => axiosInstance.put(`/${id}`, sanPhamCtDTO));
     return response.data;
   } catch (error) {
-    throw new Error(
-      error.response?.data?.error || 'Cập nhật sản phẩm chi tiết thất bại'
-    );
+    console.error('API Error Response:', error.response, 'Data:', error.response?.data); // Log chi tiết
+    // Xử lý các định dạng response lỗi từ backend
+    let errorMessage = 'Cập nhật sản phẩm chi tiết thất bại';
+    if (error.response?.data) {
+      if (typeof error.response.data === 'string') {
+        errorMessage = error.response.data; // Backend trả về chuỗi trực tiếp
+      } else {
+        errorMessage = error.response.data.error || 
+                       error.response.data.message || 
+                       error.response.data.msg || 
+                       JSON.stringify(error.response.data) || 
+                       error.message || 
+                       'Cập nhật sản phẩm chi tiết thất bại';
+      }
+    } else {
+      errorMessage = error.message || 'Cập nhật sản phẩm chi tiết thất bại';
+    }
+
+    // Xử lý các lỗi cụ thể từ backend
+    if (errorMessage.includes('Không thể cập nhật giá gốc khi sản phẩm đang trong đợt giảm giá')) {
+      throw new Error('Không thể cập nhật giá gốc vì sản phẩm chi tiết đang trong đợt giảm giá');
+    }
+    if (errorMessage.includes('Sản phẩm chi tiết không tồn tại')) {
+      throw new Error('Sản phẩm chi tiết không tồn tại');
+    }
+    if (errorMessage.includes('trạng thái 2')) {
+      throw new Error('Không thể cập nhật sản phẩm chi tiết có trạng thái Tạm Ngưng hoặc thuộc sản phẩm Tạm Ngưng');
+    }
+    if (errorMessage.includes('Hình ảnh màu sắc không thuộc màu sắc đã chọn')) {
+      throw new Error('Hình ảnh màu sắc không thuộc màu sắc đã chọn');
+    }
+    if (errorMessage.includes('Hình ảnh màu sắc không tồn tại hoặc không hoạt động')) {
+      throw new Error('Hình ảnh màu sắc không tồn tại hoặc không hoạt động');
+    }
+    if (errorMessage.includes('Mã sản phẩm chi tiết đã tồn tại')) {
+      throw new Error('Mã sản phẩm chi tiết đã tồn tại');
+    }
+
+    throw new Error(errorMessage);
   }
 };
-
 // Xóa (toggle trạng thái) sản phẩm chi tiết
 export const deleteSanPhamCt = async (id) => {
   try {

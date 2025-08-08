@@ -396,7 +396,7 @@ const SanPhamCtPage = () => {
       const response = await uploadHinhAnhMauSac(file, formData.mauSacId);
       const imageUrl = response.hinhAnh.startsWith('/uploads/')
         ? `${STATIC_URL}${response.hinhAnh}`
-        : `${STATIC_URL}/uploads/${response.hinhAnh}`;
+        : `${STATIC_URL}/Uploads/${response.hinhAnh}`;
       const newImage = {
         id: response.id,
         hinhAnh: imageUrl,
@@ -426,65 +426,69 @@ const SanPhamCtPage = () => {
       setImageLoading(false);
     }
   };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      setAlertMessage('Vui lòng kiểm tra lại thông tin nhập');
-      setAlertType('error');
-      const firstErrorField = document.querySelector('.Mui-error');
-      if (firstErrorField) {
-        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      return;
+const handleSave = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) {
+    toast.error('Vui lòng kiểm tra lại thông tin nhập'); // Sử dụng toast thay vì setAlertMessage
+    const firstErrorField = document.querySelector('.Mui-error');
+    if (firstErrorField) {
+      firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-    try {
-      setLoading(true);
-      let updatedTrangThai = formData.trangThai;
-      if (Number(formData.soLuong) === 0 && formData.trangThai !== 2) {
-        updatedTrangThai = 0; // Hết Hàng nếu số lượng = 0
-      } else if (Number(formData.soLuong) > 0 && formData.trangThai === 0) {
-        updatedTrangThai = 1; // Đang Bán nếu số lượng > 0
-      }
-      const sanPhamCtToSave = {
-        ...formData,
-        giaNhap: formData.giaNhap === '' ? null : Number(formData.giaNhap),
-        giaBanGoc: Number(formData.giaBanGoc),
-        giaBan: Number(formData.giaBan || formData.giaBanGoc), // Đồng bộ với service: giá bán bằng giá gốc nếu không nhập
-        soLuong: Number(formData.soLuong),
-        trangThai: updatedTrangThai,
-        ngayTao: selectedSanPhamCt ? formData.ngayTao : new Date().toISOString(),
-        ngaySua: new Date().toISOString(),
-        ngayXoa: updatedTrangThai === 2 ? new Date().toISOString() : null,
-      };
-      if (selectedSanPhamCt) {
-        await updateSanPhamCt(selectedSanPhamCt.id, sanPhamCtToSave);
-        toast.success(`Cập nhật sản phẩm chi tiết "${sanPhamCtToSave.ma}" thành công`);
-      } else {
-        await addSanPhamCt(sanPhamCtToSave);
-        toast.success(`Thêm sản phẩm chi tiết "${sanPhamCtToSave.ma}" thành công`);
-      }
-      setIsModalOpen(false);
-      await fetchData(currentPage, pageSize);
-    } catch (err) {
-      console.error('API Error:', err);
-      const errorMessage = err.response?.data?.error || err.message || 'Thao tác thất bại, vui lòng kiểm tra lại';
-      toast.error(errorMessage);
-      setAlertMessage(errorMessage);
-      setAlertType('error');
-    } finally {
-      setLoading(false);
+    return;
+  }
+  try {
+    setLoading(true);
+    let updatedTrangThai = formData.trangThai;
+    if (Number(formData.soLuong) === 0 && formData.trangThai !== 2) {
+      updatedTrangThai = 0; // Hết Hàng nếu số lượng = 0
+    } else if (Number(formData.soLuong) > 0 && formData.trangThai === 0) {
+      updatedTrangThai = 1; // Đang Bán nếu số lượng > 0
     }
-  };
-
+    const sanPhamCtToSave = {
+      ...formData,
+      giaNhap: formData.giaNhap === '' ? null : Number(formData.giaNhap),
+      giaBanGoc: Number(formData.giaBanGoc),
+      giaBan: Number(formData.giaBan || formData.giaBanGoc), // Đồng bộ với backend
+      soLuong: Number(formData.soLuong),
+      trangThai: updatedTrangThai,
+      ngayTao: selectedSanPhamCt ? formData.ngayTao : new Date().toISOString(),
+      ngaySua: new Date().toISOString(),
+      ngayXoa: updatedTrangThai === 2 ? new Date().toISOString() : null,
+    };
+    console.log('Data sent to API:', sanPhamCtToSave); // Log dữ liệu gửi đi
+    if (selectedSanPhamCt) {
+      await updateSanPhamCt(selectedSanPhamCt.id, sanPhamCtToSave);
+      toast.success(`Cập nhật sản phẩm chi tiết "${sanPhamCtToSave.ma}" thành công`);
+    } else {
+      await addSanPhamCt(sanPhamCtToSave);
+      toast.success(`Thêm sản phẩm chi tiết "${sanPhamCtToSave.ma}" thành công`);
+    }
+    setIsModalOpen(false);
+    await fetchData(currentPage, pageSize);
+  } catch (err) {
+    console.error('API Error:', err.message, 'Response:', err.response); // Log chi tiết
+    const errorMessage = err.message || 'Cập nhật sản phẩm chi tiết thất bại';
+    toast.error(errorMessage); // Chỉ hiển thị lỗi qua toast
+  } finally {
+    setLoading(false);
+  }
+};
   const handleDelete = async () => {
     try {
       setLoading(true);
       await deleteSanPhamCt(confirmModal.id);
-      toast.success('Cập nhật trạng thái sản phẩm chi tiết thành Tạm Ngưng thành công');
+      toast.success('Đổi trạng thái sản phẩm chi tiết sang Tạm Ngưng thành công');
       await fetchData(currentPage, pageSize);
     } catch (err) {
-      toast.error(err.message || 'Cập nhật trạng thái thất bại');
+      let errorMessage = 'Đổi trạng thái sản phẩm chi tiết thất bại';
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      toast.error(errorMessage);
+      setAlertMessage(errorMessage);
+      setAlertType('error');
     } finally {
       setConfirmModal({ open: false, id: null });
       setLoading(false);
@@ -987,159 +991,159 @@ const SanPhamCtPage = () => {
         </DialogTitle>
         <DialogContent sx={{ p: 3, pt: 2, overflowY: 'auto', maxHeight: '70vh' }}>
           <Box component="form" onSubmit={handleSave}>
-            <Box sx={{ bgcolor: white, p: 2, borderRadius: 2, boxShadow: 1, border: '1px solid #ffe0b2', mb: 2 }}>
-              <Typography variant="h6" fontWeight={600} color={black} mb={2}>
-                Thông tin cơ bản
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Mã Sản Phẩm Chi Tiết"
-                    value={formData.ma}
-                    onChange={(e) => !isViewMode && setFormData({ ...formData, ma: e.target.value })}
-                    fullWidth
-                    required={!isViewMode}
-                    error={!!formErrors.ma}
-                    helperText={formErrors.ma}
-                    InputProps={{ readOnly: isViewMode }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        bgcolor: white,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
-                        fontSize: '0.9rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontWeight: 600,
-                        color: black,
-                        fontSize: '0.95rem',
-                        '&.Mui-focused': { color: orange },
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Số Lượng"
-                    type="number"
-                    value={formData.soLuong}
-                    onChange={(e) => !isViewMode && setFormData({ ...formData, soLuong: e.target.value })}
-                    fullWidth
-                    required={!isViewMode}
-                    error={!!formErrors.soLuong}
-                    helperText={formErrors.soLuong}
-                    InputProps={{
-                      readOnly: isViewMode,
-                      inputProps: { min: 0 },
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        bgcolor: white,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
-                        fontSize: '0.9rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontWeight: 600,
-                        color: black,
-                        fontSize: '0.95rem',
-                        '&.Mui-focused': { color: orange },
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Giá Nhập"
-                    type="number"
-                    value={formData.giaNhap}
-                    onChange={(e) => !isViewMode && setFormData({ ...formData, giaNhap: e.target.value })}
-                    fullWidth
-                    error={!!formErrors.giaNhap}
-                    helperText={formErrors.giaNhap}
-                    InputProps={{ readOnly: isViewMode }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        bgcolor: white,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
-                        fontSize: '0.9rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontWeight: 600,
-                        color: black,
-                        fontSize: '0.95rem',
-                        '&.Mui-focused': { color: orange },
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Giá Bán Gốc"
-                    type="number"
-                    value={formData.giaBanGoc}
-                    onChange={(e) => !isViewMode && setFormData({ ...formData, giaBanGoc: e.target.value, giaBan: e.target.value })}
-                    fullWidth
-                    required={!isViewMode}
-                    error={!!formErrors.giaBanGoc}
-                    helperText={formErrors.giaBanGoc}
-                    InputProps={{ readOnly: isViewMode }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        bgcolor: white,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
-                        fontSize: '0.9rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontWeight: 600,
-                        color: black,
-                        fontSize: '0.95rem',
-                        '&.Mui-focused': { color: orange },
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Giá Bán"
-                    type="number"
-                    value={formData.giaBan}
-                    onChange={(e) => !isViewMode && setFormData({ ...formData, giaBan: e.target.value })}
-                    fullWidth
-                    required={!isViewMode}
-                    error={!!formErrors.giaBan}
-                    helperText={formErrors.giaBan}
-                    InputProps={{ readOnly: isViewMode }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        bgcolor: white,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
-                        fontSize: '0.9rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontWeight: 600,
-                        color: black,
-                        fontSize: '0.95rem',
-                        '&.Mui-focused': { color: orange },
-                      },
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Box>
+            
+<Box sx={{ bgcolor: white, p: 2, borderRadius: 2, boxShadow: 1, border: '1px solid #ffe0b2', mb: 2 }}>
+  <Typography variant="h6" fontWeight={600} color={black} mb={2}>
+    Thông tin cơ bản
+  </Typography>
+  <Grid container spacing={2}>
+    <Grid item xs={12} md={6}>
+      <TextField
+        label="Mã Sản Phẩm Chi Tiết"
+        value={formData.ma}
+        onChange={(e) => !isViewMode && setFormData({ ...formData, ma: e.target.value })}
+        fullWidth
+        required={!isViewMode}
+        error={!!formErrors.ma}
+        helperText={formErrors.ma}
+        InputProps={{ readOnly: isViewMode }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 2,
+            bgcolor: white,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+            fontSize: '0.9rem',
+          },
+          '& .MuiInputLabel-root': {
+            fontWeight: 600,
+            color: black,
+            fontSize: '0.95rem',
+            '&.Mui-focused': { color: orange },
+          },
+        }}
+      />
+    </Grid>
+    <Grid item xs={12} md={6}>
+      <TextField
+        label="Số Lượng"
+        type="number"
+        value={formData.soLuong}
+        onChange={(e) => !isViewMode && setFormData({ ...formData, soLuong: e.target.value })}
+        fullWidth
+        required={!isViewMode}
+        error={!!formErrors.soLuong}
+        helperText={formErrors.soLuong}
+        InputProps={{
+          readOnly: isViewMode,
+          inputProps: { min: 0 },
+        }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 2,
+            bgcolor: white,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+            fontSize: '0.9rem',
+          },
+          '& .MuiInputLabel-root': {
+            fontWeight: 600,
+            color: black,
+            fontSize: '0.95rem',
+            '&.Mui-focused': { color: orange },
+          },
+        }}
+      />
+    </Grid>
+    <Grid item xs={12} md={6}>
+      <TextField
+        label="Giá Nhập"
+        type="number"
+        value={formData.giaNhap}
+        onChange={(e) => !isViewMode && setFormData({ ...formData, giaNhap: e.target.value })}
+        fullWidth
+        error={!!formErrors.giaNhap}
+        helperText={formErrors.giaNhap}
+        InputProps={{ readOnly: isViewMode }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 2,
+            bgcolor: white,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+            fontSize: '0.9rem',
+          },
+          '& .MuiInputLabel-root': {
+            fontWeight: 600,
+            color: black,
+            fontSize: '0.95rem',
+            '&.Mui-focused': { color: orange },
+          },
+        }}
+      />
+    </Grid>
+    <Grid item xs={12} md={6}>
+      <TextField
+        label={isViewMode ? "Giá Bán Gốc" : "Giá Bán"}
+        type="number"
+        value={formData.giaBanGoc}
+        onChange={(e) => !isViewMode && setFormData({ ...formData, giaBanGoc: e.target.value, giaBan: e.target.value })}
+        fullWidth
+        required={!isViewMode}
+        error={!!formErrors.giaBanGoc}
+        helperText={formErrors.giaBanGoc}
+        InputProps={{ readOnly: isViewMode }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 2,
+            bgcolor: white,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+            fontSize: '0.9rem',
+          },
+          '& .MuiInputLabel-root': {
+            fontWeight: 600,
+            color: black,
+            fontSize: '0.95rem',
+            '&.Mui-focused': { color: orange },
+          },
+        }}
+      />
+    </Grid>
+    {isViewMode && (
+      <Grid item xs={12} md={6}>
+        <TextField
+          label="Giá Bán"
+          type="number"
+          value={formData.giaBan}
+          InputProps={{ readOnly: true }}
+          fullWidth
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              bgcolor: white,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: orange },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: orange, borderWidth: '2px' },
+              fontSize: '0.9rem',
+            },
+            '& .MuiInputLabel-root': {
+              fontWeight: 600,
+              color: black,
+              fontSize: '0.95rem',
+              '&.Mui-focused': { color: orange },
+            },
+          }}
+        />
+      </Grid>
+    )}
+  </Grid>
+</Box>
+
             <Box sx={{ bgcolor: white, p: 2, borderRadius: 2, boxShadow: 1, border: '1px solid #ffe0b2', mb: 2 }}>
               <Typography variant="h6" fontWeight={600} color={black} mb={2}>
                 Thuộc tính sản phẩm
@@ -1441,7 +1445,7 @@ const SanPhamCtPage = () => {
               {!isViewMode && (
                 <OrangeButton type="submit" variant="contained" disabled={loading}>
                   {loading ? (
-                    <CircularProgress size={10} color="inherit" />
+                    <CircularProgress size={20} color="inherit" />
                   ) : selectedSanPhamCt ? (
                     'Cập nhật'
                   ) : (
