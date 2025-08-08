@@ -1,4 +1,5 @@
 import axios from "axios";
+import Cookies from "js-cookie";
 
 const apiClient = axios.create({
     baseURL: "http://localhost:8080/nguoi-dung",
@@ -113,3 +114,49 @@ export const updateUser = async (id, userUpdateRequest) => {
 export const deleteUser = (id) => {
   return apiClient.delete(`/xoa-nguoi-dung/${id}`);
 };
+
+
+
+
+
+
+
+
+export const getMyInfo = async () => {
+  try {
+    const token = Cookies.get("token");
+    if (!token) {
+      throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await apiClient.get("/thong-tin-cua-toi", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API lấy thông tin người dùng hiện tại:", error.message || error);
+    throw error;
+  }
+};
+
+export const updateMyInfo = async (userUpdateRequest) => {
+  try {
+    const token = Cookies.get("token");
+    if (!token) {
+      throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await apiClient.put("/cap-nhat-thong-tin-cua-toi", userUpdateRequest, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API cập nhật thông tin người dùng hiện tại:", error.message || error);
+    throw error;
+  }
+};
+

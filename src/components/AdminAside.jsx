@@ -46,7 +46,65 @@ const AdminAside = () => {
         overflowY: "auto", // Luôn có thanh trượt dọc
       }}
     >
-      <h3 className="mb-4 text-dark mb-5">Style store</h3>
+      <div
+  className="navbar-brand logo-text mb-5 d-block"
+  style={{
+    textDecoration: "none",
+    color: "inherit",
+    fontSize: "14px",
+    lineHeight: "1.2",
+  }}
+>
+  <span
+    className="logo-main"
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "4px",
+      fontWeight: "bold",
+    }}
+  >
+    <span
+      className="logo-style"
+      style={{
+        color: "#ff6600",
+        fontSize: "16px",
+      }}
+    >
+      Style
+    </span>
+    <span
+      className="logo-bag"
+      style={{
+        fontSize: "16px",
+        color: "#333",
+      }}
+    >
+      <i className="bi bi-backpack2-fill"></i>
+    </span>
+    <span
+      className="logo-highlight"
+      style={{
+        color: "black",
+        fontSize: "16px",
+      }}
+    >
+      Store
+    </span>
+  </span>
+  <span
+    className="logo-sub"
+    style={{
+      display: "block",
+      fontSize: "11px",
+      color: "#777",
+      marginTop: "2px",
+    }}
+  >
+    Balo chất lượng &amp; uy tín
+  </span>
+</div>
+
       <ul className="nav flex-column">
         <li className="nav-item mb-2">
           <NavLink
@@ -140,22 +198,7 @@ const AdminAside = () => {
             <i className="bi bi-arrow-counterclockwise me-2"></i> Quản lý trả hàng            
           </NavLink>
         </li> */}
-        <li className="my-3">
-          <hr />
-        </li>
-        <li className="nav-item mb-2">
-          <NavLink
-            className={`admin-nav-link${!isProductRoute && !isAccountRoute && location.pathname === "/" ? " active" : ""}`}
-            onClick={() => { setOpenProduct(false); setOpenAccount(false); }}
-            to="/">
-            <i className="bi bi-house-door me-2"></i>Quay lại trang web            
-          </NavLink>
-        </li>
-        <li className="nav-item mb-2 mt-auto">
-          <NavLink className="admin-nav-link" to="/dang-xuat">
-            <i className="bi bi-box-arrow-right me-2"></i>Đăng xuất            
-          </NavLink>
-        </li>
+        
       </ul>
     </div>
   );

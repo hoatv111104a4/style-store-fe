@@ -258,6 +258,7 @@ const WebsiteNavbar = () => {
                     border: "1px solid #ff6600",
                     ml: 1,
                     "&:hover": { background: "#fff7f0" },
+                    padding: 1,
                   }}
                 >
                   <Avatar sx={{ bgcolor: "#ff6600", width: 32, height: 32 }}>
@@ -316,21 +317,14 @@ const WebsiteNavbar = () => {
                         </ListItemIcon>
                         Đăng xuất
                       </MenuItem>
-                      {isAdminOrStaff && (
-                        <MenuItem component={NavLink} to="/admin/thong-ke">
-                          <ListItemIcon>
-                            <StoreIcon fontSize="small" sx={{ color: "#ff6600" }} />
-                          </ListItemIcon>
-                          Cửa hàng của tôi
-                        </MenuItem>
-                      )}
+                      
                       <MenuItem component={NavLink} to="/website/dat-hang/lich-su-dat-hang">
                         <ListItemIcon>
                           <StoreIcon fontSize="small" sx={{ color: "#ff6600" }} />
                         </ListItemIcon>
                         Thông tin đơn hàng
                       </MenuItem>
-                      <MenuItem component={NavLink} to="/thong-tin-ca-nhan">
+                      <MenuItem component={NavLink} to="/website/thong-tin-ca-nhan">
                         <ListItemIcon>
                           <AccountCircleIcon fontSize="small" sx={{ color: "#ff6600" }} />
                         </ListItemIcon>
