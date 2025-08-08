@@ -45,14 +45,14 @@ const OrderManagement = () => {
       setLoading(true);
       let data;
       if (searchTerm.trim()) {
-        // Tìm kiếm theo mã hóa đơn
+        // Search by invoice code
         data = await searchHoaDon(searchTerm, currentPage, pageSize);
       } else {
-        // Lấy danh sách hóa đơn phân trang
+        // Fetch paginated invoice list
         data = await listHoaDon(currentPage, pageSize);
       }
 
-      // Lọc theo ngày và trạng thái trên client-side
+      // Client-side filtering by date and status
       let filteredData = data.content || [];
       if (startDate && endDate) {
         const start = new Date(startDate);
@@ -69,11 +69,11 @@ const OrderManagement = () => {
       }
 
       setHoaDonList(filteredData);
-      setTotalElements(data.totalElements);
-      setTotalPages(data.totalPages);
+      setTotalElements(data.totalElements || 0);
+      setTotalPages(data.totalPages || 0);
       setError(null);
     } catch (err) {
-      if (err.response && err.response.status === 401) {
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
         navigate("/access-denied");
       } else {
         setError(err.message || "Không thể tải danh sách hóa đơn");
@@ -86,7 +86,7 @@ const OrderManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, searchTerm, currentPage, startDate, endDate, activeStatus]);
+  }, [navigate, searchTerm, currentPage, startDate, endDate, activeStatus, pageSize]);
 
   useEffect(() => {
     fetchHoaDon();
@@ -366,10 +366,10 @@ const OrderManagement = () => {
                     {hd.ma || "-"}
                   </td>
                   <td style={{ fontWeight: 500, color: "#222", border: 0, width: "15%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {hd.nguoiDatHang || "-"}
+                    {hd.nguoiDatHang || "Khách lẻ"}
                   </td>
                   <td style={{ fontWeight: 500, color: "#222", border: 0, width: "15%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {hd.nguoiNhanHang || "-"}
+                    {hd.nguoiNhanHang || "Khách lẻ"}
                   </td>
                   <td style={{ color: "#222", border: 0, width: "12%" }}>
                     {hd.ngayTao

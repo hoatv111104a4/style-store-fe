@@ -24,13 +24,13 @@ const AccessDenied = () => {
         <Button
           variant="contained"
           sx={{ mr: 2, backgroundColor: "#ff6600", "&:hover": { backgroundColor: "#e65c00" } }}
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/admin/ban-hang-tai-quay")}
         >
-          Quay về trang chủ
+          Quay về bán hàng tại quầy
         </Button>
         <Button
           variant="outlined"
-          onClick={() => navigate("/login")}
+          onClick={() => navigate("/styleStore/login/admin")}
         >
           Đăng nhập
         </Button>

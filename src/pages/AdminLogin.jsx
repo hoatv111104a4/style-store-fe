@@ -34,12 +34,12 @@ const AdminLogin = () => {
 
         // Kiểm tra vai trò ROLE_ADMIN hoặc ROLE_STAFF
         if (userRole.includes("ROLE_ADMIN") || userRole.includes("ROLE_STAFF")) {
-          Cookies.set("token", token, { expires: 7 });
-          Cookies.set("user", JSON.stringify(userInfo), { expires: 7 });
+          Cookies.set("adminToken", token, { expires: 7 });
+          Cookies.set("adminInfo", JSON.stringify(userInfo), { expires: 7 }); // Thay "adminAndStaff" bằng "adminInfo"
           toast.success("Đăng nhập admin thành công!", {
             onClose: () => {
               setTimeout(() => {
-                navigate("/admin/thong-ke"); // Chuyển đến trang thống kê
+                navigate("/admin/thong-ke");
               }, 500);
             },
           });

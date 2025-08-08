@@ -4,7 +4,9 @@ import {
   TextField,
   Button,
   Typography,
-  Paper,
+  IconButton,
+  InputAdornment,
+  Modal,
   Radio,
   RadioGroup,
   FormControlLabel,
@@ -12,11 +14,12 @@ import {
   FormLabel,
   Checkbox,
   FormGroup,
-  IconButton,
-  InputAdornment,
-  Modal,
 } from "@mui/material";
 import { Visibility, VisibilityOff, Close } from "@mui/icons-material";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import Swal from "sweetalert2";
+import { registerUser } from "../../services/Website/UserApi2";
 
 const Register = ({ open, onClose }) => {
   const [form, setForm] = useState({
@@ -26,11 +29,12 @@ const Register = ({ open, onClose }) => {
     password: "",
     confirmPassword: "",
     dob: "",
-    gender: "",
+    gender: "2", // Mặc định là Không xác định
     agree: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -40,11 +44,76 @@ const Register = ({ open, onClose }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Xử lý đăng ký ở đây
-    // Ví dụ: Thêm logic API hoặc thông báo thành công
-    onClose(); // Đóng modal sau khi submit (có thể thêm điều kiện thành công)
+    setIsLoading(true);
+    onClose(); // Đóng modal ngay khi nhấn Đăng ký
+
+    const {
+      fullName,
+      email,
+      phone,
+      password,
+      dob,
+      gender,
+    } = form;
+
+    // Định dạng ngày sinh theo YYYY-MM-DD
+    const formattedDate = dob ? new Date(dob).toISOString().split("T")[0] : "";
+
+    const userCreationRequest = {
+      hoTen: fullName,
+      soDienThoai: phone,
+      email,
+      matKhau: password,
+      gioiTinh: parseInt(gender), // Chuyển đổi thành số nguyên
+      namSinh: formattedDate,
+      ma: null,
+      cccd: null,
+      diaChi: null,
+      tenDangNhap: null,
+      trangThai: null,
+      tinh: null,
+      huyen: null,
+      xa: null,
+    };
+
+    const result = await Swal.fire({
+      title: "Xác nhận đăng ký",
+      text: "Bạn có chắc chắn muốn đăng ký tài khoản này không?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ff6600",
+      cancelButtonColor: "#888",
+      confirmButtonText: "Đăng ký",
+      cancelButtonText: "Hủy",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        console.log("Payload gửi đi:", userCreationRequest);
+        await registerUser(userCreationRequest);
+        toast.success("Đăng ký tài khoản thành công!");
+        setForm({
+          fullName: "",
+          email: "",
+          phone: "",
+          password: "",
+          confirmPassword: "",
+          dob: "",
+          gender: "2",
+          agree: false,
+        });
+      } catch (err) {
+        const errorMessage = err.response?.data?.result || "Lỗi khi đăng ký tài khoản!";
+        toast.error(errorMessage);
+        console.error("Chi tiết lỗi:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -82,10 +151,10 @@ const Register = ({ open, onClose }) => {
             label="Họ và tên"
             name="fullName"
             fullWidth
-            required
             margin="normal"
             value={form.fullName}
             onChange={handleChange}
+            size="small"
             sx={{
               "& label": { color: "#222" },
               "& .MuiOutlinedInput-root": {
@@ -100,7 +169,7 @@ const Register = ({ open, onClose }) => {
             name="email"
             type="email"
             fullWidth
-            required
+            size="small"
             margin="normal"
             value={form.email}
             onChange={handleChange}
@@ -117,8 +186,8 @@ const Register = ({ open, onClose }) => {
             label="Số điện thoại"
             name="phone"
             type="tel"
+            size="small"
             fullWidth
-            required
             margin="normal"
             value={form.phone}
             onChange={handleChange}
@@ -134,9 +203,9 @@ const Register = ({ open, onClose }) => {
           <TextField
             label="Mật khẩu"
             name="password"
+            size="small"
             type={showPassword ? "text" : "password"}
             fullWidth
-            required
             margin="normal"
             value={form.password}
             onChange={handleChange}
@@ -167,7 +236,7 @@ const Register = ({ open, onClose }) => {
             name="confirmPassword"
             type={showConfirm ? "text" : "password"}
             fullWidth
-            required
+            size="small"
             margin="normal"
             value={form.confirmPassword}
             onChange={handleChange}
@@ -198,7 +267,7 @@ const Register = ({ open, onClose }) => {
             name="dob"
             type="date"
             fullWidth
-            required
+            size="small"
             margin="normal"
             InputLabelProps={{ shrink: true }}
             value={form.dob}
@@ -222,15 +291,21 @@ const Register = ({ open, onClose }) => {
               value={form.gender}
               onChange={handleChange}
             >
-              <FormControlLabel value="male" control={<Radio sx={{
-                color: "#ff6600", '&.Mui-checked': { color: "#222" }
-              }} />} label="Nam" />
-              <FormControlLabel value="female" control={<Radio sx={{
-                color: "#ff6600", '&.Mui-checked': { color: "#222" }
-              }} />} label="Nữ" />
-              <FormControlLabel value="other" control={<Radio sx={{
-                color: "#ff6600", '&.Mui-checked': { color: "#222" }
-              }} />} label="Khác" />
+              <FormControlLabel
+                value="1"
+                control={<Radio sx={{ color: "#ff6600", "&.Mui-checked": { color: "#222" } }} />}
+                label="Nam"
+              />
+              <FormControlLabel
+                value="0"
+                control={<Radio sx={{ color: "#ff6600", "&.Mui-checked": { color: "#222" } }} />}
+                label="Nữ"
+              />
+              <FormControlLabel
+                value="2"
+                control={<Radio sx={{ color: "#ff6600", "&.Mui-checked": { color: "#222" } }} />}
+                label="Không xác định"
+              />
             </RadioGroup>
           </FormControl>
           <FormGroup sx={{ mb: 2 }}>
@@ -242,7 +317,7 @@ const Register = ({ open, onClose }) => {
                   name="agree"
                   sx={{
                     color: "#ff6600",
-                    '&.Mui-checked': { color: "#222" }
+                    "&.Mui-checked": { color: "#222" },
                   }}
                 />
               }
@@ -253,6 +328,7 @@ const Register = ({ open, onClose }) => {
             type="submit"
             fullWidth
             variant="contained"
+            disabled={isLoading}
             sx={{
               background: "#222",
               color: "#fff",
@@ -263,9 +339,10 @@ const Register = ({ open, onClose }) => {
               borderRadius: 2,
             }}
           >
-            Đăng ký
+            {isLoading ? "Đang xử lý..." : "Đăng ký"}
           </Button>
         </Box>
+        <ToastContainer />
       </Box>
     </Modal>
   );

@@ -159,9 +159,9 @@ const CustomerList = () => {
           sx={{ ...selectNoBorderSx, minWidth: { xs: 120, sm: 150 } }}
           renderValue={(selected) =>
             selected
-              ? selected === "1"
+              ? selected == "1"
                 ? "Nam"
-                : selected === "0"
+                : selected == "0"
                 ? "Nữ"
                 : "Không xác định"
               : "Giới tính"

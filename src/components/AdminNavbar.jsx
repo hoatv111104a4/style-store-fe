@@ -16,8 +16,8 @@ import { Typography } from "@mui/material";
 const AdminNavbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(() => {
-    const userCookie = Cookies.get("user");
-    return userCookie ? JSON.parse(userCookie) : null;
+    const userInfoCookie = Cookies.get("adminInfo");
+    return userInfoCookie ? JSON.parse(userInfoCookie) : null;
   });
   const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
@@ -31,26 +31,31 @@ const AdminNavbar = ({ toggleSidebar }) => {
   };
 
   const handleLogout = async () => {
-  try {
-    const response = await logout();
-    setUser(null);
-    localStorage.removeItem("cart");
-    toast.success(response.message || "Đăng xuất thành công!", {
-      onClose: () => {
-        navigate("/styleStore/login/admin"); 
-      },
-    });
-    handleMenuClose();
-  } catch (err) {
-    console.error("Lỗi đăng xuất:", err.message);
-    toast.error(err.message);
-    setUser(null);
-    localStorage.removeItem("cart");
-    handleMenuClose();
-    navigate("/styleStore/login/admin"); 
-  }
-};
-
+    try {
+      await logout(true); // Gọi logout với isAdmin = true
+      // Xóa token và user khỏi cookies
+      Cookies.remove("adminToken");
+      Cookies.remove("adminInfo");
+      setUser(null);
+      localStorage.removeItem("cart");
+      toast.success("Đăng xuất thành công!", {
+        autoClose: 2000,
+        onClose: () => {
+          navigate("/styleStore/login/admin");
+        },
+      });
+    } catch (err) {
+      console.error("Lỗi đăng xuất:", err.message || err);
+      Cookies.remove("adminToken");
+      Cookies.remove("adminInfo");
+      setUser(null);
+      localStorage.removeItem("cart");
+      toast.error("Đăng xuất thất bại. Vui lòng thử lại!");
+      navigate("/styleStore/login/admin");
+    } finally {
+      handleMenuClose();
+    }
+  };
 
   return (
     <nav className="navbar navbar-expand-md bg-white border-bottom sticky-top" style={{ height: "60px", zIndex: 1020 }}>
@@ -68,17 +73,6 @@ const AdminNavbar = ({ toggleSidebar }) => {
           </button>
         </div>
         <div className="d-flex align-items-center">
-          {/* <i
-            className="bi bi-bell fs-4 position-relative me-5"
-            style={{ cursor: "pointer" }}
-          >
-            <span
-              className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-              style={{ fontSize: "0.7rem", padding: "2px 6px" }}
-            >
-              0<span className="visually-hidden">unread messages</span>
-            </span>
-          </i> */}
           <IconButton
             onClick={handleMenuClick}
             size="large"
@@ -113,7 +107,6 @@ const AdminNavbar = ({ toggleSidebar }) => {
             anchorEl={anchorEl}
             open={openMenu}
             onClose={handleMenuClose}
-            onClick={handleMenuClose}
             disableScrollLock
             PaperProps={{
               elevation: 3,
