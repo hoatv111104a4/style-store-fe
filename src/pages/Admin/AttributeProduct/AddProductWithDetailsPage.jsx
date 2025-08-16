@@ -293,16 +293,16 @@ const AddProductWithDetailsPage = () => {
       ]);
 
       const newDropdownData = {
-        sanPham: sanPhamRes.data.content || [],
+        sanPham: (sanPhamRes.data.content || []).filter(item => item.trangThai === 1),
         mauSac: (mauSacRes.data.content || []).map(item => ({
           id: item.id,
           ten: item.ten,
           ma: item.ma || '',
         })),
-        thuongHieu: thuongHieuRes.data.content || [],
-        kichThuoc: kichThuocRes.data.content || [],
-        xuatXu: xuatXuRes.data.content || [],
-        chatLieu: chatLieuRes.data.content || [],
+        thuongHieu: (thuongHieuRes.data.content || []).filter(item => item.trangThai === 1),
+        kichThuoc: (kichThuocRes.data.content || []).filter(item => item.trangThai === 1),
+        xuatXu: (xuatXuRes.data.content || []).filter(item => item.trangThai === 1),
+        chatLieu: (chatLieuRes.data.content || []).filter(item => item.trangThai === 1),
         hinhAnhMauSac: [],
         trangThai: [
           { id: 1, ten: 'Hoạt Động' },
@@ -320,9 +320,8 @@ const AddProductWithDetailsPage = () => {
       });
     } catch (err) {
       if (err.name !== 'AbortError') {
-        // console.error('Error fetching dropdown data:', err.response?.data || err.message);
-        // setAlertMessage(`Không thể tải dữ liệu dropdown: ${err.response?.data?.message || err.message}`);
-        // setAlertType('error');
+        toast.error(`Không thể tải dữ liệu dropdown: ${err.response?.data?.message || err.message}`);
+        setAlertType('error');
       }
     } finally {
       setDropdownLoading(false);
@@ -357,7 +356,7 @@ const AddProductWithDetailsPage = () => {
       }));
     } catch (err) {
       console.error(`Error fetching images for mauSacId ${mauSacId}:`, err);
-      setAlertMessage(`Không thể tải hình ảnh: ${err.message}`);
+      toast.error(`Không thể tải hình ảnh: ${err.message}`);
       setAlertType('error');
     } finally {
       setImageLoading(false);
@@ -374,7 +373,6 @@ const AddProductWithDetailsPage = () => {
       toast.error('Vui lòng chọn màu sắc trước khi tải ảnh');
       return;
     }
-    // Client-side file validation
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (!allowedTypes.includes(file.type)) {
@@ -390,7 +388,6 @@ const AddProductWithDetailsPage = () => {
       setImageLoading(true);
       const mauSacId = productDetails[detailIndex].mauSacId;
       const response = await uploadHinhAnhMauSac(file, mauSacId);
-      // Normalize URL to match backend convention
       const imageUrl = response.hinhAnh.startsWith('/uploads/')
         ? `${STATIC_URL}${response.hinhAnh}`
         : `${STATIC_URL}/uploads/${response.hinhAnh}`;
@@ -402,7 +399,6 @@ const AddProductWithDetailsPage = () => {
         tenMauSac: dropdownData.mauSac.find((ms) => ms.id === mauSacId)?.ten || '',
       };
 
-      // Update dropdownData.hinhAnhMauSac
       setDropdownData((prev) => ({
         ...prev,
         hinhAnhMauSac: [
@@ -411,7 +407,6 @@ const AddProductWithDetailsPage = () => {
         ],
       }));
 
-      // Update productDetails for the specific index
       setProductDetails((prev) => {
         const newDetails = [...prev];
         newDetails[detailIndex] = {
@@ -422,13 +417,11 @@ const AddProductWithDetailsPage = () => {
         return newDetails;
       });
 
-      // Update imageCache
       imageCache.set(mauSacId, [
         ...(imageCache.get(mauSacId) || []).filter((img) => img.id !== newImage.id),
         newImage,
       ]);
 
-      // Refresh image list to ensure consistency
       await fetchHinhAnhByMauSacId(mauSacId, detailIndex);
 
       toast.success('Tải ảnh lên thành công');
@@ -569,15 +562,7 @@ const AddProductWithDetailsPage = () => {
 
   const handleCreateAttribute = async () => {
     if (!validateNewAttributeModal()) {
-      toast.error(`Vui lòng kiểm tra lại thông tin ${newAttributeModal.attributeType}`, {
-        position: 'top-right',
-        autoClose: 4000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        theme: 'colored',
-      });
+      toast.error(`Vui lòng kiểm tra lại thông tin ${newAttributeModal.attributeType}`);
       return;
     }
 
@@ -608,13 +593,9 @@ const AddProductWithDetailsPage = () => {
         ngayXoa: null,
       };
 
-      console.log('Sending payload for attribute creation:', payload);
-
       const response = await axios.post(endpoint, payload, {
         headers: { 'Content-Type': 'application/json' },
       });
-
-      console.log('API response for attribute creation:', response.data);
 
       const newItem = response.data;
       setDropdownData((prev) => ({
@@ -642,31 +623,11 @@ const AddProductWithDetailsPage = () => {
         }
       }
 
-      toast.success(`Đã thêm ${newAttributeModal.attributeType} "${newAttributeModal.inputValue}" thành công!`, {
-        position: 'top-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        theme: 'colored',
-      });
-
+      toast.success(`Đã thêm ${newAttributeModal.attributeType} "${newAttributeModal.inputValue}" thành công!`);
       setNewAttributeModal({ open: false, attributeType: '', inputValue: '', moTa: '', detailIndex: null, ma: '' });
     } catch (err) {
       console.error(`Error creating ${newAttributeModal.attributeType}:`, err.response?.data || err.message);
-      toast.error(
-        `Không thể thêm ${newAttributeModal.attributeType}: ${err.response?.data?.message || err.message || 'Lỗi không xác định'}`,
-        {
-          position: 'top-right',
-          autoClose: 4000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: 'colored',
-        }
-      );
+      toast.error(`Không thể thêm ${newAttributeModal.attributeType}: ${err.response?.data?.message || err.message || 'Lỗi không xác định'}`);
     } finally {
       setLoading(false);
     }
@@ -762,10 +723,10 @@ const AddProductWithDetailsPage = () => {
           kichThuocId: detail.kichThuocId,
         },
       });
-      return response.data.exists; // Assuming backend returns { exists: true/false }
+      return response.data.exists;
     } catch (err) {
       console.error('Error checking duplicate SPCT:', err.response?.data || err.message);
-      return false; // Fail safely to allow save attempt
+      return false;
     }
   };
 
@@ -782,8 +743,6 @@ const AddProductWithDetailsPage = () => {
         ngayXoa: null,
       };
 
-      console.log('Saving product with payload:', productToSave);
-
       const productResponse = await axios.post(`${BASE_URL}/admin-san-pham`, productToSave, {
         headers: { 'Content-Type': 'application/json' },
       });
@@ -799,7 +758,6 @@ const AddProductWithDetailsPage = () => {
 
       for (const [index, detail] of productDetails.entries()) {
         try {
-          // Check for duplicates in the database
           const isDuplicate = await checkDuplicateSPCT(sanPhamId, detail);
           if (isDuplicate) {
             failedDetailErrors[index] = {
@@ -836,8 +794,6 @@ const AddProductWithDetailsPage = () => {
             ngayXoa: detail.trangThai === 2 ? now : null,
           };
 
-          console.log(`Saving SPCT #${index + 1} with payload:`, detailToSave);
-
           await axios.post(`${BASE_URL}/admin-san-pham-chi-tiet`, detailToSave, {
             headers: { 'Content-Type': 'application/json' },
           });
@@ -854,7 +810,7 @@ const AddProductWithDetailsPage = () => {
             message: err.message,
           });
           const errorMessage = err.response?.status === 400
-            ? (err.response?.data?.message || 'Sản phẩm chi tiết đã tồn tại ')
+            ? (err.response?.data?.message || 'Sản phẩm chi tiết đã tồn tại')
             : (err.message || 'Lỗi không xác định');
           failedDetailErrors[index] = {
             ...failedDetailErrors[index],
@@ -870,44 +826,23 @@ const AddProductWithDetailsPage = () => {
         }
       }
 
-      // Update productDetails to only keep failed details
       setProductDetails(failedDetails);
       setDetailErrors(failedDetailErrors);
 
-      // Display results
       results.forEach((result) => {
         if (result.status === 'success') {
-          toast.success(result.message, {
-            position: 'top-right',
-            autoClose: 4000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            theme: 'colored',
-          });
+          toast.success(result.message);
         } else {
-          toast.error(result.message, {
-            position: 'top-right',
-            autoClose: 4000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            theme: 'colored',
-          });
+          toast.error(result.message);
         }
       });
 
       if (!hasErrors) {
-        // toast.success('Thêm sản phẩm và tất cả chi tiết thành công');
         setConfirmModal({ open: false });
         setTimeout(() => navigate('/admin/quan-ly-sp/san-pham'), 2000);
       } else {
-        // setAlertMessage('Một số sản phẩm chi tiết không thể thêm. Vui lòng kiểm tra và sửa lại.');
         setAlertType('error');
         setConfirmModal({ open: false });
-        // Reset productData if all details failed to allow re-entering product
         if (failedDetails.length === productDetails.length) {
           setProductData({ ten: '', trangThai: 1, id: null });
         }
@@ -918,15 +853,7 @@ const AddProductWithDetailsPage = () => {
         data: err.response?.data,
         message: err.message,
       });
-      toast.error(`Thêm sản phẩm thất bại: ${err.response?.data?.message || err.message || 'Lỗi không xác định'}`, {
-        position: 'top-right',
-        autoClose: 4000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        theme: 'colored',
-      });
+      toast.error(`Thêm sản phẩm thất bại: ${err.response?.data?.message || err.message || 'Lỗi không xác định'}`);
       setConfirmModal({ open: false });
     } finally {
       setLoading(false);
@@ -1026,9 +953,6 @@ const AddProductWithDetailsPage = () => {
             </Typography>
           )}
           {productDetails.map((detail, index) => {
-            const selectedImage = detail.hinhAnhMauSacId
-              ? dropdownData.hinhAnhMauSac.find((hinhAnh) => hinhAnh.id === detail.hinhAnhMauSacId)
-              : null;
             return (
               <Paper
                 key={index}
@@ -1196,26 +1120,52 @@ const AddProductWithDetailsPage = () => {
                     <Typography variant="body2" fontWeight={600} color="#222" mb={0.5}>
                       Hình ảnh sản phẩm
                     </Typography>
-                    {detail.imagePreview ? (
-                      <Box
+                    <Box display="flex" alignItems="center" gap={2} mb={2}>
+                      {detail.imagePreview ? (
+                        <Box
+                          sx={{
+                            maxWidth: 150,
+                            border: '2px solid #ff8800',
+                            borderRadius: 1,
+                            p: 1,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                          }}
+                        >
+                          <img
+                            src={detail.imagePreview}
+                            alt="Hình ảnh xem trước"
+                            style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
+                            onError={(e) => (e.target.src = DEFAULT_IMAGE)}
+                          />
+                        </Box>
+                      ) : (
+                        <Typography color="text.secondary">Chưa chọn hình ảnh</Typography>
+                      )}
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<ImageIcon />}
                         sx={{
-                          maxWidth: 230,
-                          border: '2px solid #ff8800',
-                          borderRadius: 1,
-                          p: 1,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                          borderColor: '#ff8800',
+                          color: '#ff8800',
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          py: 1,
+                          px: 2,
+                          '&:hover': { borderColor: '#ff9900', bgcolor: '#fff7f0' },
                         }}
+                        disabled={imageLoading || !detail.mauSacId}
                       >
-                        <img
-                          src={detail.imagePreview}
-                          alt="Hình ảnh xem trước"
-                          style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
-                          onError={(e) => (e.target.src = DEFAULT_IMAGE)}
+                        Tải lên ảnh
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={(e) => handleImageUpload(e, index)}
                         />
-                      </Box>
-                    ) : (
-                      <Typography color="text.secondary">Chưa chọn hình ảnh</Typography>
-                    )}
+                      </Button>
+                    </Box>
                   </Grid>
                   <Grid sx={{ width: '100%' }}>
                     <TextField
@@ -1322,11 +1272,7 @@ const AddProductWithDetailsPage = () => {
             required
             error={!!productErrors.inputValue}
             helperText={productErrors.inputValue}
-            sx={{
-              mt: 2, // Lùi xuống dưới một chút
-              mb: 2,
-              '& .MuiOutlinedInput-root': { borderRadius: 2 },
-            }}
+            sx={{ mt: 2, mb: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
           {newAttributeModal.attributeType === 'mauSac' && (
             <Box display="flex" alignItems="center" gap={2} mb={2}>
@@ -1423,18 +1369,18 @@ const AddProductWithDetailsPage = () => {
                   <input type="file" accept="image/*" hidden onChange={(e) => handleImageUpload(e, imageModal.detailIndex)} />
                 </Button>
               </Box>
-              <Grid container spacing={2}>
+              <Grid container spacing={1}>
                 {dropdownData.hinhAnhMauSac
                   .filter((hinhAnh) => hinhAnh.mauSacId === productDetails[imageModal.detailIndex]?.mauSacId)
                   .map((hinhAnh) => (
-                    <Grid key={hinhAnh.id} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' } }}>
+                    <Grid key={hinhAnh.id} sx={{ width: { xs: '33.33%', sm: '25%', md: '20%' } }}>
                       <Box
                         sx={{
                           border: hinhAnh.id === productDetails[imageModal.detailIndex]?.hinhAnhMauSacId
                             ? '2px solid #ff8800'
                             : '1px solid #dee2e6',
                           borderRadius: 1,
-                          p: 1,
+                          p: 0.5,
                           cursor: 'pointer',
                           '&:hover': { bgcolor: '#fff7f0' },
                         }}
@@ -1443,10 +1389,21 @@ const AddProductWithDetailsPage = () => {
                         <img
                           src={hinhAnh.hinhAnh}
                           alt={hinhAnh.tenMauSac}
-                          style={{ width: '100%', height: 'auto', borderRadius: 4 }}
+                          style={{
+                            width: '100%',
+                            maxWidth: 100,
+                            maxHeight: 100,
+                            objectFit: 'contain',
+                            borderRadius: 4,
+                          }}
                           onError={(e) => (e.target.src = DEFAULT_IMAGE)}
                         />
-                        <Typography textAlign="center" mt={1}>
+                        <Typography
+                          textAlign="center"
+                          mt={0.5}
+                          fontSize="0.75rem"
+                          sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                        >
                           {hinhAnh.tenMauSac}
                         </Typography>
                       </Box>

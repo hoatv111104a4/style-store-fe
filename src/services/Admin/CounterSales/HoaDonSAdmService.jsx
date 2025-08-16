@@ -14,12 +14,21 @@ const axiosInstance = axios.create({
         'Content-Type': 'application/json',
     },
 });
-
+const getAuthHeaders = () => {
+  const token = Cookies.get("token");
+  if (!token) {
+    throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+  }
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+};
 
 // Hàm gọi API tạo đơn chờ
 export const addHDC = async () => {
     try {
-        const token = Cookies.get("token");
+        const token = Cookies.get("adminToken");
         if (!token) {
             throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
         }
@@ -32,9 +41,8 @@ export const addHDC = async () => {
         });
         return response.data;
     } catch (error) {
-        throw new Error(
-            error.response?.data?.error || 'Không thể tạo hóa đơn'
-        );
+        console.error('Lỗi khi tạo đơn chờ:', error);
+        throw error;
     }
 };
 
@@ -54,18 +62,25 @@ export const getAllHDC = async (page = 0, size = 10) => {
 // hàm lấy danh sách hoá đơn theo trạng thái
 export const getHoaDonByTrangThai = async (trangThai, page = 0, size = 10) => {
   try {
+    const token = Cookies.get("adminToken");
+    if (!token) {
+        throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+    }
     if (!Number.isInteger(trangThai) || page < 0 || size <= 0) {
       throw new Error('Trạng thái, page hoặc size không hợp lệ');
     }
-      const response = await axiosInstance.get(`/trang-thai/${trangThai}`, {
+      const response = await apiClient.get(`/trang-thai/${trangThai}`, {
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+        },
         params: { page, size },
       }
     );
     return response.data;
   } catch (error) {
-    throw new Error(
-      error.response?.data?.error || 'Không thể tải hoá theo trạng thái'
-    );
+    console.error('Lỗi khi lấy hóa đơn theo trạng thái:', error);
+    throw error;
   }
 };
 
@@ -136,21 +151,36 @@ export const searchHoaDonById = async (id) => {
 // Hàm gọi API tìm kiếm hóa đơn theo số tháng gần đây
 export const getHoaDonByMonths = async (months) => {
     try {
-        const response = await axiosInstance.get('/theo-thang', {
+        const token = Cookies.get("adminToken");
+        if (!token) {
+            throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+        }
+        const response = await apiClient.get('/theo-thang', {
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+            },
             params: { months },
         });
         return response.data;
     } catch (error) {
-        throw new Error(
-            error.response?.data?.error || 'Không thể lấy hóa đơn theo số tháng'
-        );
+        console.log('Lỗi khi lấy hóa đơn theo số tháng:', error);
+        throw error;
     }
 };
 
 // Hàm gọi API tìm kiếm hóa đơn theo ngày bắt đầu và kết thúc
 export const getHoaDonByNgayBatDauVaKetThuc = async (startDate, endDate) => {
     try {
-        const response = await axiosInstance.get('/theo-ngay', {
+        const token = Cookies.get("adminToken");
+        if (!token) {
+            throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+        }
+        const response = await apiClient.get('/theo-ngay', {
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+            },
             params: {
                 start: startDate,
                 end: endDate,
@@ -158,16 +188,23 @@ export const getHoaDonByNgayBatDauVaKetThuc = async (startDate, endDate) => {
         });
         return response.data;
     } catch (error) {
-        throw new Error(
-            error.response?.data?.error || 'Không thể lấy hóa đơn theo khoảng ngày'
-        );
+        console.log('Lỗi khi lấy hóa đơn theo khoảng ngày:', error);
+        throw error;        
     }    
 };
 
 // Hàm gọi API tìm kiếm hóa đơn theo ngày bắt đầu và kết thúc k trangj thasi
 export const getHoaDonByNgayBatDauVaKetThucT = async (startDate, endDate) => {
     try {
-        const response = await axiosInstance.get('/theo-ngayt', {
+        const token = Cookies.get("adminToken");
+        if (!token) {
+            throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+        }
+        const response = await apiClient.get('/theo-ngayt', {
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+            },
             params: {
                 start: startDate,
                 end: endDate,
@@ -175,9 +212,8 @@ export const getHoaDonByNgayBatDauVaKetThucT = async (startDate, endDate) => {
         });
         return response.data;
     } catch (error) {
-        throw new Error(
-            error.response?.data?.error || 'Không thể lấy hóa đơn theo khoảng ngày'
-        );
+        console.log('Lỗi khi lấy hóa đơn theo khoảng ngày:', error);
+        throw error;
     }
 };
 

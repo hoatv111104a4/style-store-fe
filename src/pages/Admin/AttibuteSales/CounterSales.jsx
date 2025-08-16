@@ -10,15 +10,111 @@ import { getKHBySdt } from '../../../services/Admin/CounterSales/NguoiDungSAdmSe
 import Client from './UserSales';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import HoaDonPDFExport from './InvoicePDFExport';
-import CustomAlert from './CustomAlert';
-import CustomConfirm from './CustomConfirm';
+// import HoaDonPDFExport from './InvoicePDFExport';
 import { submitVNPayOrder } from "../../../services/Website/OrderApi";
 import QRCode from "react-qr-code";
-
-
-
+import Swal from 'sweetalert2';
+import { toast } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+import ReactDOM from 'react-dom/client';
+const CounterSalesStyle = `
+.table {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    border: none;
+}
+.table thead th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #222;
+    border-bottom: 2px solid #f0f0f0;
+    font-size: 15px;
+}
+.table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+}
+.table tbody tr:last-child {
+    border-bottom: none;
+}
+.table td, .table th {
+    vertical-align: middle;
+    border: none;
+    font-size: 15px;
+}
+.table img {
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+.btn, .form-control {
+    border-radius: 8px !important;
+    font-weight: 500;
+    font-size: 15px;
+    transition: background 0.2s, color 0.2s;
+}
+.btn-primary {
+    background: #ff6600 !important;
+    border-color: #ff6600 !important;
+    color: #fff !important;
+}
+.btn-primary:hover, .btn-primary:focus {
+    background: #e65c00 !important;
+    border-color: #e65c00 !important;
+}
+.btn-outline-primary {
+    color: #ff6600 !important;
+    border-color: #ff6600 !important;
+    background: #fff !important;
+}
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+    background: #ff6600 !important;
+    color: #fff !important;
+}
+.btn-secondary {
+    background: #f0f0f0 !important;
+    color: #333 !important;
+    border: none !important;
+}
+.btn-secondary:hover, .btn-secondary:focus {
+    background: #e0e0e0 !important;
+}
+.btn-info {
+    background: #e6f0ff !important;
+    color: #1976d2 !important;
+    border: none !important;
+}
+.btn-info:hover, .btn-info:focus {
+    background: #bbdefb !important;
+    color: #1976d2 !important;
+}
+.btn-danger {
+    background: #ffebee !important;
+    color: #d32f2f !important;
+    border: none !important;
+}
+.btn-danger:hover, .btn-danger:focus {
+    background: #ffcdd2 !important;
+    color: #d32f2f !important;
+}
+.form-control {
+    border: 1px solid #e0e0e0 !important;
+    background: #fafbfc !important;
+    color: #222 !important;
+    box-shadow: none !important;
+}
+.card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    background: #fff;
+}
+.table-bordered > :not(caption) > * > * {
+    border-width: 0;
+}
+`;
 const CounterSales = () => {
+  const HoaDonPDFExport = React.lazy(() => import('./InvoicePDFExport'));
   const [hoaDons, setHoaDons] = useState([]);
   const [sanPhamsMap, setSanPhamsMap] = useState({});
   const [activeTab, setActiveTab] = useState(null);
@@ -30,23 +126,19 @@ const CounterSales = () => {
   const [searchSdt, setSearchSdt] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [xacNhanKhachHangMap, setXacNhanKhachHangMap] = useState({});
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertSeverity, setAlertSeverity] = useState('success');
-  const [daXacNhanKhachHang, setDaXacNhanKhachHang] = useState(false);
   const [diaChiNhanIdMap, setDiaChiNhanIdMap] = useState({});
+  const [soDienThoaiMap, setSoDienThoaiMap] = useState({});
+  const [tienThueMap, setTienThueMap] = useState({});
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
 
+  const clientRef = useRef(null);
 
-  const showAlert = (message) => {
-    setAlertMessage(message);
-    setAlertOpen(true);
-  };
-
-  const handleCloseAlert = () => {
-    setAlertOpen(false);
-    setAlertMessage('');
-  };
-
+  if (typeof document !== "undefined" && !document.getElementById("dashboard-style")) {
+    const style = document.createElement("style");
+    style.id = "dashboard-style";
+    style.innerHTML = CounterSalesStyle;
+    document.head.appendChild(style);
+  }
   // Thêm state để lưu khách hàng theo từng hóa đơn
   const [khachHangMap, setKhachHangMap] = useState({});
 
@@ -61,34 +153,8 @@ const CounterSales = () => {
   const hoaDonRefs = useRef({});
   // Thêm state để lưu số tiền khách đưa cho từng hóa đơn
   const [tienKhachDuaMap, setTienKhachDuaMap] = useState({});
-
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmMessage, setConfirmMessage] = useState('');
-  const [confirmLabel, setConfirmLabel] = useState('Xác nhận');
-  const [confirmColor, setConfirmColor] = useState('error');
-  const [confirmTitle, setConfirmTitle] = useState('');
-  const [onConfirmAction, setOnConfirmAction] = useState(() => () => { });
   const [showVnpayQR, setShowVnpayQR] = useState(false);
   const [vnpayUrl, setVnpayUrl] = useState('');
-
-  const showConfirmDialog = ({ title, message, onConfirm, label = 'Xác nhận', color = 'error' }) => {
-    setConfirmTitle(title);
-    setConfirmMessage(message);
-    setConfirmLabel(label);
-    setConfirmColor(color);
-    setOnConfirmAction(() => () => {
-      onConfirm();
-      setConfirmOpen(false);
-    });
-    setConfirmOpen(true);
-  };
-
-
-  const handleConfirm = () => {
-    onConfirmAction();
-    setConfirmOpen(false);
-  };
-
 
   const fetchHoaDons = async () => {
     console.log("Đang gọi fetchHoaDons...");
@@ -97,14 +163,34 @@ const CounterSales = () => {
       console.log("Kết quả gọi API:", result);
       const list = result.content || [];
       setHoaDons(list);
-      if (list.length > 0) setActiveTab(list[0].id);
+      setActiveTab(prev => {
+        if (prev && list.some(hd => hd.id === prev)) {
+          return prev; // giữ nguyên tab hiện tại
+        }
+        return list[0]?.id || null; // nếu tab cũ không tồn tại thì chọn tab đầu
+      });
+      // if (list.length > 0) setActiveTab(list[0].id);
       setConnectError(false);
-    } catch (err) {
-      console.error("❌ Chi tiết lỗi từ server:", err.response);
-      setConnectError(true);
-      console.error('Lỗi khi load hóa đơn:', err.message);
+    } catch (error) {
+      console.error("Lỗi khi tải dữ liệu:", error.response?.status, error.message);
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        toast.error('Bạn không có quyền truy cập!');
+        setConnectError(true);
+      }
+      // console.error("❌ Chi tiết lỗi từ server:", error.response);
+      // setConnectError(true);
+      // console.error('Lỗi khi load hóa đơn:', error.message);
     }
   };
+
+  useEffect(() => {
+    const savedMap = JSON.parse(localStorage.getItem('lastSearchSdt') || '{}');
+    if (Object.keys(savedMap).length > 0) {
+      setSoDienThoaiMap(savedMap);
+    }
+  }, []);
 
   useEffect(() => {
     fetchHoaDons();
@@ -128,9 +214,7 @@ const CounterSales = () => {
 
   const handleCreateOrder = async () => {
     if (hoaDons.length >= 6) {
-      showAlert('Chỉ được tạo tối đa 6 hoá đơn cùng lúc!');
-      setAlertSeverity('warning');
-      setAlertOpen(true);
+      toast.warning('Chỉ được tạo tối đa 6 hoá đơn cùng lúc!');
       return;
     }
     setLoading(true);
@@ -140,15 +224,15 @@ const CounterSales = () => {
       setSanPhamsMap(prev => ({ ...prev, [newHoaDon.id]: [] }));
       setActiveTab(newHoaDon.id);
       setConnectError(false);
-
-      showAlert('Tạo đơn hàng thành công!');
-      setAlertSeverity('success');
-      setAlertOpen(true);
-    } catch (err) {
-      showAlert('Tạo đơn thất bại: ' + err.message);
-      setAlertSeverity('error');
-      setAlertOpen(true);
-      setConnectError(true);
+      toast.success('Tạo đơn hàng thành công!');
+    } catch (error) {
+      console.error("Lỗi khi tải dữ liệu:", error.response?.status, error.message);
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        toast.error('Bạn không có quyền truy cập!');
+        // setConnectError(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -173,9 +257,7 @@ const CounterSales = () => {
       const newSoLuong = (existed?.soLuong || 0) + soLuongNhap;
 
       if (newSoLuong > 20) {
-        showAlert('Mỗi sản phẩm chỉ được thêm tối đa 20 sản phẩm!');
-        setAlertSeverity('warning');
-        setAlertOpen(true);
+        toast.warning('Mỗi sản phẩm chỉ được thêm tối đa 20 sản phẩm!');
         return;
       }
 
@@ -207,9 +289,7 @@ const CounterSales = () => {
       setShowProductModal(false);
       setSoLuongNhap(1);
     } catch (err) {
-      showAlert('Lỗi xử lý sản phẩm: ' + err.message);
-      setAlertSeverity('error');
-      setAlertOpen(true);
+      toast.error('Lỗi xử lý sản phẩm: ' + err.message);
     }
   };
 
@@ -225,33 +305,63 @@ const CounterSales = () => {
 
   const calculateTotal = (hoaDonId) =>
     sanPhamsMap[hoaDonId]?.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0) || 0;
-  const exportHoaDonToPDF = async (hoaDonId) => {
-    const element = hoaDonRefs.current[hoaDonId];
-    if (!element) return;
 
-    const canvas = await html2canvas(element);
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF();
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  const handleOpenPdfInNewTab = async (hoaDonId) => {
+    try {
+      // 1. Tạo một div tạm thời để render
+      const tempDiv = document.createElement('div');
+      tempDiv.style.cssText = 'position:absolute; top:0; left:-9999px; background:#fff;';
+      document.body.appendChild(tempDiv);
 
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // 2. Render component vào div tạm
+      const { default: HoaDonPDF } = await import('./InvoicePDFExport');
+      const root = ReactDOM.createRoot(tempDiv);
+      root.render(
+        <HoaDonPDF
+          hoaDon={hoaDons.find(h => h.id === hoaDonId)}
+          sanPhams={sanPhamsMap[hoaDonId] || []}
+          tongTien={calculateTotal(hoaDonId)}
+          tienThue={tienThueMap[hoaDonId] || 0}
+          soDienThoai={soDienThoaiMap[hoaDonId] || ""}
+        />
+      );
 
-    // Mở PDF trong tab mới thay vì tải về
-    pdf.output('dataurlnewwindow');
+      // 3. Đợi render hoàn tất
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 4. Chụp ảnh và tạo PDF
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        logging: true,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      // 5. Hiển thị PDF
+      const pdfUrl = pdf.output('bloburl');
+      window.open(pdfUrl, '_blank');
+
+      // 6. Dọn dẹp
+      root.unmount();
+      document.body.removeChild(tempDiv);
+
+    } catch (error) {
+      console.error('Lỗi chi tiết:', error);
+      toast.error(`Lỗi khi tạo PDF: ${error.message}`);
+    }
   };
-
-
-
-
 
   const handleUpdateProduct = async (sp, hoaDonId) => {
     if (!sp.soLuong || isNaN(sp.soLuong) || Number(sp.soLuong) <= 0) return;
     if (Number(sp.soLuong) > 20) {
-      showAlert('Mỗi sản phẩm chỉ được mua tối đa 20 sản phẩm!');
-      setAlertSeverity('warning');
-      setAlertOpen(true);
+      toast.warning('Mỗi sản phẩm chỉ được mua tối đa 20 sản phẩm!');
       return;
     }
     try {
@@ -269,66 +379,72 @@ const CounterSales = () => {
       setSanPhamsMap(prev => ({ ...prev, [hoaDonId]: list }));
       setConnectError(false);
     } catch (err) {
-      showAlert('Cập nhật thất bại: ' + err.message);
-      setAlertSeverity('error');
-      setAlertOpen(true);
+      toast.err('Cập nhật thất bại: ' + err.message);
       setConnectError(true);
     }
   };
 
   const handleDeleteHoaDon = async (hoaDonId) => {
-    showConfirmDialog({
-      title: 'Xác nhận xoá',
-      message: 'Bạn có chắc muốn xoá hoá đơn này?',
-      label: 'Xoá',
-      color: 'error',
-      onConfirm: async () => {
-        try {
-          await deleteHD(hoaDonId); // API soft delete hoặc chuyển trạng thái
-          setHoaDons(prev => prev.filter(hd => hd.id !== hoaDonId));
-          setActiveTab(prev => {
-            if (prev === hoaDonId && hoaDons.length > 1) {
-              const remaining = hoaDons.filter(hd => hd.id !== hoaDonId);
-              return remaining[0]?.id || null;
-            }
-            return prev;
-          });
-          showAlert("Đã xoá hóa đơn!");
-          setAlertSeverity('success');
-          setAlertOpen(true);
-        } catch (err) {
-          showAlert("Xoá hoá đơn thất bại: " + err.message);
-          setAlertSeverity('error');
-          setAlertOpen(true);
-          setConnectError(true);
-        }
-      }
+    const result = await Swal.fire({
+      title: "Xác nhận xoá hoá đơn",
+      text: "Bạn có chắc chắn muốn xoá hoá đơn này không?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ff0000ff",
+      cancelButtonColor: "#888",
+      confirmButtonText: "Xoá",
+      cancelButtonText: "Hủy",
     });
+    if (result.isConfirmed) {
+      try {
+        await deleteHD(hoaDonId); // API soft delete hoặc chuyển trạng thái
+        setHoaDons(prev => prev.filter(hd => hd.id !== hoaDonId));
+        setActiveTab(prev => {
+          if (prev === hoaDonId && hoaDons.length > 1) {
+            const remaining = hoaDons.filter(hd => hd.id !== hoaDonId);
+            return remaining[0]?.id || null;
+          }
+          return prev;
+        });
+        toast.success("Đã xoá hóa đơn!");
+      } catch (err) {
+        toast.error("Xoá hoá đơn thất bại: " + err.message);
+        setConnectError(true);
+      }
+    }
+
   };
 
 
   const handleDeleteProduct = async (sp, hoaDonId) => {
-    showConfirmDialog({
-      title: 'Xoá sản phẩm',
-      message: 'Bạn có chắc muốn xoá sản phẩm này khỏi hoá đơn?',
-      label: 'Xoá',
-      color: 'error',
-      onConfirm: async () => {
-        try {
-          await deleteHDCT(sp.id);
-          const result = await getHoaDonCTByHoaDonId(hoaDonId);
-          const list = result.content || [];
-          setSanPhamsMap(prev => ({ ...prev, [hoaDonId]: list }));
-          setConnectError(false);
-        } catch (err) {
-          showAlert('Xoá thất bại: ' + err.message);
-          setAlertSeverity('error');
-          setAlertOpen(true);
-          setConnectError(true);
-        }
-      }
-    });
 
+    const result = await Swal.fire({
+      title: "Xác nhận xoá sản phẩm",
+      text: "Bạn có chắc chắn muốn xoá sản phẩm này không?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ff0000ff",
+      cancelButtonColor: "#888",
+      confirmButtonText: "Xoá",
+      cancelButtonText: "Hủy",
+    });
+    if (result.isConfirmed) {
+      if (!sp.id) {
+        toast.error('Không thể xoá sản phẩm không hợp lệ!');
+        return;
+      }
+      try {
+        await deleteHDCT(sp.id);
+        const result = await getHoaDonCTByHoaDonId(hoaDonId);
+        const list = result.content || [];
+        setSanPhamsMap(prev => ({ ...prev, [hoaDonId]: list }));
+        setConnectError(false);
+        toast.success("Xoá sản phẩm thành công!", { autoClose: 2000 });
+      } catch (err) {
+        toast.error('Xoá sản phẩm thất bại: ' + err.message);
+        setConnectError(true);
+      }
+    }
   };
 
   // Hàm lấy số lượng tồn kho thực tế từ API cho từng sản phẩm chi tiết
@@ -383,9 +499,7 @@ const CounterSales = () => {
 
   const handleSearchCustomer = async (hoaDonId) => {
     if (!searchSdt) {
-      showAlert('Vui lòng nhập số điện thoại khách hàng!');
-      setAlertSeverity('warning');
-      setAlertOpen(true);
+      toast.warning('Vui lòng nhập số điện thoại khách hàng!');
       return;
     }
     try {
@@ -404,60 +518,56 @@ const CounterSales = () => {
           ...prev,
           [hoaDonId]: null
         }));
-        showAlert('Không tìm thấy khách hàng!');
-        setAlertSeverity('warning');
-        setAlertOpen(true);
+        toast.warning('Không tìm thấy khách hàng!');
       }
     } catch {
       setKhachHangMap(prev => ({
         ...prev,
         [hoaDonId]: null
       }));
-      showAlert('Không tìm thấy khách hàng!');
-      setAlertSeverity('error');
-      setAlertOpen(true);
+      toast.error('Không tìm thấy khách hàng!');
     }
   };
 
   const handleUpdateHoaDonWithKhachHang = async (hoaDonId, khachHang, hinhThucNhanHang = 0, diaChiNhanId = null) => {
     try {
       await updateHDCTWithKH(hoaDonId, khachHang.id, hinhThucNhanHang, diaChiNhanId);
-      showAlert('Cập nhật khách hàng cho hóa đơn thành công!');
-      setAlertSeverity('success');
-      setAlertOpen(true);
+      toast.success('Cập nhật khách hàng cho hóa đơn thành công!');
       setXacNhanKhachHangMap(prev => ({
         ...prev,
         [hoaDonId]: true
       }));
+      await fetchHoaDons();
     } catch (err) {
-      showAlert('Cập nhật khách hàng thất bại: ' + err.message);
-      setAlertSeverity('error');
-      setAlertOpen(true);
+      const errorMessage = err.response?.data?.message || 'Lỗi khi cập nhật khách hàng!';
+      console.error('Chi tiết lỗi:', err.response?.data?.message);
+      toast.error('Cập nhật khách hàng thất bại: ' + errorMessage);
     }
   };
 
 
 
-  const handleXacNhanDonHang = async (hoaDonId) => {
-    const sanPhams = sanPhamsMap[hoaDonId] || [];
-    const tongSoLuongSp = sanPhams.reduce((sum, sp) => sum + sp.soLuong, 0);
-    const tongTien = sanPhams.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0);
-
-    if (tongSoLuongSp === 0) {
-      showAlert('Không có sản phẩm nào trong hoá đơn!');
-      setAlertSeverity('warning');
-      setAlertOpen(true);
-      return;
-    }
-
-    const hinhThucNhanHang = hinhThucNhanHangMap[hoaDonId] || 0;
-    const selectedPaymentId = hinhThucThanhToanMap[hoaDonId];
-    const trangThai = trangThaiHoaDonMap[hoaDonId] || 6;
-    const moTa = moTaHoaDonMap[hoaDonId] || "Đơn hàng tại quầy";
-
+  const handleXacNhanDonHang = async (hoaDonId, hinhThucNhanHang, isVnpayPaymentConfirmed = false) => {
     try {
-      if (selectedPaymentId === 3) {
-        // Nếu thanh toán qua VNPAY
+      const sanPhams = sanPhamsMap[hoaDonId] || [];
+      const tongSoLuongSp = sanPhams.reduce((sum, sp) => sum + sp.soLuong, 0);
+      let tongTien = sanPhams.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0);
+      setTienThueMap(prev => ({ ...prev, [hoaDonId]: 0 }));
+      if (hinhThucNhanHang === 1) {
+        setTienThueMap(prev => ({ ...prev, [hoaDonId]: 30000 }));
+        tongTien += 30000; // phí ship
+      }
+
+      if (tongSoLuongSp === 0) {
+        toast.warning('Không có sản phẩm nào trong hoá đơn!');
+        return;
+      }
+
+      let ptThanhToanId = hinhThucThanhToanMap[hoaDonId] || 2;
+      const moTa = moTaHoaDonMap[hoaDonId] || "Đơn hàng tại quầy";
+
+      // Logic xử lý VNPAY
+      if (!isVnpayPaymentConfirmed && ptThanhToanId === 3) {
         const donHangData = {
           idDonHang: hoaDonId,
           loaiHoaDon: "TẠI QUẦY",
@@ -466,88 +576,74 @@ const CounterSales = () => {
         };
 
         const url = await submitVNPayOrder(donHangData);
-
-        // Hiển thị QR tại chỗ
         setVnpayUrl(url);
         setShowVnpayQR(true);
         console.log("vnpayUrl hiện tại: ", url);
 
-        showAlert('Vui lòng quét mã QR để thanh toán qua VNPAY');
-        setAlertSeverity('info');
-        setAlertOpen(true);
-
+        toast.info('Vui lòng quét mã QR để thanh toán qua VNPAY');
         return;
       }
 
-      // Cập nhật hóa đơn khi không phải VNPAY
+      if (isVnpayPaymentConfirmed) {
+        ptThanhToanId = 3;
+      }
+      let tongTienUpdate = tongTien;
+      if (hinhThucNhanHang === 1) {
+        tongTienUpdate -= 30000;
+      }
+
       await updateHoaDonFull(hoaDonId, {
-        ptThanhToanId: selectedPaymentId,
+        ptThanhToanId,
         tongSoLuongSp,
-        tongTien,
+        tongTien: tongTienUpdate,
         hinhThucNhanHang,
-        trangThai,
+        trangThai: hinhThucNhanHang,
         moTa
       });
 
-      showAlert('Cập nhật hóa đơn thành công!');
-      setAlertSeverity('success');
-      setAlertOpen(true);
+      toast.success('Cập nhật hóa đơn thành công!');
 
-      await exportHoaDonToPDF(hoaDonId);
       await fetchHoaDons();
-      setShowVnpayQR(false); // Ẩn QR nếu có hiển thị trước đó
+      await handleOpenPdfInNewTab(hoaDonId);
+      setShowVnpayQR(false);
     } catch (err) {
-      showAlert('Cập nhật thất bại: ' + (err.message || 'Đã xảy ra lỗi'));
-      setAlertSeverity('error');
-      setAlertOpen(true);
+      toast.error('Cập nhật thất bại: ' + (err.message || 'Đã xảy ra lỗi'));
     }
   };
-
-  const handleXacNhanThanhToan = async (hoaDonId) => {
-    const sanPhams = sanPhamsMap[hoaDonId] || [];
-    const tongSoLuongSp = sanPhams.reduce((sum, sp) => sum + sp.soLuong, 0);
-    const tongTien = sanPhams.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0);
-
-    if (tongSoLuongSp === 0) {
-      showAlert('Không có sản phẩm nào trong hoá đơn!');
-      setAlertSeverity('warning');
-      setAlertOpen(true);
-      return;
-    }
-
-    const hinhThucNhanHang = hinhThucNhanHangMap[hoaDonId] || 0;
-    const selectedPaymentId = hinhThucThanhToanMap[hoaDonId];
-    const trangThai = trangThaiHoaDonMap[hoaDonId] || 6;
-    const moTa = moTaHoaDonMap[hoaDonId] || "Đơn hàng tại quầy";
-
+  const handleXacNhanThanhToan = async (hoaDonId, hinhThucNhanHang) => {
     try {
-      // Cập nhật hóa đơn khi không phải VNPAY
+      const sanPhams = sanPhamsMap[hoaDonId] || [];
+      const hoaDon = hoaDons.find(hd => hd.id === hoaDonId);
+      const tongSoLuongSp = sanPhams.reduce((sum, sp) => sum + sp.soLuong, 0);
+      let tongTien = sanPhams.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0);
+
+
       await updateHoaDonFull(hoaDonId, {
-        ptThanhToanId: 3,
+        ...hoaDon,
         tongSoLuongSp,
-        tongTien,
+        ptThanhToanId: 3,
+        moTa: "Đơn hàng tại quầy",
         hinhThucNhanHang,
-        trangThai,
-        moTa
+        trangThai: hinhThucNhanHang,
+        tongTien: tongTien
       });
 
-      showAlert('Cập nhật hóa đơn thành công!');
-      setAlertSeverity('success');
-      setAlertOpen(true);
+      toast.success('Cập nhật hóa đơn thành công!');
 
-      await exportHoaDonToPDF(hoaDonId);
+
       await fetchHoaDons();
-      setShowVnpayQR(false); // Ẩn QR nếu có hiển thị trước đó
-    } catch (err) {
-      showAlert('Cập nhật thất bại: ' + (err.message || 'Đã xảy ra lỗi'));
-      setAlertSeverity('error');
-      setAlertOpen(true);
+      await handleOpenPdfInNewTab(hoaDonId);
+      setShowVnpayQR(false);
+
+    } catch (error) {
+      console.error("Lỗi khi xác nhận thanh toán:", error);
+      toast.error('Cập nhật hóa đơn thất bại!');
     }
   };
 
 
   return (
-    <div className="container-fluid py-4 px-5 bg-white min-vh-100">
+    <div className="container-fluid py-4 px-5 bg-white">
       <h5 className="fw-bold mb-4">QUẢN LÝ BÁN HÀNG</h5>
 
       {connectError && (
@@ -599,22 +695,23 @@ const CounterSales = () => {
                       <FontAwesomeIcon icon={faPlus} className="me-1" /> Thêm sản phẩm
                     </button>
                   </div>
-                  <table className="table table-bordered">
+                  <table className="table table-bordered align-middle text-center" style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
                     <thead className="table-light">
                       <tr>
-                        <th>#</th>
-                        <th>Mã</th>
-                        <th>Tên</th>
-                        <th>Số lượng</th>
-                        <th>Kho</th>
-                        <th>Giá</th>
-                        <th>Ngày tạo</th>
-                        <th>Hành động</th>
+                        <th style={{ width: 40 }}>#</th>
+                        <th style={{ minWidth: 80 }}>Mã</th>
+                        <th style={{ minWidth: 160 }}>Tên</th>
+                        <th style={{ width: 120 }}>Số lượng</th>
+                        <th style={{ width: 80 }}>Kho</th>
+                        <th style={{ minWidth: 100 }}>Giá</th>
+                        <th style={{ width: 80 }}>Hành động</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(sanPhamsMap[hd.id]?.length ?? 0) === 0 ? (
-                        <tr><td colSpan={8} className="text-center text-muted">Chưa có sản phẩm nào</td></tr>
+                        <tr>
+                          <td colSpan={7} className="text-center text-muted py-4">Chưa có sản phẩm nào</td>
+                        </tr>
                       ) : (
                         [...sanPhamsMap[hd.id]]
                           .sort((a, b) => (a.maSanPhamCtAdm || '').localeCompare(b.maSanPhamCtAdm || ''))
@@ -622,15 +719,14 @@ const CounterSales = () => {
                             <tr key={sp.id}>
                               <td>{idx + 1}</td>
                               <td>{sp.maSanPhamCtAdm}</td>
-                              <td>{sp.tenSanPham}</td>
+                              <td className="text-start">{sp.tenSanPham}</td>
                               <td>
                                 <div className="d-flex align-items-center justify-content-center gap-2">
                                   <button
                                     className="btn btn-sm btn-outline-secondary"
                                     style={{ minWidth: 28, padding: 0 }}
                                     onClick={() => handleUpdateProduct({ ...sp, soLuong: sp.soLuong - 1 }, hd.id)}
-                                    disabled={sp.soLuong <= 1 || sanPhamGiaThayDoiMap[sp.id]}
-                                    title={sanPhamGiaThayDoiMap[sp.id] ? "Sản phẩm có giá thay đổi, chỉ được xóa" : "Giảm"}
+                                    title={sanPhamGiaThayDoiMap[sp.id] ? "Sản phẩm có giá thay đổi, chỉ được xóa hoặc giảm" : "Giảm"}
                                   >-</button>
                                   <span style={{ minWidth: 32, display: 'inline-block', textAlign: 'center' }}>{sp.soLuong}</span>
                                   <button
@@ -649,19 +745,16 @@ const CounterSales = () => {
                                   {sanPhamGiaThayDoiMap[sp.id] && (
                                     <div>
                                       <small className="text-danger">
-                                        (Giá gốc: {(giaGocMap[sp.sanPhamCTId || sp.id] || 0).toLocaleString()}₫)
+                                        (Giá mới: {(giaGocMap[sp.sanPhamCTId || sp.id] || 0).toLocaleString()}₫)
                                       </small>
                                     </div>
                                   )}
                                 </div>
                               </td>
-                              <td>{sp.ngayTao ? new Date(sp.ngayTao).toLocaleString() : ''}</td>
-                              <td className="text-center align-middle">
-                                <div className="d-flex justify-content-center gap-2">
-                                  <button className="btn btn-link p-0 text-danger" title="Xoá" onClick={() => handleDeleteProduct(sp, hd.id)}>
-                                    <FontAwesomeIcon icon={faTrash} size="lg" />
-                                  </button>
-                                </div>
+                              <td>
+                                <button className="btn btn-link p-0 text-danger" title="Xoá" onClick={() => handleDeleteProduct(sp, hd.id)}>
+                                  <FontAwesomeIcon icon={faTrash} size="lg" />
+                                </button>
                               </td>
                             </tr>
                           ))
@@ -672,6 +765,7 @@ const CounterSales = () => {
 
                 <div className="col-md-4">
                   <Client
+                    ref={clientRef}
                     hoaDonId={hd.id}
                     khachHangMap={khachHangMap}
                     showSearchInput={showSearchInput}
@@ -699,6 +793,10 @@ const CounterSales = () => {
                     setDiaChiNhanId={val =>
                       setDiaChiNhanIdMap(prev => ({ ...prev, [hd.id]: val }))
                     }
+                    setSoDienThoai={soDienThoai =>
+                      setSoDienThoaiMap(prev => ({ ...prev, [hd.id]: soDienThoai }))
+                    }
+
 
                   />
 
@@ -728,13 +826,17 @@ const CounterSales = () => {
 
                     <div className="mt-2">
                       <p>Tổng tiền: {OriginalPrice(hd.id).toLocaleString()} ₫</p>
-                      <p>Phí vận chuyển: 0 ₫</p>
-                      <p>Giảm giá: <strong>
-                        {(OriginalPrice(hd.id) - calculateTotal(hd.id)).toLocaleString()}
-                        &nbsp;₫
-                      </strong></p>
-                      {/* <input className="form-control" placeholder="Nhập mã giảm giá" /> */}
+                      <p>
+                        Phí vận chuyển:{" "}
+                        {(hinhThucNhanHangMap[hd.id] === 1 ? 30000 : 0).toLocaleString()} ₫
+                      </p>
+                      <p>
+                        Giảm giá: <strong>
+                          {(OriginalPrice(hd.id) - calculateTotal(hd.id)).toLocaleString()} ₫
+                        </strong>
+                      </p>
                     </div>
+
                     {hinhThucThanhToanMap[hd.id] !== 3 && (
                       <div className="mt-3">
                         <label>Số tiền khách đưa:</label>
@@ -753,41 +855,67 @@ const CounterSales = () => {
                           Tiền thừa:&nbsp;
                           <strong>
                             {tienKhachDuaMap[hd.id]
-                              ? (tienKhachDuaMap[hd.id] - calculateTotal(hd.id)).toLocaleString()
+                              ? (() => {
+                                const tongThanhToan = calculateTotal(hd.id) + (hinhThucNhanHangMap[hd.id] === 1 ? 30000 : 0);
+                                const tienThua = tienKhachDuaMap[hd.id] - tongThanhToan;
+                                return tienThua < 0
+                                  ? "Vui lòng đưa đủ tiền"
+                                  : `${tienThua.toLocaleString()} ₫`;
+                              })()
                               : 0}
-                            &nbsp;₫
                           </strong>
                         </div>
                       </div>
                     )}
-                    <h6 className="mt-3">Tổng thanh toán: {calculateTotal(hd.id).toLocaleString()} ₫</h6>
+                    <h6 className="mt-3">
+                      Tổng thanh toán: {(
+                        calculateTotal(hd.id) +
+                        (hinhThucNhanHangMap[hd.id] === 1 ? 30000 : 0)
+                      ).toLocaleString()} ₫
+                    </h6>
+                    <h6 className="mt-3" style={{ display: 'none' }}>
+                      Tổng thanh toán: {calculateTotal(hd.id).toLocaleString()} ₫
+                    </h6>
+
                     <button
                       className="btn btn-success mt-3 w-100"
-                      onClick={() => handleXacNhanDonHang(hd.id)}
+                      onClick={async () => {
+                        handleXacNhanDonHang(hd.id, hinhThucNhanHangMap[hd.id]);
+                      }}
                       disabled={
                         !xacNhanKhachHangMap[hd.id] || (
                           hinhThucThanhToanMap[hd.id] !== 3 &&
                           (
                             !tienKhachDuaMap[hd.id] ||
-                            tienKhachDuaMap[hd.id] < calculateTotal(hd.id)
+                            tienKhachDuaMap[hd.id] < (calculateTotal(hd.id) + (hinhThucNhanHangMap[hd.id] === 1 ? 30000 : 0))
                           )
                         )
                       }
-
                     >
                       Xác nhận đơn hàng
                     </button>
-                    <div style={{ position: 'absolute', top: 0, left: '-9999px' }}>
-                      {hoaDons.map(hd => (
-                        <HoaDonPDFExport
-                          key={hd.id}
-                          ref={el => (hoaDonRefs.current[hd.id] = el)}
-                          hoaDon={hd}
-                          sanPhams={sanPhamsMap[hd.id] || []}
-                          tongTien={calculateTotal(hd.id)}
-                        />
-                      ))}
-                    </div>
+                    {showPdfPreview && (
+                      <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999 }}>
+                        <React.Suspense fallback={<div>Đang tải hóa đơn...</div>}>
+                          {hoaDons.map(hd => (
+                            <HoaDonPDFExport
+                              key={`pdf-${hd.id}`}
+                              ref={el => {
+                                if (el) {
+                                  hoaDonRefs.current[hd.id] = el;
+                                  console.log(`Đã gán ref cho ${hd.id}`, el);
+                                }
+                              }}
+                              hoaDon={hd}
+                              sanPhams={sanPhamsMap[hd.id] || []}
+                              tongTien={calculateTotal(hd.id)}
+                              tienThue={tienThueMap[hd.id] || 0}
+                              soDienThoai={soDienThoaiMap[hd.id] || ""}
+                            />
+                          ))}
+                        </React.Suspense>
+                      </div>
+                    )}
                     {showVnpayQR && vnpayUrl && (
                       <div
                         style={{
@@ -876,7 +1004,7 @@ const CounterSales = () => {
                           {/* Nút xác nhận và đóng */}
                           <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 24 }}>
                             <button
-                              onClick={() => handleXacNhanThanhToan(hd.id)}
+                              onClick={() => handleXacNhanThanhToan(hd.id, hinhThucNhanHangMap[hd.id])}
                               style={{
                                 padding: "8px 16px",
                                 backgroundColor: "#38a169",
@@ -908,25 +1036,8 @@ const CounterSales = () => {
                     )}
 
 
-
                   </div>
                 </div>
-                <CustomAlert
-                  alertOpen={alertOpen}
-                  alertMessage={alertMessage}
-                  alertSeverity={alertSeverity}
-                  onClose={handleCloseAlert}
-                />
-                <CustomConfirm
-                  open={confirmOpen}
-                  title={confirmTitle}
-                  message={confirmMessage}
-                  onCancel={() => setConfirmOpen(false)}
-                  onConfirm={handleConfirm}
-                  confirmLabel={confirmLabel}
-                  confirmColor={confirmColor}
-                  confirmVariant="contained"
-                />
 
               </div>
             );
@@ -976,8 +1087,11 @@ const CounterSales = () => {
           </div>
         </div>
       )}
+
     </div>
   );
+
+
 };
 
 export default CounterSales;
