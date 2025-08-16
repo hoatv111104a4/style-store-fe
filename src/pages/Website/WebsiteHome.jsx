@@ -144,7 +144,7 @@ const WebsiteHome = () => {
                       <button
                         className="product-order-btn btn mt-auto"
                         style={{ backgroundColor: "#222", color: "#fff" }}
-                        onClick={() => navigate(`/website/san-pham/chi-tiet-san-pham/${spct.id}`)}
+                        onClick={() => navigate(`/website/san-pham/chi-tiet-san-pham/${spct.sanPhamId}`)}
                       >
                         <i className="bi bi-cart-fill" style={{ color: "#fff" }}></i> Đặt hàng
                       </button>

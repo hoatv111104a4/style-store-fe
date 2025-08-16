@@ -160,3 +160,43 @@ export const updateMyInfo = async (userUpdateRequest) => {
   }
 };
 
+
+
+export const getMyInfoAdmin = async () => {
+  try {
+    const token = Cookies.get("adminToken");
+    if (!token) {
+      throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await apiClient.get("/thong-tin-cua-toi", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API lấy thông tin người dùng hiện tại:", error.message || error);
+    throw error;
+  }
+};
+
+export const updateMyInfoAdmin = async (userUpdateRequest) => {
+  try {
+    const token = Cookies.get("adminToken");
+    if (!token) {
+      throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await apiClient.put("/cap-nhat-thong-tin-cua-toi", userUpdateRequest, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API cập nhật thông tin người dùng hiện tại:", error.message || error);
+    throw error;
+  }
+};
+

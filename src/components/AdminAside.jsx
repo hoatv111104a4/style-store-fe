@@ -150,9 +150,9 @@ const AdminAside = () => {
         </li>
         <li className="nav-item mb-2">
           <NavLink
-            className={`admin-nav-link${!isProductRoute && !isAccountRoute && location.pathname === "/admin/quan-ly-don-hang" ? " active" : ""}`}
+            className={`admin-nav-link${!isProductRoute && !isAccountRoute && location.pathname === "/admin/quan-ly-hoa-don" ? " active" : ""}`}
             onClick={() => { setOpenProduct(false); setOpenAccount(false); }}
-            to="/admin/quan-ly-don-hang">
+            to="/admin/quan-ly-hoa-don">
             <i className="bi bi-clipboard-data me-2"></i> Quản lý đơn hàng            
           </NavLink>
         </li>

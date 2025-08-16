@@ -43,7 +43,11 @@ import AccessDenied from "./pages/AccessDenied";
 import UserProfile from "./pages/MyInfo";
 import AdminLogin from "./pages/AdminLogin";
 import UserProfileAdmin from "./pages/MyInfoAdmin";
-
+import HoaDonAdminList from "./pages/Admin/HoaDonAdminNew";
+import HoaDonDetailPage from "./pages/Admin/ChiTietHoaDonAdmin";
+import SanPhamAdminPage from "./pages/Admin/SanPhamAdminPage";
+import AddSanPhamChiTietAdmin from "./pages/Admin/AddSanPhamAdminNew";
+import UpdateSpCtPage from "./pages/Admin/UpdateSpCtModal";
 function App() {
   return (
     <BrowserRouter>
@@ -65,11 +69,10 @@ function App() {
           <Route path="/website/thong-tin-ca-nhan" element={<UserProfile />} />
         </Route>
 
-        {/* Routes cho AdminLayout */}
         <Route element={<AdminLayout />}>
           <Route path="/admin/thong-ke" element={<AdminDashboard />} />
           <Route path="/admin/ban-hang-tai-quay" element={<CounterSales />} />
-          <Route path="/admin/quan-ly-don-hang" element={<OrderManagement />} />
+          <Route path="/admin/quan-ly-hoa-don" element={<HoaDonAdminList />} />
           <Route path="/admin/giam-gia" element={<Discounts />} />
           <Route path="/admin/quan-ly-tra-hang" element={<ReturnManagement />} />
           <Route path="/dang-xuat" element={<Logout />} />
@@ -81,16 +84,17 @@ function App() {
           <Route path="/admin/quan-ly-sp/kich-thuoc" element={<SizePage />} />
           <Route path="/admin/quan-ly-sp/xuat-xu" element={<OriginPage />} />
           <Route path="/admin/quan-ly-sp/san-pham" element={<Products />} />
-          <Route path="/admin/san-pham-chi-tiet/:id" element={<SanPhamCtPage />} />
-          <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddProductWithDetailsPage />} />
+          <Route path="/admin/san-pham-chi-tiet/:sanPhamId" element={<SanPhamAdminPage />} />
+          <Route path="/admin/quan-ly-sp/them-san-pham" element={<AddSanPhamChiTietAdmin />} />
           <Route path="/admin/giam-gia/them-phieu-giam-gia" element={<AddVoucher />} />
           <Route path="/admin/giam-gia/chi-tiet/:id" element={<UpdateVoucher />} />
-          <Route path="/admin/orders/:id" element={<OrderDetailAdmin />} />
+          <Route path="/admin/hoa-don/chi-tiet-hoa-don/:id" element={<HoaDonDetailPage />} />
           <Route path="/admin/tai-khoan/nhan-vien/them-nhan-vien" element={<AddStaff />} />
           <Route path="/admin/tai-khoan/nhan-vien/chi-tiet/:id" element={<UpdateStaff />} />
           <Route path="/admin/tai-khoan/khach-hang/them-khach-hang" element={<AddCustomer />} />
           <Route path="/admin/tai-khoan/khach-hang/chi-tiet/:id" element={<UpdateCustomer />} />
           <Route path="/website/thong-tin-ca-nhan-cua-toi" element={<UserProfileAdmin />} />
+          <Route path="/admin/san-pham-chi-tiet/chi-tiet/:id" element={<UpdateSpCtPage />} />
 
         </Route>
         <Route path="/access-denied" element={<AccessDenied />} />

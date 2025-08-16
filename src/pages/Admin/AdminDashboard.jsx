@@ -368,7 +368,6 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
                         <tr>
                             <th>Hình ảnh</th>
                             <th>Tên sản phẩm</th>
-                            <th>Mã sản phẩm chi tiết</th>
                             <th>Tổng số lượng bán</th>
                             <th>Tổng tiền bán</th>
                         </tr>
@@ -385,7 +384,6 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
                                     />
                                 </td>
                                     <td>{item.tenSanPhamTK || "?"}</td>
-                                    <td>{item.maSanPhamCtTK || "?"}</td>
                                     <td>{item.tongSoLuongBanTK?.toLocaleString() || 0}</td>
                                     <td>{item.tongTienBanTK?.toLocaleString() || 0} VND</td>
                                 </tr>

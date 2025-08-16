@@ -14,7 +14,7 @@ const AdminLayout = () => {
       <div className={`bg-white border-end ${sidebarOpen ? "d-block" : "d-none d-md-block"}`} style={{ width: "250px", flexShrink: 0 }}>
         <AdminAside />
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <AdminNavbar toggleSidebar={toggleSidebar} />
         <AdminContent style={{ paddingTop: "60px" }}>
           <Outlet />

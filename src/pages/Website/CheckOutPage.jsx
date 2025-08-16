@@ -40,7 +40,7 @@ const CheckOutPage = () => {
   const [provinceNames, setProvinceNames] = useState({});
   const [districtNames, setDistrictNames] = useState({});
   const [wardNames, setWardNames] = useState({});
-  const [shippingFee] = useState(30000);
+  const [shippingFee] = useState(0);
   const [expectedDate, setExpectedDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -211,7 +211,7 @@ const CheckOutPage = () => {
     setForm({
       ...form,
       name: address.tenNguoiNhan,
-      phone: address.soDienThoai,
+      phone: address.soDtNguoiNhan,
       province: provinceCode,
       district: districtCode,
       ward: wardCode,
@@ -255,6 +255,7 @@ const CheckOutPage = () => {
         soLuong: item.quantity,
         thanhTien: item.quantity * item.giaBan,
       })),
+      soDtNguoiNhan: form.phone,
     };
 
     try {
@@ -527,7 +528,7 @@ const CheckOutPage = () => {
               </table>
               <Box className="d-flex justify-content-between mb-2">
                 <span>Phí vận chuyển:</span>
-                <span>{shippingFee.toLocaleString("vi-VN")}₫</span>
+                <span>Chi phí sẽ được thông báo bởi người gửi</span>
               </Box>
               <Box className="d-flex justify-content-between mb-2">
                 <span>Ngày nhận dự kiến:</span>

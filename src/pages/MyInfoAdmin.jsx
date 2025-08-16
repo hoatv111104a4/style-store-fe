@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { getMyInfo, updateMyInfo } from "../services/Website/UserApi2";
+import { getMyInfoAdmin, updateMyInfoAdmin } from "../services/Website/UserApi2";
 import Swal from "sweetalert2";
 
 const API_PROVINCE = "https://provinces.open-api.vn/api/";
@@ -158,7 +158,7 @@ const UserProfileAdmin = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await getMyInfo();
+        const res = await getMyInfoAdmin();
         const userData = res?.result || {};
         const formattedNamSinh = userData.namSinh
           ? new Date(userData.namSinh).toISOString().split("T")[0]
@@ -280,7 +280,7 @@ const UserProfileAdmin = () => {
 
     if (result.isConfirmed) {
       try {
-        await updateMyInfo(payload);
+        await updateMyInfoAdmin(payload);
         toast.success("Cập nhật thông tin thành công!");
       } catch (err) {
         toast.error("Lỗi khi cập nhật thông tin!");

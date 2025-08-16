@@ -184,7 +184,7 @@ const XuatXu = () => {
       e.preventDefault();
       const isValid = await validateForm();
       if (!isValid) {
-        setAlertMessage('Vui lòng kiểm tra lại thông tin nhập');
+        setAlertMessage('Vui lòng kiểm tra lại thông tin đã nhập');
         setAlertType('error');
         return;
       }

@@ -343,7 +343,7 @@ const Products = () => {
                           <span className="d-none d-md-inline">Xem</span>
                         </button>
                       </Tooltip>
-                      {/* <Tooltip title={product.totalQuantity === 0 ? 'Không thể chuyển đổi trạng thái' : (product.trangThai === 1 ? 'Tạm ngưng' : 'Đang kinh doanh')} arrow>
+                      { <Tooltip title={product.totalQuantity === 0 ? 'Không thể chuyển đổi trạng thái' : (product.trangThai === 1 ? 'Tạm ngưng' : 'Đang kinh doanh')} arrow>
                         <button
                           onClick={() =>
                             product.totalQuantity !== 0 &&
@@ -374,7 +374,7 @@ const Products = () => {
                             {product.trangThai === 1 ? "Ngưng" : "Kinh doanh"}
                           </span>
                         </button>
-                      </Tooltip> */}
+                      </Tooltip> }
                     </div>
                   </td>
                 </tr>
