@@ -16,6 +16,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getMyInfo, updateMyInfo } from "../services/Website/UserApi2";
 import Swal from "sweetalert2";
+import Account from "../pages/Account"
 
 const API_PROVINCE = "https://provinces.open-api.vn/api/";
 
@@ -492,9 +493,10 @@ const UserProfile = () => {
           </Grid>
         </Grid>
       </Box>
-
+      <Account />
       <ToastContainer />
     </Box>
+    
   );
 };
 

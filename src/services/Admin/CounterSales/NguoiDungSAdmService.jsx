@@ -9,6 +9,10 @@ const axiosInstance = axios.create({
         'Content-Type': 'application/json',
     },
 });
+const apiClient = axios.create({
+    baseURL: "http://localhost:8080/api/admin/nguoi-dung",
+    timeout: 10000,
+});
 
 // Hàm lấy danh sách khach hàng theo số điện thoại
 export const getKHBySdt = async (sdt) => {
@@ -47,17 +51,31 @@ export const searchUserById = async (id) => {
     }
 }
 // su dung dia chi
-export const addNguoiDung = async (data) => {
+export const addNguoiDung = async (userCreationRequest) => {
     try {
-        const response = await axiosInstance.post('/addND', data); // <-- dùng axiosInstance
+        const response = await apiClient.post('/addND', userCreationRequest);
         return response.data;
     } catch (error) {
-        if (error.response?.status === 401) {
-            throw new Error('Vui lòng đăng nhập lại');
+        if (error.response) {
+            // Kiểm tra mã lỗi HTTP và hiển thị thông báo lỗi từ backend
+            if (error.response.status === 400) {
+                const errorMessage = error.response.data?.result || 'Lỗi từ máy chủ';
+                console.error(errorMessage); // Log lỗi ra console để kiểm tra
+                throw error; // Ném lỗi cho FE
+            }
+            throw error;
+        } else if (error.request) {
+            // Nếu không nhận được phản hồi từ server
+            throw error;
+        } else {
+            // Lỗi khác
+            throw error;
         }
-        throw new Error(error.response?.data?.message || 'Lỗi hệ thống');
     }
 };
+
+
+
 
 export const getDCNhan = async (id) => {
     try {

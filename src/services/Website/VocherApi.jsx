@@ -33,7 +33,7 @@ export const createVoucher = async (voucherData) => {
 
 export const applyVoucher = async (applyData) => {
   try {
-    const token = Cookies.get("token");
+    const token = Cookies.get("adminToken");
 
     if (!token) {
       throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");

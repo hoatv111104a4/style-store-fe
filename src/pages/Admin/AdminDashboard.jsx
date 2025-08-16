@@ -11,11 +11,109 @@ import {
 } from 'chart.js';
 import dayjs from 'dayjs';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
-import { getHoaDonByNgayBatDauVaKetThuc, getHoaDonByNgayBatDauVaKetThucT } from '../../services/Admin/CounterSales/HoaDonSAdmService';
+import { getHoaDonByNgayBatDauVaKetThuc, getHoaDonByNgayBatDauVaKetThucT,getAllHDC } from '../../services/Admin/CounterSales/HoaDonSAdmService';
 import { thongKeTheoThang, thongKeTheoNam, thongKeTheoTuan } from '../../services/Admin/ThongKe/ThongKeService';
+import { useNavigate } from "react-router-dom";
 
 dayjs.extend(weekOfYear);
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+
+const dashboardStyle = `
+.table {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    border: none;
+}
+.table thead th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #222;
+    border-bottom: 2px solid #f0f0f0;
+    font-size: 15px;
+}
+.table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+}
+.table tbody tr:last-child {
+    border-bottom: none;
+}
+.table td, .table th {
+    vertical-align: middle;
+    border: none;
+    font-size: 15px;
+}
+.table img {
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+.btn, .form-control {
+    border-radius: 8px !important;
+    font-weight: 500;
+    font-size: 15px;
+    transition: background 0.2s, color 0.2s;
+}
+.btn-primary {
+    background: #ff6600 !important;
+    border-color: #ff6600 !important;
+    color: #fff !important;
+}
+.btn-primary:hover, .btn-primary:focus {
+    background: #e65c00 !important;
+    border-color: #e65c00 !important;
+}
+.btn-outline-primary {
+    color: #ff6600 !important;
+    border-color: #ff6600 !important;
+    background: #fff !important;
+}
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+    background: #ff6600 !important;
+    color: #fff !important;
+}
+.btn-secondary {
+    background: #f0f0f0 !important;
+    color: #333 !important;
+    border: none !important;
+}
+.btn-secondary:hover, .btn-secondary:focus {
+    background: #e0e0e0 !important;
+}
+.btn-info {
+    background: #e6f0ff !important;
+    color: #1976d2 !important;
+    border: none !important;
+}
+.btn-info:hover, .btn-info:focus {
+    background: #bbdefb !important;
+    color: #1976d2 !important;
+}
+.btn-danger {
+    background: #ffebee !important;
+    color: #d32f2f !important;
+    border: none !important;
+}
+.btn-danger:hover, .btn-danger:focus {
+    background: #ffcdd2 !important;
+    color: #d32f2f !important;
+}
+.form-control {
+    border: 1px solid #e0e0e0 !important;
+    background: #fafbfc !important;
+    color: #222 !important;
+    box-shadow: none !important;
+}
+.card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    background: #fff;
+}
+.table-bordered > :not(caption) > * > * {
+    border-width: 0;
+}
+`;
 
 const DashboardDoanhSo = ({ hoaDons = [] }) => {
     const [doanhSoHomNay, setDoanhSoHomNay] = useState(0);
@@ -25,6 +123,7 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
     const [thongKeData, setThongKeData] = useState([]);
     const [thongKeType, setThongKeType] = useState('month');
     const [chartType, setChartType] = useState('doanhSo'); // Mặc định hiển thị doanh số
+    const navigate = useNavigate();
 
     useEffect(() => {
         const today = dayjs();
@@ -51,25 +150,13 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
         setDoanhSoTuanNay(stats.doanhSoTuan);
         setDoanhSoThangNay(stats.doanhSoThang);
 
-        const fetchTrangThaiData = async () => {
-            try {
-                const start = startOfMonth.format('YYYY-MM-DD');
-                const end = endOfMonth.format('YYYY-MM-DD');
-                const result = await getHoaDonByNgayBatDauVaKetThucT(`${start}T00:00:00`, `${end}T23:59:59`);
-                const countMap = {};
-
-                (result || []).forEach(hd => {
-                    const key = getTrangThaiLabel(hd.trangThai);
-                    countMap[key] = (countMap[key] || 0) + 1;
-                });
-
-                setTongDonTheoTrangThai(countMap);
-            } catch (err) {
-                console.error('Lỗi khi thống kê theo trạng thái:', err);
-            }
-        };
-
-        fetchTrangThaiData();
+        // Thay fetchTrangThaiData bằng xử lý trực tiếp trên hoaDons:
+        const countMap = {};
+        (hoaDons || []).forEach(hd => {
+            const key = getTrangThaiLabel(hd.trangThai);
+            countMap[key] = (countMap[key] || 0) + 1;
+        });
+        setTongDonTheoTrangThai(countMap);
     }, [hoaDons]);
 
     useEffect(() => {
@@ -98,9 +185,14 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
                     console.log('Response from thongKeTheoTuan:', data);
                 }
                 setThongKeData(data || []);
-            } catch (err) {
-                console.error('Lỗi khi gọi API thống kê:', err);
-                setThongKeData([]);
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu:", error.response?.status, error.message);
+                if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                    navigate("/access-denied");
+                } else {
+                    console.error("Lỗi khi tải dữ liệu:", error);
+                    setThongKeData([]);
+                }
             }
         };
 
@@ -110,9 +202,9 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
     const getTrangThaiLabel = (code) => {
         switch (code) {
             case 0: return 'Chờ xác nhận';
-            case 1: return 'Đã thanh toán';
+            case 1: return 'Chờ vận chuyển';
             case 2: return 'Đang vận chuyển';
-            case 3: return 'Chờ vận chuyển';
+            case 3: return 'Đã hoàn thành';
             case 4: return 'Đã huỷ';
             case 5: return 'Hoàn tiền / Trả hàng';
             case 6: return 'Hoá đơn chờ tại quầy';
@@ -154,23 +246,28 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
                 const sortedDates = Object.keys(chartType === 'doanhSo' ? doanhThuTheoNgay : soLuongTheoNgay).sort();
                 return sortedDates.slice(0, index + 1).reduce((sum, d) => sum + (chartType === 'doanhSo' ? (doanhThuTheoNgay[d] || 0) : (soLuongTheoNgay[d] || 0)), 0);
             }),
-            backgroundColor: chartType === 'doanhSo' ? '#3b82f6' : '#ffca28'
+            backgroundColor: chartType === 'doanhSo' ? '#3b82f6' : '#ffca28',
+            barPercentage: 0.5,        // Thêm dòng này để cột nhỏ lại
+            categoryPercentage: 0.6    // Thêm dòng này để cột nhỏ lại
         }]
     };
 
+    const TRANG_THAI = [
+        { label: 'Chờ xác nhận', color: '#ff7043' },         // Cam đậm
+        { label: 'Chờ vận chuyển', color: '#ffd54f' },       // Vàng tươi
+        { label: 'Đang vận chuyển', color: '#42a5f5' },      // Xanh dương sáng
+        { label: 'Đã hoàn thành', color: '#66bb6a' },        // Xanh lá cây
+        { label: 'Đã huỷ', color: '#bdbdbd' },               // Xám nhạt
+        { label: 'Hoàn tiền / Trả hàng', color: '#ab47bc' }, // Tím nhạt
+        { label: 'Hoá đơn chờ tại quầy', color: '#29b6f6' }, // Xanh cyan
+        { label: 'Không xác định', color: '#ef9a9a' },       // Hồng nhạt
+    ];
+
     const doughnutData = {
-        labels: Object.keys(tongDonTheoTrangThai),
+        labels: TRANG_THAI.map(t => t.label),
         datasets: [{
-            data: Object.values(tongDonTheoTrangThai),
-            backgroundColor: [
-                '#ffca28',
-                '#43a047',
-                '#1976d2',
-                '#a3e635',
-                '#e53935',
-                '#607D8B',
-                '#795548'
-            ],
+            data: TRANG_THAI.map(t => (tongDonTheoTrangThai[t.label] > 0 ? tongDonTheoTrangThai[t.label] : 0.0001)),
+            backgroundColor: TRANG_THAI.map(t => t.color),
             borderColor: '#fff',
             borderWidth: 1
         }]
@@ -220,9 +317,26 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
                     </div>
                     <Bar data={barData} />
                 </div>
-                <div className="col-md-4">
+                <div className="col-md-4 d-flex flex-column align-items-center">
                     <h5>Danh mục</h5>
-                    <Doughnut data={doughnutData} />
+                    <div style={{ width: 420, height: 420 }}>
+                        <Doughnut
+                            data={doughnutData}
+                            options={{
+                                cutout: '75%', // Giảm độ rộng vòng tròn, giá trị càng lớn vòng càng mỏng
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        position: 'top',
+                                        labels: {
+                                            boxWidth: 20,
+                                            font: { size: 14 }
+                                        }
+                                    }
+                                }
+                            }}
+                        />
+                    </div>
                     <p className="text-center mt-2">{(hoaDons || []).length} đơn hàng</p>
                 </div>
             </div>
@@ -302,7 +416,8 @@ const AdminDashboard = () => {
         try {
             setLoading(true);
             setError(null);
-            const result = await getHoaDonByNgayBatDauVaKetThuc(
+            // Đổi hàm gọi API ở đây:
+            const result = await getHoaDonByNgayBatDauVaKetThucT(
                 `${startDate}T00:00:00`,
                 `${endDate}T23:59:59`
             );
@@ -326,6 +441,15 @@ const AdminDashboard = () => {
     useEffect(() => {
         fetchHoaDons();
     }, [startDate, endDate]);
+
+    // Thêm đoạn này vào đầu component AdminDashboard (trước return):
+    // (Chỉ cần xuất hiện 1 lần trong file)
+    if (typeof document !== "undefined" && !document.getElementById("dashboard-style")) {
+        const style = document.createElement("style");
+        style.id = "dashboard-style";
+        style.innerHTML = dashboardStyle;
+        document.head.appendChild(style);
+    }
 
     if (loading) return <div>Đang tải dữ liệu...</div>;
     if (error) return <div>{error}</div>;
