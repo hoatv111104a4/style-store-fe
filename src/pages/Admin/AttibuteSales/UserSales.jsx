@@ -95,111 +95,6 @@ const Client = forwardRef(({
             setShowSearchInput(false);
         }
     }, [hoaDonId, khachHangMap]);
-
-    // const handleLocalSearch = async () => {
-    //     if (!searchSdt?.trim()) {
-    //         showAlert('Vui lòng nhập số điện thoại.');
-    //         setAlertSeverity('warning');
-    //         setAlertOpen(true);
-    //         return;
-    //     }
-
-    //     setLoading(true);
-
-    //     try {
-    //         const customerInfo = await getKHBySdt(searchSdt);
-
-    //         if (!customerInfo || !customerInfo.id) {
-    //             throw new Error('Không tìm thấy khách hàng.');
-    //         }
-
-    //         const addressList = await getDiaChiNhanByNguoiDungId(customerInfo.id);
-
-    //         const fullCustomerData = {
-    //             ...customerInfo,
-    //             diaChiNguoiDung: customerInfo.diaChi || '',
-    //             xaNguoiDung: customerInfo.xa || '',
-    //             huyenNguoiDung: customerInfo.huyen || '',
-    //             tinhNguoiDung: customerInfo.tinh || '',
-    //             danhSachDiaChi: Array.isArray(addressList) && addressList.length > 0
-    //                 ? addressList
-    //                 : ['Không có địa chỉ nhận'], // hoặc [] nếu muốn
-    //         };
-
-    //         setKhachHang(fullCustomerData);
-    //         if (setKhachHangMap) {
-    //             setKhachHangMap(prev => ({ ...prev, [hoaDonId]: fullCustomerData }));
-    //         }
-
-    //         setShowSearchInput(false);
-    //         setSearchSdt('');
-
-    //     } catch (error) {
-    //         console.warn('Lỗi khi tìm khách hàng:', error);
-    //         showConfirmDialog({
-    //             title: 'Thêm mới khách hàng',
-    //             message: `Không tìm thấy khách hàng với SĐT "${searchSdt}". Bạn có muốn thêm mới không?`,
-    //             label: 'Thêm mới',
-    //             color: 'primary',
-    //             onConfirm: () => {
-    //                 setNewCustomer({ ...initialCustomerState, soDienThoai: searchSdt });
-    //                 setShowAddModal(true);
-    //                 setShowSearchInput(false);
-    //             }
-    //         });
-
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-    // hàm mới
-
-    //  useEffect(() => {
-    //     // Lấy giá trị hinhThucNhanHang từ localStorage
-    //     const savedHinhThucNhanHang = localStorage.getItem('hinhThucNhanHang');
-
-    //     if (savedHinhThucNhanHang) {
-    //         setHinhThucNhanHang(parseInt(savedHinhThucNhanHang, 10));  // Phục hồi giá trị từ localStorage
-    //     }
-    // }, []); 
-    // useEffect(() => {
-    //     const savedDiaChiNhanId = localStorage.getItem('diaChiNhanId');
-    //     if (savedDiaChiNhanId) {
-    //         setDiaChiNhanId(savedDiaChiNhanId); // Lấy diaChiNhanId từ localStorage
-    //           // Kiểm tra giá trị lấy được
-    //     }
-    // }, []);
-
-
-    // useEffect(() => {
-    //     // Kiểm tra nếu có dữ liệu khách hàng lưu trong localStorage
-    //     const storedCustomer = localStorage.getItem('selectedCustomer');
-
-    //     if (storedCustomer) {
-    //         // Nếu có, cập nhật lại state khachHang từ dữ liệu đã lưu
-    //         const customerData = JSON.parse(storedCustomer);
-    //         setKhachHang(customerData);
-    //         setShowSearchInput(false);  // Ẩn input tìm kiếm nếu đã có khách hàng
-    //     }
-    // }, []);  // Chỉ chạy một lần khi component được mount (lần đầu tiên trang được tải)
-
-    // useEffect(() => {
-    //     const storedDaXacNhan = localStorage.getItem(`daXacNhan-${hoaDonId}`);
-    //     if (storedDaXacNhan === 'true') {
-    //         setDaXacNhanState(true);
-    //     }
-    // }, [hoaDonId]);
-
-    // useEffect(() => {
-    //     if (daXacNhanState) {
-    //         // Cập nhật map khi người dùng xác nhận thành công
-    //         setXacNhanKhachHangMap(prevState => ({
-    //             ...prevState,
-    //             [hoaDonId]: true, // Đánh dấu rằng khách hàng đã xác nhận cho hoaDonId này
-    //         }));
-    //     }
-    // }, [daXacNhanState, hoaDonId, setXacNhanKhachHangMap]);
-
     useEffect(() => {
         // Load hình thức nhận hàng theo hoaDonId
         const savedHinhThucNhanHang = localStorage.getItem(`hinhThucNhanHang-${hoaDonId}`);
@@ -365,37 +260,6 @@ const Client = forwardRef(({
             setLoading(false);
         }
     };
-
-
-    // const handleReload = () => {
-    //     setShowSearchInput(true);
-    //     setSearchSdt('');
-    //     setDaXacNhanState(false);
-    //     localStorage.removeItem('selectedCustomer');
-
-    //     if (typeof setKhachHangMap === 'function') {
-    //         setKhachHangMap(prevMap => {
-    //             const updatedMap = { ...prevMap };
-    //             updatedMap[hoaDonId] = null;
-    //             return updatedMap;
-    //         });
-    //     }
-
-    //     if (typeof setKhachHang === 'function') {
-    //         setKhachHang(null);
-    //     }
-
-    //     if (typeof setXacNhanKhachHangMap === 'function') {
-    //         setXacNhanKhachHangMap(prev => {
-    //             const updated = { ...prev };
-    //             updated[hoaDonId] = false;
-    //             return updated;
-    //         });
-    //     }
-
-    //     console.log(daXacNhan);
-    // };
-
     const handleReload = () => {
         setShowSearchInput(true);
         setSearchSdt('');
@@ -453,56 +317,6 @@ const Client = forwardRef(({
         localStorage.setItem(`hinhThucNhanHang-${hoaDonId}`, hinhThucNhanHang);
         setDaXacNhanState(true);
     };
-
-    // const handleDiaChiChange = (dc, index) => {
-    //     setDiaChiNhanId(dc.id || index);
-    //     if (setSoDienThoai) setSoDienThoai(dc.soDienThoai || "");
-    //     localStorage.setItem('diaChiNhanId', dc.id || index); // Lưu lại địa chỉ nhận vào localStorage
-    //     console.log("Saved diaChiNhanId: ", dc.id || index);  // Kiểm tra xem giá trị có được lưu không
-    // };
-
-    // const handleXacNhan = () => {
-    //     handleXacNhanKhachHang(hoaDonId, khachHang, hinhThucNhanHang, diaChiNhanId);
-
-    //     // Lưu trạng thái xác nhận vào localStorage
-    //     localStorage.setItem(`daXacNhan-${hoaDonId}`, 'true');
-
-    //     // Cập nhật lại trạng thái xác nhận trong state của component
-    //     setDaXacNhanState(true);
-    // };
-
-
-    // end
-    // const handleReload = () => {
-
-    //     setShowSearchInput(true);
-    //     setSearchSdt('');
-
-    //     if (typeof setKhachHangMap === 'function') {
-    //         setKhachHangMap(prevMap => {
-    //             const updatedMap = { ...prevMap };
-    //             updatedMap[hoaDonId] = null;
-    //             return updatedMap;
-    //         });
-    //     }
-
-    //     if (typeof setKhachHang === 'function') {
-    //         setKhachHang(null);
-    //     }
-
-    //     if (typeof setXacNhanKhachHangMap === 'function') {
-    //         setXacNhanKhachHangMap(prev => {
-    //             const updated = { ...prev };
-    //             updated[hoaDonId] = false;
-    //             return updated;
-    //         });
-    //     }
-
-    //     console.log(daXacNhan)
-
-    // };
-
-
     const handleChangeNewDiaChi = (e) => {
         const { name, value } = e.target;
         setNewDiaChi(prev => ({ ...prev, [name]: value }));

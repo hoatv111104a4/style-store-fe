@@ -306,47 +306,6 @@ const CounterSales = () => {
   const calculateTotal = (hoaDonId) =>
     sanPhamsMap[hoaDonId]?.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0) || 0;
 
-  // const handleOpenPdfInNewTab = async (hoaDonId) => {
-  //   const printRef = hoaDonRefs.current[hoaDonId];
-  //   console.log('Print ref:', hoaDonRefs.current[hoaDonId]);
-  //   if (!printRef) {
-  //     toast.error(`Không tìm thấy hóa đơn ${hoaDonId} để in`);
-  //     return;
-  //   }
-
-  //   setShowPdfPreview(true);
-  //   await new Promise(resolve => setTimeout(resolve, 0)); // Đợi DOM cập nhật
-
-  //   printRef.style.position = 'absolute';
-  //   printRef.style.top = '0';
-  //   printRef.style.left = '0';
-  //   printRef.style.visibility = 'visible';
-
-  //   const canvas = await html2canvas(printRef, {
-  //     scale: 2,
-  //     useCORS: true,
-  //     backgroundColor: '#fff',
-  //     logging: true,
-  //     windowWidth: 794,
-  //     windowHeight: 1123
-  //   });
-
-  //   printRef.style.visibility = 'hidden';
-  //   printRef.style.position = 'fixed';
-  //   printRef.style.top = '-9999px';
-  //   printRef.style.left = '-9999px';
-  //   setShowPdfPreview(false);
-
-  //   const dataUrl = canvas.toDataURL('image/png');
-  //   const pdf = new jsPDF('p', 'mm', 'a4');
-  //   const pdfWidth = pdf.internal.pageSize.getWidth();
-  //   const pdfHeight = pdf.internal.pageSize.getHeight();
-  //   pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-  //   const blobUrl = pdf.output('bloburl');
-  //   window.open(blobUrl, '_blank');
-  // };
-
-
   const handleOpenPdfInNewTab = async (hoaDonId) => {
     try {
       // 1. Tạo một div tạm thời để render
@@ -366,6 +325,7 @@ const CounterSales = () => {
           soDienThoai={soDienThoaiMap[hoaDonId] || ""}
         />
       );
+
 
       // 3. Đợi render hoàn tất
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -458,7 +418,6 @@ const CounterSales = () => {
 
 
   const handleDeleteProduct = async (sp, hoaDonId) => {
- 
     const result = await Swal.fire({
       title: "Xác nhận xoá sản phẩm",
       text: "Bạn có chắc chắn muốn xoá sản phẩm này không?",
@@ -470,10 +429,6 @@ const CounterSales = () => {
       cancelButtonText: "Hủy",
     });
     if (result.isConfirmed) {
-      // if (sanPhamGiaThayDoiMap[sp.id]) {
-      //   toast.warning('Sản phẩm này có giá thay đổi, chỉ được xóa!');
-      //   return;
-      // }
       if (!sp.id) {
         toast.error('Không thể xoá sản phẩm không hợp lệ!');
         return;
@@ -841,8 +796,6 @@ const CounterSales = () => {
                     setSoDienThoai={soDienThoai =>
                       setSoDienThoaiMap(prev => ({ ...prev, [hd.id]: soDienThoai }))
                     }
-                  
-
                   />
 
 
@@ -939,29 +892,6 @@ const CounterSales = () => {
                     >
                       Xác nhận đơn hàng
                     </button>
-                    {/* {showPdfPreview && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        visibility: 'hidden',
-                        width: '210mm',
-                        height: '297mm'
-                      }}>
-                        {hoaDons.map(hd => (
-                          <HoaDonPDFExport
-                            key={hd.id}
-                            ref={el => (hoaDonRefs.current[hd.id] = el)}
-                            hoaDon={hd}
-                            sanPhams={sanPhamsMap[hd.id] || []}
-                            tongTien={calculateTotal(hd.id)}
-                            tienThue={tienThueMap[hd.id] || 0}
-                            soDienThoai={soDienThoaiMap[hd.id] || ""}
-                          />
-                        ))}
-                      </div>
-                    )} */}
-
                     {showPdfPreview && (
                       <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999 }}>
                         <React.Suspense fallback={<div>Đang tải hóa đơn...</div>}>
@@ -1155,7 +1085,6 @@ const CounterSales = () => {
           </div>
         </div>
       )}
-      
     </div>
   );
 
