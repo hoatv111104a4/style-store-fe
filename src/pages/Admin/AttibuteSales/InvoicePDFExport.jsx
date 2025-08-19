@@ -18,7 +18,6 @@ const HoaDonPDFExport = React.forwardRef(({ hoaDon, sanPhams, tongTien, tienThue
             }}
         >
             <h3 style={{ textAlign: 'center', marginBottom: 20 }}>HOÁ ĐƠN BÁN HÀNG</h3>
-
             <p><strong>Người tạo:</strong> {hoaDon.tenNguoiTao || 'Không xác định'}</p>
             <p><strong>Mã hoá đơn:</strong> {hoaDon.ma}</p>
             <p><strong>Ngày tạo:</strong> {new Date(hoaDon.ngayTao).toLocaleString()}</p>
@@ -69,7 +68,6 @@ const HoaDonPDFExport = React.forwardRef(({ hoaDon, sanPhams, tongTien, tienThue
             <div style={{ textAlign: 'right', marginTop: 8, fontSize: 18 }}>
                 <strong>Tổng thanh toán: {(tongTien + tienThue).toLocaleString()}₫</strong>
             </div>
-
             <div style={{ textAlign: 'center', marginTop: 40, fontSize: 14 }}>
                 <p>Cảm ơn bạn đã mua hàng!</p>
                 <p>Hẹn gặp lại!</p>

@@ -306,7 +306,7 @@ const Client = forwardRef(({
             }));
         }
 
-        console.log("Selected diaChiNhanId: ", dc.soDienThoai);
+
         localStorage.setItem(`diaChiNhanId-${hoaDonId}`, dc.id || index);
     };
 
@@ -333,11 +333,10 @@ const Client = forwardRef(({
         const tinh = provinces.find(p => p.code == selectedProvince)?.name || '';
         const huyen = districts.find(d => d.code == selectedDistrict)?.name || '';
         const xa = wards.find(w => w.code == selectedWard)?.name || '';
-        const diaChiDayDu = `${diaChi}, ${xa}, ${huyen}, ${tinh}`;
         const payload = {
             tenNguoiNhan: newDiaChi.tenNguoiNhan,
             soDienThoai: newDiaChi.soDienThoai,
-            diaChi: diaChiDayDu,
+            diaChi: diaChi,
             soNha: diaChi,
             tinh: tinh,
             huyen: huyen,
@@ -716,10 +715,10 @@ const Client = forwardRef(({
                         </button>
                     </div>
                 )}
-
+{/* 
                 {!khachHang && !showSearchInput && (
                     <p>Khách hàng: <strong>Khách lẻ</strong></p>
-                )}
+                )} */}
             </div>
 
             {showAddModal && (

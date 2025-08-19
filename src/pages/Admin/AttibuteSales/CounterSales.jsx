@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSearch } from '@fortawesome/free-solid-svg-icons';
-import { addHDC, getHoaDonByTrangThai, updateHDCTWithKH, updateHoaDonFull, deleteHD } from '../../../services/Admin/CounterSales/HoaDonSAdmService';
+import { addHDC, getHoaDonByTrangThai, updateHDCTWithKH, updateHoaDonFull, deleteHD, submitVNPayOrder } from '../../../services/Admin/CounterSales/HoaDonSAdmService';
 import ProductsSales from '../AttibuteSales/ProductsSales';
 import { addHDCT, getHoaDonCTByHoaDonId, updateHDCT, deleteHDCT } from '../../../services/Admin/CounterSales/HoaDonCTSAdmService';
 import { getSanPhamCtById } from '../../../services/Admin/SanPhamCTService';
@@ -11,7 +11,6 @@ import Client from './UserSales';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 // import HoaDonPDFExport from './InvoicePDFExport';
-import { submitVNPayOrder } from "../../../services/Website/OrderApi";
 import QRCode from "react-qr-code";
 import Swal from 'sweetalert2';
 import { toast } from "react-toastify";
@@ -153,6 +152,7 @@ const CounterSales = () => {
   const hoaDonRefs = useRef({});
   // Thêm state để lưu số tiền khách đưa cho từng hóa đơn
   const [tienKhachDuaMap, setTienKhachDuaMap] = useState({});
+  const [tienTraLaiMap, setTienTraLaiMap] = useState({});
   const [showVnpayQR, setShowVnpayQR] = useState(false);
   const [vnpayUrl, setVnpayUrl] = useState('');
 
@@ -179,9 +179,6 @@ const CounterSales = () => {
         toast.error('Bạn không có quyền truy cập!');
         setConnectError(true);
       }
-      // console.error("❌ Chi tiết lỗi từ server:", error.response);
-      // setConnectError(true);
-      // console.error('Lỗi khi load hóa đơn:', error.message);
     }
   };
 
@@ -293,7 +290,18 @@ const CounterSales = () => {
     }
   };
 
+  const handleTienKhachDua = (hoaDonId, value) => {
+    // Cập nhật tiền khách đưa
+    setTienKhachDuaMap(prev => ({ ...prev, [hoaDonId]: value }));
 
+    // Tính tiền trả lại
+    const tongThanhToan =
+      calculateTotal(hoaDonId) + (hinhThucNhanHangMap[hoaDonId] === 1 ? 30000 : 0);
+    const tienThua = value - tongThanhToan;
+
+    // Cập nhật tiền trả lại
+    setTienTraLaiMap(prev => ({ ...prev, [hoaDonId]: tienThua }));
+  };
 
   const handleProductSelect = (product) => {
     setSelectedProduct(product);
@@ -321,7 +329,7 @@ const CounterSales = () => {
           hoaDon={hoaDons.find(h => h.id === hoaDonId)}
           sanPhams={sanPhamsMap[hoaDonId] || []}
           tongTien={calculateTotal(hoaDonId)}
-          tienThue={tienThueMap[hoaDonId] || 0}
+          tienThue={hinhThucNhanHangMap[hoaDonId] === 1 ? 30000 : 0}
           soDienThoai={soDienThoaiMap[hoaDonId] || ""}
         />
       );
@@ -545,16 +553,23 @@ const CounterSales = () => {
     }
   };
 
-
-
   const handleXacNhanDonHang = async (hoaDonId, hinhThucNhanHang, isVnpayPaymentConfirmed = false) => {
     try {
       const sanPhams = sanPhamsMap[hoaDonId] || [];
       const tongSoLuongSp = sanPhams.reduce((sum, sp) => sum + sp.soLuong, 0);
       let tongTien = sanPhams.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0);
-      setTienThueMap(prev => ({ ...prev, [hoaDonId]: 0 }));
+
+      let phiShip = 0;
       if (hinhThucNhanHang === 1) {
-        setTienThueMap(prev => ({ ...prev, [hoaDonId]: 30000 }));
+        phiShip = 30000; // phí ship
+        setTienThueMap(prev => {
+          const newMap = { ...prev, [hoaDonId]: phiShip };
+          console.log("🟢 Sau khi set:", newMap[hoaDonId]); // kiểm tra có giá trị không
+          return newMap;
+        });
+        console.log("Cập nhật phí ship cho hóa đơn:", hoaDonId);
+        console.log("Phí ship:", tienThueMap[hoaDonId]);
+        console.log("Hình thức nhận hàng:", hinhThucNhanHang);
         tongTien += 30000; // phí ship
       }
 
@@ -598,7 +613,10 @@ const CounterSales = () => {
         tongTien: tongTienUpdate,
         hinhThucNhanHang,
         trangThai: hinhThucNhanHang,
-        moTa
+        moTa,
+        tienKhachTra: tienKhachDuaMap[hoaDonId] || 0,
+        tienThua: tienTraLaiMap[hoaDonId] || 0,
+        tienThue: phiShip
       });
 
       toast.success('Cập nhật hóa đơn thành công!');
@@ -610,13 +628,19 @@ const CounterSales = () => {
       toast.error('Cập nhật thất bại: ' + (err.message || 'Đã xảy ra lỗi'));
     }
   };
+
   const handleXacNhanThanhToan = async (hoaDonId, hinhThucNhanHang) => {
     try {
       const sanPhams = sanPhamsMap[hoaDonId] || [];
       const hoaDon = hoaDons.find(hd => hd.id === hoaDonId);
       const tongSoLuongSp = sanPhams.reduce((sum, sp) => sum + sp.soLuong, 0);
       let tongTien = sanPhams.reduce((sum, sp) => sum + sp.soLuong * (sp.giaTien || 0), 0);
-
+      let tienKhachDua = tongTien;
+      let tienThue = 0;
+      if (hinhThucNhanHang === 1) {
+        tienKhachDua += 30000; // phí ship
+        tienThue = 30000;
+      }
 
       await updateHoaDonFull(hoaDonId, {
         ...hoaDon,
@@ -625,7 +649,10 @@ const CounterSales = () => {
         moTa: "Đơn hàng tại quầy",
         hinhThucNhanHang,
         trangThai: hinhThucNhanHang,
-        tongTien: tongTien
+        tongTien: tongTien,
+        tienThue: tienThue,
+        tienKhachTra: tienKhachDua,
+        tienThua: 0
       });
 
       toast.success('Cập nhật hóa đơn thành công!');
@@ -843,23 +870,16 @@ const CounterSales = () => {
                           className="form-control"
                           min={0}
                           value={tienKhachDuaMap[hd.id] || ''}
-                          onChange={e => {
-                            const value = Number(e.target.value);
-                            setTienKhachDuaMap(prev => ({ ...prev, [hd.id]: value }));
-                          }}
+                          onChange={e => handleTienKhachDua(hd.id, Number(e.target.value))}
                           placeholder="Nhập số tiền khách đưa"
                         />
                         <div className="mt-2">
                           Tiền thừa:&nbsp;
                           <strong>
-                            {tienKhachDuaMap[hd.id]
-                              ? (() => {
-                                const tongThanhToan = calculateTotal(hd.id) + (hinhThucNhanHangMap[hd.id] === 1 ? 30000 : 0);
-                                const tienThua = tienKhachDuaMap[hd.id] - tongThanhToan;
-                                return tienThua < 0
-                                  ? "Vui lòng đưa đủ tiền"
-                                  : `${tienThua.toLocaleString()} ₫`;
-                              })()
+                            {tienTraLaiMap[hd.id] !== undefined
+                              ? tienTraLaiMap[hd.id] < 0
+                                ? "Vui lòng đưa đủ tiền"
+                                : `${tienTraLaiMap[hd.id].toLocaleString()} ₫`
                               : 0}
                           </strong>
                         </div>
@@ -907,7 +927,7 @@ const CounterSales = () => {
                               hoaDon={hd}
                               sanPhams={sanPhamsMap[hd.id] || []}
                               tongTien={calculateTotal(hd.id)}
-                              tienThue={tienThueMap[hd.id] || 0}
+                              tienThue={hinhThucNhanHangMap[hd.id] === 1 ? 30000 : 0}
                               soDienThoai={soDienThoaiMap[hd.id] || ""}
                             />
                           ))}
@@ -1036,7 +1056,6 @@ const CounterSales = () => {
 
                   </div>
                 </div>
-
               </div>
             );
           })}

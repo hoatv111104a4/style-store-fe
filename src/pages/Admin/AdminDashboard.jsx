@@ -11,7 +11,7 @@ import {
 } from 'chart.js';
 import dayjs from 'dayjs';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
-import { getHoaDonByNgayBatDauVaKetThuc, getHoaDonByNgayBatDauVaKetThucT,getAllHDC } from '../../services/Admin/CounterSales/HoaDonSAdmService';
+import { getHoaDonByNgayBatDauVaKetThuc, getHoaDonByNgayBatDauVaKetThucT, getAllHDC } from '../../services/Admin/CounterSales/HoaDonSAdmService';
 import { thongKeTheoThang, thongKeTheoNam, thongKeTheoTuan } from '../../services/Admin/ThongKe/ThongKeService';
 import { useNavigate } from "react-router-dom";
 
@@ -133,6 +133,7 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
 
         const stats = (hoaDons || []).reduce(
             (acc, hd) => {
+                if (!hd.ngayNhan || hd.trangThai !== 3) return acc;
                 const ngayNhan = dayjs(hd.ngayNhan);
                 const tien = Number(hd.tongTien) || 0;
 
@@ -215,7 +216,7 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
     const groupDoanhThuByDate = () => {
         const grouped = {};
         (hoaDons || []).forEach(hd => {
-            if (hd.ngayNhan) {
+            if (hd.ngayNhan && hd.trangThai === 3) {
                 const date = dayjs(hd.ngayNhan).format('DD/MM');
                 grouped[date] = (grouped[date] || 0) + (Number(hd.tongTien) || 0);
             }
@@ -225,14 +226,18 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
 
     const groupSoLuongByDate = () => {
         const grouped = {};
+        const today = dayjs().format("DD/MM");
+
         (hoaDons || []).forEach(hd => {
-            if (hd.ngayNhan) {
-                const date = dayjs(hd.ngayNhan).format('DD/MM');
-                grouped[date] = (grouped[date] || 0) + 1; // Đếm số đơn hàng
+            if (hd.ngayNhan && hd.trangThai === 3) {
+                const date = dayjs(hd.ngayNhan).format("DD/MM");
+                grouped[date] = (grouped[date] || 0) + 1;
             }
         });
+
         return grouped;
     };
+
 
     const doanhThuTheoNgay = groupDoanhThuByDate();
     const soLuongTheoNgay = groupSoLuongByDate();
@@ -242,15 +247,18 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
         labels: Object.keys(chartType === 'doanhSo' ? doanhThuTheoNgay : soLuongTheoNgay).sort(),
         datasets: [{
             label: chartType === 'doanhSo' ? 'Doanh số (VND)' : 'Số lượng (đơn hàng)',
-            data: Object.keys(chartType === 'doanhSo' ? doanhThuTheoNgay : soLuongTheoNgay).sort().map((date, index) => {
-                const sortedDates = Object.keys(chartType === 'doanhSo' ? doanhThuTheoNgay : soLuongTheoNgay).sort();
-                return sortedDates.slice(0, index + 1).reduce((sum, d) => sum + (chartType === 'doanhSo' ? (doanhThuTheoNgay[d] || 0) : (soLuongTheoNgay[d] || 0)), 0);
-            }),
+            data: Object.keys(chartType === 'doanhSo' ? doanhThuTheoNgay : soLuongTheoNgay)
+                .sort()
+                .map(date => chartType === 'doanhSo'
+                    ? (doanhThuTheoNgay[date] || 0)
+                    : (soLuongTheoNgay[date] || 0)
+                ),
             backgroundColor: chartType === 'doanhSo' ? '#3b82f6' : '#ffca28',
-            barPercentage: 0.5,        // Thêm dòng này để cột nhỏ lại
-            categoryPercentage: 0.6    // Thêm dòng này để cột nhỏ lại
+            barPercentage: 0.5,
+            categoryPercentage: 0.6
         }]
     };
+
 
     const TRANG_THAI = [
         { label: 'Chờ xác nhận', color: '#ff7043' },         // Cam đậm
@@ -368,6 +376,7 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
                         <tr>
                             <th>Hình ảnh</th>
                             <th>Tên sản phẩm</th>
+                            <th>Mã sản phẩm chi tiết</th>
                             <th>Tổng số lượng bán</th>
                             <th>Tổng tiền bán</th>
                         </tr>
@@ -377,13 +386,14 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
                             thongKeData.map((item, index) => (
                                 <tr key={index}>
                                     <td>
-                                    <img
-                                        src={item.urlHinhAnhMauSac ? `http://localhost:8080/uploads/${item.urlHinhAnhMauSac}` : "/placeholder-image.png"}
-                                        alt={item.tenSanPhamTK}
-                                        style={{ objectFit: "cover", height: "80px", width: "80px", borderRadius: "8px" }}
-                                    />
-                                </td>
+                                        <img
+                                            src={item.urlHinhAnhMauSac ? `http://localhost:8080/uploads/${item.urlHinhAnhMauSac}` : "/placeholder-image.png"}
+                                            alt={item.tenSanPhamTK}
+                                            style={{ objectFit: "cover", height: "80px", width: "80px", borderRadius: "8px" }}
+                                        />
+                                    </td>
                                     <td>{item.tenSanPhamTK || "?"}</td>
+                                    <td>{item.maSanPhamCtTK || "?"}</td>
                                     <td>{item.tongSoLuongBanTK?.toLocaleString() || 0}</td>
                                     <td>{item.tongTienBanTK?.toLocaleString() || 0} VND</td>
                                 </tr>
