@@ -29,6 +29,7 @@ import {
   Paper,
   Avatar,
   Grid,
+  CircularProgress,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
@@ -44,10 +45,15 @@ import {
   listHinhAnh,
   addSanPhamChiTiet,
 } from "../../services/Website/ProductApis";
-import { set } from "lodash";
+import {
+  createSanPham,
+  createXuatXu,
+  createThuongHieu,
+  createChatLieu,
+} from "../../services/Admin/ThuocTinhSanPhamApi";
 
 const AddSanPhamChiTietAdmin = () => {
-  const navigate = useNavigate(); // Khởi tạo useNavigate để chuyển hướng
+  const navigate = useNavigate();
   // State cho danh sách lựa chọn
   const [xuatXuList, setXuatXuList] = useState([]);
   const [sanPhamList, setSanPhamList] = useState([]);
@@ -67,7 +73,6 @@ const AddSanPhamChiTietAdmin = () => {
   const [soLuong, setSoLuong] = useState("");
   const [giaNhap, setGiaNhap] = useState("");
 
-
   // State cho màu sắc và kích cỡ
   const [selectedMauSac, setSelectedMauSac] = useState([]);
   const [selectedKichCo, setSelectedKichCo] = useState([]);
@@ -82,6 +87,23 @@ const AddSanPhamChiTietAdmin = () => {
 
   // State cho danh sách sản phẩm chi tiết
   const [sanPhamChiTietList, setSanPhamChiTietList] = useState([]);
+
+  // State cho modal thêm nhanh (chung)
+  const [modalLoading, setModalLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // State cho các modal thêm nhanh
+  const [openModalSanPham, setOpenModalSanPham] = useState(false);
+  const [tenSanPhamMoi, setTenSanPhamMoi] = useState("");
+
+  const [openModalXuatXu, setOpenModalXuatXu] = useState(false);
+  const [tenXuatXuMoi, setTenXuatXuMoi] = useState("");
+
+  const [openModalThuongHieu, setOpenModalThuongHieu] = useState(false);
+  const [tenThuongHieuMoi, setTenThuongHieuMoi] = useState("");
+
+  const [openModalChatLieu, setOpenModalChatLieu] = useState(false);
+  const [tenChatLieuMoi, setTenChatLieuMoi] = useState("");
 
   // Lấy dữ liệu từ API
   useEffect(() => {
@@ -115,7 +137,7 @@ const AddSanPhamChiTietAdmin = () => {
     );
   };
 
-  // Thêm sản phẩm chi tiết
+  // Thêm sản phẩm chi tiết vào bảng tạm
   const handleAddSanPhamChiTiet = () => {
     if (
       !selectedSanPham ||
@@ -132,7 +154,6 @@ const AddSanPhamChiTietAdmin = () => {
       return;
     }
 
-    // Tạo các tổ hợp màu sắc và kích cỡ
     const combinations = [];
     selectedMauSac.forEach((msId) => {
       selectedKichCo.forEach((kcId) => {
@@ -153,17 +174,17 @@ const AddSanPhamChiTietAdmin = () => {
       });
     });
 
-    // Lấy thông tin tên từ id
     const sanPham = sanPhamList.find((sp) => sp.id === selectedSanPham)?.ten || "";
     const xuatXu = xuatXuList.find((xx) => xx.id === selectedXuatXu)?.ten || "";
-    const thuongHieu = thuongHieuList.find((th) => th.id === selectedThuongHieu)?.ten || "";
-    const chatLieu = chatLieuList.find((cl) => cl.id === selectedChatLieu)?.ten || "";
+    const thuongHieu =
+      thuongHieuList.find((th) => th.id === selectedThuongHieu)?.ten || "";
+    const chatLieu =
+      chatLieuList.find((cl) => cl.id === selectedChatLieu)?.ten || "";
 
-    // Tạo danh sách sản phẩm chi tiết với thông tin đầy đủ
     const newSanPhamChiTietList = combinations.map((combo) => {
       const mauSac = mauSacList.find((ms) => ms.id === combo.mauSacId);
       const kichCo = kichCoList.find((kc) => kc.id === combo.kichCoId);
-      
+
       return {
         ...combo,
         sanPhamTen: sanPham,
@@ -178,7 +199,6 @@ const AddSanPhamChiTietAdmin = () => {
 
     setSanPhamChiTietList([...sanPhamChiTietList, ...newSanPhamChiTietList]);
 
-    // Reset form
     setSelectedSanPham("");
     setSelectedXuatXu("");
     setSelectedThuongHieu("");
@@ -191,7 +211,7 @@ const AddSanPhamChiTietAdmin = () => {
     setGiaNhap("");
   };
 
-  // Xóa sản phẩm chi tiết
+  // Xóa sản phẩm chi tiết khỏi bảng tạm
   const handleDeleteSanPhamChiTiet = (index) => {
     const newList = [...sanPhamChiTietList];
     newList.splice(index, 1);
@@ -204,7 +224,7 @@ const AddSanPhamChiTietAdmin = () => {
     setOpenHinhAnh(true);
   };
 
-  // Chọn hình ảnh
+  // Chọn hình ảnh cho sản phẩm chi tiết
   const handleSelectImage = (hinhAnh) => {
     const newList = [...sanPhamChiTietList];
     newList[currentImageIndex] = {
@@ -216,30 +236,25 @@ const AddSanPhamChiTietAdmin = () => {
     setOpenHinhAnh(false);
   };
 
+  // Lưu tất cả sản phẩm trong bảng tạm vào DB
   const handleSaveAll = async () => {
     try {
-      // Lặp qua danh sách sản phẩm chi tiết
       for (const spct of sanPhamChiTietList) {
-        // Tạo object request khớp với SanPhamAdminCrRequest
         const requestData = {
           sanPhamId: spct.sanPhamId,
           mauSacId: spct.mauSacId,
           thuongHieuId: spct.thuongHieuId,
-          kichThuocId: spct.kichCoId, // Chú ý: kichCoId trong front-end, kichThuocId trong back-end
+          kichThuocId: spct.kichCoId,
           xuatXuId: spct.xuatXuId,
           chatLieuId: spct.chatLieuId,
-          hinhAnhSpId: spct.hinhAnhId || null, // Đảm bảo hinhAnhSpId có thể là null
-          giaNhap: parseFloat(spct.giaNhap), // Chuyển sang số
-          giaBan: parseFloat(spct.giaBan), // Chuyển sang số
-          soLuong: parseInt(spct.soLuongTon), // Chuyển sang số nguyên
+          hinhAnhSpId: spct.hinhAnhId || null,
+          giaNhap: parseFloat(spct.giaNhap),
+          giaBan: parseFloat(spct.giaBan),
+          soLuong: parseInt(spct.soLuongTon),
           moTa: spct.moTa,
         };
-
-        // Gọi API để thêm từng sản phẩm chi tiết
         await addSanPhamChiTiet(requestData);
       }
-
-      // Nếu tất cả API gọi thành công, thông báo và chuyển hướng
       alert("Lưu tất cả sản phẩm thành công!");
       navigate("/admin/quan-ly-sp/san-pham");
     } catch (error) {
@@ -248,98 +263,210 @@ const AddSanPhamChiTietAdmin = () => {
     }
   };
 
+  // --- Bắt đầu phần xử lý cho các modal thêm nhanh ---
+
+  // Sản phẩm
+  const handleOpenModalSanPham = () => setOpenModalSanPham(true);
+  const handleCloseModalSanPham = () => {
+    setOpenModalSanPham(false);
+    setTenSanPhamMoi("");
+    setErrorMessage("");
+  };
+  const handleAddSanPhamMoi = async () => {
+    if (!tenSanPhamMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên sản phẩm.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await createSanPham({ ten: tenSanPhamMoi });
+      handleCloseModalSanPham();
+      setSanPhamList(await listSanPham());
+    } catch (error) {
+      setErrorMessage(error.message || "Lỗi khi thêm sản phẩm.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Xuất xứ
+  const handleOpenModalXuatXu = () => setOpenModalXuatXu(true);
+  const handleCloseModalXuatXu = () => {
+    setOpenModalXuatXu(false);
+    setTenXuatXuMoi("");
+    setErrorMessage("");
+  };
+  const handleAddXuatXuMoi = async () => {
+    if (!tenXuatXuMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên xuất xứ.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await createXuatXu({ ten: tenXuatXuMoi });
+      handleCloseModalXuatXu();
+      setXuatXuList(await listXuatXu());
+    } catch (error) {
+      setErrorMessage(error.message || "Lỗi khi thêm xuất xứ.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Thương hiệu
+  const handleOpenModalThuongHieu = () => setOpenModalThuongHieu(true);
+  const handleCloseModalThuongHieu = () => {
+    setOpenModalThuongHieu(false);
+    setTenThuongHieuMoi("");
+    setErrorMessage("");
+  };
+  const handleAddThuongHieuMoi = async () => {
+    if (!tenThuongHieuMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên thương hiệu.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await createThuongHieu({ ten: tenThuongHieuMoi });
+      handleCloseModalThuongHieu();
+      setThuongHieuList(await listThuongHieu());
+    } catch (error) {
+      setErrorMessage(error.message || "Lỗi khi thêm thương hiệu.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Chất liệu
+  const handleOpenModalChatLieu = () => setOpenModalChatLieu(true);
+  const handleCloseModalChatLieu = () => {
+    setOpenModalChatLieu(false);
+    setTenChatLieuMoi("");
+    setErrorMessage("");
+  };
+  const handleAddChatLieuMoi = async () => {
+    if (!tenChatLieuMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên chất liệu.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await createChatLieu({ ten: tenChatLieuMoi });
+      handleCloseModalChatLieu();
+      setChatLieuList(await listChatLieu());
+    } catch (error) {
+      setErrorMessage(error.message || "Lỗi khi thêm chất liệu.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // --- Kết thúc phần xử lý cho các modal thêm nhanh ---
+
   return (
     <Box sx={{ padding: "20px" }}>
       <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
         Thêm sản phẩm chi tiết
       </Typography>
 
-      {/* Form thêm sản phẩm chi tiết */}
+      {/* Form nhập liệu chính */}
       <Box sx={{ mb: 4, p: 3, border: "1px solid #ddd", borderRadius: "8px" }}>
         {/* Dòng 1 */}
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4, mb: 3 }}>
-          <FormControl size="small" sx={{ minWidth: 300 }}>
-            <InputLabel>Sản phẩm</InputLabel>
-            <Select
-              value={selectedSanPham}
-              onChange={(e) => setSelectedSanPham(e.target.value)}
-            >
-              <MenuItem value="">Chọn sản phẩm</MenuItem>
-              {sanPhamList.map((sp) => (
-                <MenuItem key={sp.id} value={sp.id}>
-                  {sp.ten}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Tooltip title="Thêm nhanh sản phẩm">
-            <IconButton color="primary">
-              <AddIcon />
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 300 }}>
+              <InputLabel>Sản phẩm</InputLabel>
+              <Select
+                value={selectedSanPham}
+                onChange={(e) => setSelectedSanPham(e.target.value)}
+              >
+                <MenuItem value="">Chọn sản phẩm</MenuItem>
+                {sanPhamList.map((sp) => (
+                  <MenuItem key={sp.id} value={sp.id}>
+                    {sp.ten}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip title="Thêm nhanh sản phẩm">
+              <IconButton color="primary" onClick={handleOpenModalSanPham}>
+                <AddIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
 
-          <FormControl size="small" sx={{ minWidth: 300 }}>
-            <InputLabel>Xuất xứ</InputLabel>
-            <Select
-              value={selectedXuatXu}
-              onChange={(e) => setSelectedXuatXu(e.target.value)}
-            >
-              <MenuItem value="">Chọn xuất xứ</MenuItem>
-              {xuatXuList.map((xx) => (
-                <MenuItem key={xx.id} value={xx.id}>
-                  {xx.ten}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Tooltip title="Thêm nhanh xuất xứ">
-            <IconButton color="primary">
-              <AddIcon />
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 300 }}>
+              <InputLabel>Xuất xứ</InputLabel>
+              <Select
+                value={selectedXuatXu}
+                onChange={(e) => setSelectedXuatXu(e.target.value)}
+              >
+                <MenuItem value="">Chọn xuất xứ</MenuItem>
+                {xuatXuList.map((xx) => (
+                  <MenuItem key={xx.id} value={xx.id}>
+                    {xx.ten}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip title="Thêm nhanh xuất xứ">
+              <IconButton color="primary" onClick={handleOpenModalXuatXu}>
+                <AddIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* Dòng 2 */}
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4, mb: 3 }}>
-          <FormControl size="small" sx={{ minWidth: 300 }}>
-            <InputLabel>Thương hiệu</InputLabel>
-            <Select
-              value={selectedThuongHieu}
-              onChange={(e) => setSelectedThuongHieu(e.target.value)}
-            >
-              <MenuItem value="">Chọn thương hiệu</MenuItem>
-              {thuongHieuList.map((th) => (
-                <MenuItem key={th.id} value={th.id}>
-                  {th.ten}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Tooltip title="Thêm nhanh thương hiệu">
-            <IconButton color="primary">
-              <AddIcon />
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 300 }}>
+              <InputLabel>Thương hiệu</InputLabel>
+              <Select
+                value={selectedThuongHieu}
+                onChange={(e) => setSelectedThuongHieu(e.target.value)}
+              >
+                <MenuItem value="">Chọn thương hiệu</MenuItem>
+                {thuongHieuList.map((th) => (
+                  <MenuItem key={th.id} value={th.id}>
+                    {th.ten}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip title="Thêm nhanh thương hiệu">
+              <IconButton color="primary" onClick={handleOpenModalThuongHieu}>
+                <AddIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
 
-          <FormControl size="small" sx={{ minWidth: 300 }}>
-            <InputLabel>Chất liệu</InputLabel>
-            <Select
-              value={selectedChatLieu}
-              onChange={(e) => setSelectedChatLieu(e.target.value)}
-            >
-              <MenuItem value="">Chọn chất liệu</MenuItem>
-              {chatLieuList.map((cl) => (
-                <MenuItem key={cl.id} value={cl.id}>
-                  {cl.ten}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Tooltip title="Thêm nhanh chất liệu">
-            <IconButton color="primary">
-              <AddIcon />
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 300 }}>
+              <InputLabel>Chất liệu</InputLabel>
+              <Select
+                value={selectedChatLieu}
+                onChange={(e) => setSelectedChatLieu(e.target.value)}
+              >
+                <MenuItem value="">Chọn chất liệu</MenuItem>
+                {chatLieuList.map((cl) => (
+                  <MenuItem key={cl.id} value={cl.id}>
+                    {cl.ten}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip title="Thêm nhanh chất liệu">
+              <IconButton color="primary" onClick={handleOpenModalChatLieu}>
+                <AddIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* Mô tả, giá, số lượng */}
@@ -378,7 +505,6 @@ const AddSanPhamChiTietAdmin = () => {
 
         {/* Màu sắc & kích cỡ */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3 }}>
-          {/* Màu sắc */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography>Màu sắc:</Typography>
             <Tooltip title="Chọn màu sắc">
@@ -408,7 +534,6 @@ const AddSanPhamChiTietAdmin = () => {
                 ))}
           </Box>
 
-          {/* Kích cỡ */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography>Kích thước:</Typography>
             <Tooltip title="Chọn kích thước">
@@ -431,8 +556,8 @@ const AddSanPhamChiTietAdmin = () => {
 
         {/* Nút thêm sản phẩm chi tiết */}
         <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleAddSanPhamChiTiet}
             disabled={
               !selectedSanPham ||
@@ -451,7 +576,7 @@ const AddSanPhamChiTietAdmin = () => {
         </Box>
       </Box>
 
-      {/* Danh sách sản phẩm chi tiết đã thêm */}
+      {/* Bảng danh sách sản phẩm chi tiết tạm thời */}
       {sanPhamChiTietList.length > 0 && (
         <Box sx={{ mt: 4 }}>
           <Typography variant="h6" gutterBottom>
@@ -463,15 +588,12 @@ const AddSanPhamChiTietAdmin = () => {
                 <TableRow>
                   <TableCell>STT</TableCell>
                   <TableCell>Sản phẩm</TableCell>
-                  <TableCell>Xuất xứ</TableCell>
-                  <TableCell>Thương hiệu</TableCell>
-                  <TableCell>Chất liệu</TableCell>
                   <TableCell>Màu sắc</TableCell>
                   <TableCell>Kích thước</TableCell>
                   <TableCell>Hình ảnh</TableCell>
+                  <TableCell>Giá nhập</TableCell>
                   <TableCell>Giá bán</TableCell>
                   <TableCell>Số lượng</TableCell>
-                  <TableCell>Mô tả</TableCell>
                   <TableCell>Thao tác</TableCell>
                 </TableRow>
               </TableHead>
@@ -480,11 +602,10 @@ const AddSanPhamChiTietAdmin = () => {
                   <TableRow key={index}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{spct.sanPhamTen}</TableCell>
-                    <TableCell>{spct.xuatXuTen}</TableCell>
-                    <TableCell>{spct.thuongHieuTen}</TableCell>
-                    <TableCell>{spct.chatLieuTen}</TableCell>
                     <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
                         <Box
                           sx={{
                             width: 16,
@@ -499,39 +620,44 @@ const AddSanPhamChiTietAdmin = () => {
                     </TableCell>
                     <TableCell>{spct.kichCoTen}</TableCell>
                     <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
                         {spct.hinhAnhUrl ? (
                           <img
                             src={spct.hinhAnhUrl}
                             alt={spct.sanPhamTen}
-                            style={{ 
-                              width: 50, 
-                              height: 50, 
-                              objectFit: "cover", 
-                              borderRadius: 4 
+                            style={{
+                              width: 50,
+                              height: 50,
+                              objectFit: "cover",
+                              borderRadius: 4,
                             }}
                           />
                         ) : (
-                          <Avatar variant="rounded" sx={{ bgcolor: '#e0e0e0' }}>
+                          <Avatar variant="rounded" sx={{ bgcolor: "#e0e0e0" }}>
                             <ImageIcon color="action" />
                           </Avatar>
                         )}
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => handleOpenImageDialog(index)}
                         >
                           <AddIcon fontSize="small" />
                         </IconButton>
                       </Box>
                     </TableCell>
-                    <TableCell>{spct.giaNhap.toLocaleString()} VNĐ</TableCell>
-                    <TableCell>{spct.giaBan.toLocaleString()} VNĐ</TableCell>
-                    <TableCell>{spct.soLuongTon}</TableCell>
-                    <TableCell sx={{ maxWidth: 200 }}>
-                      <Typography noWrap>{spct.moTa}</Typography>
+                    <TableCell>
+                      {parseFloat(spct.giaNhap).toLocaleString()} VNĐ
                     </TableCell>
                     <TableCell>
-                      <IconButton onClick={() => handleDeleteSanPhamChiTiet(index)}>
+                      {parseFloat(spct.giaBan).toLocaleString()} VNĐ
+                    </TableCell>
+                    <TableCell>{spct.soLuongTon}</TableCell>
+                    <TableCell>
+                      <IconButton
+                        onClick={() => handleDeleteSanPhamChiTiet(index)}
+                      >
                         <DeleteIcon color="error" />
                       </IconButton>
                     </TableCell>
@@ -541,17 +667,6 @@ const AddSanPhamChiTietAdmin = () => {
             </Table>
           </TableContainer>
 
-          {/* Nút lưu tất cả */}
-          {sanPhamChiTietList.length > 0 && (
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Danh sách sản phẩm chi tiết
-          </Typography>
-          <TableContainer component={Paper}>
-            {/* ... (giữ nguyên table) */}
-          </TableContainer>
-
-          {/* Nút lưu tất cả */}
           <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
             <Button variant="contained" color="success" onClick={handleSaveAll}>
               Lưu tất cả sản phẩm
@@ -559,8 +674,8 @@ const AddSanPhamChiTietAdmin = () => {
           </Box>
         </Box>
       )}
-        </Box>
-      )}
+
+      {/* --- PHẦN MODALS --- */}
 
       {/* Modal chọn hình ảnh */}
       <Dialog
@@ -580,9 +695,7 @@ const AddSanPhamChiTietAdmin = () => {
                     borderRadius: "4px",
                     p: 1,
                     cursor: "pointer",
-                    "&:hover": {
-                      borderColor: "primary.main",
-                    },
+                    "&:hover": { borderColor: "primary.main" },
                   }}
                   onClick={() => handleSelectImage(hinhAnh)}
                 >
@@ -623,26 +736,9 @@ const AddSanPhamChiTietAdmin = () => {
                 key={ms.id}
                 button
                 onClick={() => handleToggleMauSac(ms.id)}
-                sx={{
-                  backgroundColor: ms.ma,
-                  color: "#fff",
-                  mb: 1,
-                  borderRadius: "8px",
-                  "&:hover": {
-                    opacity: 0.95,
-                  },
-                }}
               >
                 <ListItemIcon>
-                  <Checkbox
-                    checked={tempMauSac.includes(ms.id)}
-                    sx={{
-                      color: "#fff",
-                      "&.Mui-checked": {
-                        color: "#fff",
-                      },
-                    }}
-                  />
+                  <Checkbox checked={tempMauSac.includes(ms.id)} />
                 </ListItemIcon>
                 <ListItemText primary={ms.ten} />
                 <Box
@@ -650,7 +746,7 @@ const AddSanPhamChiTietAdmin = () => {
                     width: 24,
                     height: 24,
                     backgroundColor: ms.ma,
-                    border: "1px solid #fff",
+                    border: "1px solid #ddd",
                     borderRadius: "50%",
                   }}
                 />
@@ -706,6 +802,162 @@ const AddSanPhamChiTietAdmin = () => {
             }}
           >
             Xong
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh sản phẩm */}
+      <Dialog
+        open={openModalSanPham}
+        onClose={handleCloseModalSanPham}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm sản phẩm nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên sản phẩm"
+            fullWidth
+            variant="outlined"
+            value={tenSanPhamMoi}
+            onChange={(e) => setTenSanPhamMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalSanPham}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddSanPhamMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh Xuất xứ */}
+      <Dialog
+        open={openModalXuatXu}
+        onClose={handleCloseModalXuatXu}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm xuất xứ nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên xuất xứ"
+            fullWidth
+            variant="outlined"
+            value={tenXuatXuMoi}
+            onChange={(e) => setTenXuatXuMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalXuatXu}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddXuatXuMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh Thương hiệu */}
+      <Dialog
+        open={openModalThuongHieu}
+        onClose={handleCloseModalThuongHieu}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm thương hiệu nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên thương hiệu"
+            fullWidth
+            variant="outlined"
+            value={tenThuongHieuMoi}
+            onChange={(e) => setTenThuongHieuMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalThuongHieu}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddThuongHieuMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh Chất liệu */}
+      <Dialog
+        open={openModalChatLieu}
+        onClose={handleCloseModalChatLieu}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm chất liệu nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên chất liệu"
+            fullWidth
+            variant="outlined"
+            value={tenChatLieuMoi}
+            onChange={(e) => setTenChatLieuMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalChatLieu}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddChatLieuMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
           </Button>
         </DialogActions>
       </Dialog>

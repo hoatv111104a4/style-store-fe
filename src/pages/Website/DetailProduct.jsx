@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate ,useLocation} from "react-router-dom";
 import { getPageSanPhamAdmin } from "../../services/Website/ProductApis";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -16,30 +16,49 @@ const DetailProduct = () => {
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedMaterial, setSelectedMaterial] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Lấy danh sách sản phẩm chi tiết theo id sản phẩm
   useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const data = await getPageSanPhamAdmin(id, { page: 0, size: 100 });
-        const list = data.content || [];
-        setProductList(list);
-        console.log("Danh sách sản phẩm chi tiết:", list);
-        // Chọn mặc định là sản phẩm đầu tiên
-        if (list.length > 0) {
-          setSelectedColor(list[0].mauSacId || "");
-          setSelectedSize(list[0].kichThuocId || "");
-          setSelectedMaterial(list[0].chatLieuId || "");
+  const fetchDetail = async () => {
+    try {
+      const data = await getPageSanPhamAdmin(id, { page: 0, size: 100 });
+      const list = data.content || [];
+      setProductList(list);
+      
+      // Kiểm tra nếu có state từ navigation
+      if (location.state) {
+        const { selectedColor, selectedSize, selectedMaterial } = location.state;
+        setSelectedColor(selectedColor || "");
+        setSelectedSize(selectedSize || "");
+        setSelectedMaterial(selectedMaterial || "");
+        
+        // Tìm sản phẩm phù hợp với các thuộc tính đã chọn
+        const matchedProduct = list.find(
+          item =>
+            (selectedColor ? item.mauSacId === selectedColor : true) &&
+            (selectedSize ? item.kichThuocId === selectedSize : true) &&
+            (selectedMaterial ? item.chatLieuId === selectedMaterial : true)
+        );
+        
+        if (matchedProduct) {
+          setProductDetail(matchedProduct);
+        } else if (list.length > 0) {
+          // Nếu không tìm thấy, chọn sản phẩm đầu tiên
           setProductDetail(list[0]);
         }
-        setQuantity(1);
-      } catch (error) {
-        toast.error("Không thể tải chi tiết sản phẩm!");
+      } else if (list.length > 0) {
+        // Nếu không có state từ navigation, chọn sản phẩm đầu tiên
+        setProductDetail(list[0]);
       }
-    };
-    fetchDetail();
-  }, [id]);
-
+      
+      setQuantity(1);
+    } catch (error) {
+      toast.error("Không thể tải chi tiết sản phẩm!");
+    }
+  };
+  fetchDetail();
+}, [id, location.state]); // Thêm location.state vào dependencies
   // Lấy tất cả màu, size và chất liệu (không lọc)
   const allColors = Array.from(new Set(productList.map(item => item.mauSacId)))
     .map(msId => {
@@ -337,15 +356,13 @@ const DetailProduct = () => {
                 ))}
               </div>
             </div>
-            <div className="mb-2">
+            {/* <div className="mb-2">
               <b>Thương hiệu:</b> {productDetail.tenThuongHieu}
             </div>
             <div className="mb-2">
               <b>Xuất xứ:</b> {productDetail.tenXuatXu}
-            </div>
-            <div className="mb-2">
-              <b>Chất liệu:</b> {productDetail.tenChatLieu}
-            </div>
+            </div> */}
+            
             <div className="mb-2">
               <b>Giá bán:</b>{" "}
               <span style={{ color: "#e53935", fontWeight: 600 }}>

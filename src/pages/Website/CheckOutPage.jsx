@@ -17,10 +17,41 @@ import { createOder, submitVNPayOrder } from "../../services/Website/OrderApi";
 import AddAddressModal from "./AddAddressModal";
 const API_PROVINCE = "https://provinces.open-api.vn/api/";
 
+// Địa chỉ gửi hàng mặc định (Cao đẳng FPT)
+const DEFAULT_SHIPPING_LOCATION = {
+  province: "Hà Nội",
+  district: "Bắc Từ Liêm",
+  ward: "Phường Phương Canh",
+  address: "Đường Trịnh Văn Bô",
+  coordinates: { lat: 21.038045, lng: 105.746841 }
+};
+
 const fallbackProvinces = [
   { code: "01", name: "Hà Nội" },
   { code: "02", name: "Hồ Chí Minh" },
 ];
+
+// Hàm tính khoảng cách Euclid (chim bay) giữa 2 điểm
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Bán kính Trái đất tính bằng km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Khoảng cách tính bằng km
+};
+
+// Hàm tính phí vận chuyển dựa trên khoảng cách
+const calculateShippingFee = (distance) => {
+  if (distance <= 5) return 15000; // Dưới 5km: 15,000đ
+  if (distance <= 10) return 25000; // Dưới 10km: 25,000đ
+  if (distance <= 20) return 35000; // Dưới 20km: 35,000đ
+  if (distance <= 50) return 50000; // Dưới 50km: 50,000đ
+  return 80000; // Trên 50km: 80,000đ
+};
 
 const CheckOutPage = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -40,12 +71,41 @@ const CheckOutPage = () => {
   const [provinceNames, setProvinceNames] = useState({});
   const [districtNames, setDistrictNames] = useState({});
   const [wardNames, setWardNames] = useState({});
-  const [shippingFee] = useState(0);
+  const [shippingFee, setShippingFee] = useState(0);
   const [expectedDate, setExpectedDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  const [distance, setDistance] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Hàm tính toán phí vận chuyển khi địa chỉ thay đổi
+  const updateShippingFee = async () => {
+    if (!form.province || !form.district || !form.ward) {
+      setShippingFee(0);
+      setDistance(0);
+      return;
+    }
+
+    try {
+      // Giả lập tọa độ dựa trên địa chỉ (trong thực tế nên dùng API Geocoding)
+      const destinationLat = DEFAULT_SHIPPING_LOCATION.coordinates.lat + (Math.random() * 0.1 - 0.05);
+      const destinationLng = DEFAULT_SHIPPING_LOCATION.coordinates.lng + (Math.random() * 0.1 - 0.05);
+      
+      const dist = calculateDistance(
+        DEFAULT_SHIPPING_LOCATION.coordinates.lat,
+        DEFAULT_SHIPPING_LOCATION.coordinates.lng,
+        destinationLat,
+        destinationLng
+      );
+      
+      setDistance(dist);
+      setShippingFee(calculateShippingFee(dist));
+    } catch (error) {
+      console.error("Lỗi tính toán phí vận chuyển:", error);
+      setShippingFee(35000); // Mặc định 35,000đ nếu có lỗi
+    }
+  };
 
   useEffect(() => {
     const items = location.state?.selectedItems?.length > 0
@@ -146,6 +206,11 @@ const CheckOutPage = () => {
       setForm((f) => ({ ...f, ward: "" }));
     }
   }, [form.district]);
+
+  // Cập nhật phí vận chuyển khi địa chỉ thay đổi
+  useEffect(() => {
+    updateShippingFee();
+  }, [form.province, form.district, form.ward]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -527,8 +592,12 @@ const CheckOutPage = () => {
                 </tbody>
               </table>
               <Box className="d-flex justify-content-between mb-2">
+                <span>Khoảng cách:</span>
+                <span>{distance.toFixed(1)} km</span>
+              </Box>
+              <Box className="d-flex justify-content-between mb-2">
                 <span>Phí vận chuyển:</span>
-                <span>Chi phí sẽ được thông báo bởi người gửi</span>
+                <span>{shippingFee.toLocaleString("vi-VN")}₫</span>
               </Box>
               <Box className="d-flex justify-content-between mb-2">
                 <span>Ngày nhận dự kiến:</span>

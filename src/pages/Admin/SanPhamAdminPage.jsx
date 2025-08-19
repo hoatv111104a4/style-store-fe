@@ -13,15 +13,13 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   IconButton,
   Switch,
   FormControlLabel,
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import AddIcon from "@mui/icons-material/Add"; // <-- THÊM IMPORT NÀY
+
 import {
   listThuongHieu,
   listChatLieu,
@@ -29,12 +27,12 @@ import {
   listKichCo,
   getPageSanPhamAdmin,
   chuyenTrangThaiSPCT,
+  chuyenTrangThaiSP,
 } from "../../services/Website/ProductApis";
 
 const SanPhamAdminPage = () => {
   const { sanPhamId } = useParams();
   const navigate = useNavigate();
-  console.log("sanPhamId from URL:", sanPhamId);
 
   if (!sanPhamId) {
     return <Typography color="error">Lỗi: Không tìm thấy ID sản phẩm.</Typography>;
@@ -59,6 +57,7 @@ const SanPhamAdminPage = () => {
   const [mauSacList, setMauSacList] = useState([]);
   const [kichCoList, setKichCoList] = useState([]);
   const [chatLieuList, setChatLieuList] = useState([]);
+  const [tenSanPhamGoc, setTenSanPhamGoc] = useState(""); // State để lưu tên sản phẩm gốc
 
   // Lấy danh sách filter options
   useEffect(() => {
@@ -77,16 +76,17 @@ const SanPhamAdminPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log("Calling API with sanPhamId:", sanPhamId, "filters:", { ...filters, page });
         const data = await getPageSanPhamAdmin(sanPhamId, { ...filters, page });
-        console.log("API response:", data);
         if (data && data.content) {
           setSanPhamList(data.content);
           setTotalPages(data.totalPages || 0);
+          // Lấy tên sản phẩm gốc từ item đầu tiên (nếu có)
+          if (data.content.length > 0) {
+            setTenSanPhamGoc(data.content[0].tenSanPham);
+          }
         } else {
           setSanPhamList([]);
           setTotalPages(0);
-          console.warn("API response không chứa content:", data);
         }
       } catch (error) {
         console.error("Lỗi khi gọi API:", error.message);
@@ -96,7 +96,6 @@ const SanPhamAdminPage = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [page, filters, sanPhamId]);
 
@@ -104,12 +103,23 @@ const SanPhamAdminPage = () => {
   const handleViewProduct = (id) => {
     navigate(`/admin/san-pham-chi-tiet/chi-tiet/${id}`);
   };
+  
+  // =======================================================
+  // === BẮT ĐẦU PHẦN CODE MỚI ===
+  
+  // Xử lý khi nhấn nút thêm phiên bản
+  const handleAddVariant = () => {
+    navigate('/admin/quan-ly-sp/them-san-pham');
+  };
+
+  // === KẾT THÚC PHẦN CODE MỚI ===
+  // =======================================================
+
 
   // Xử lý chuyển trạng thái sản phẩm
   const handleChangeStatus = async (id, currentStatus) => {
     try {
       await chuyenTrangThaiSPCT(id);
-      // Cập nhật trạng thái trong danh sách
       setSanPhamList(prevList =>
         prevList.map(item =>
           item.id === id ? { ...item, trangThai: currentStatus === 1 ? 0 : 1 } : item
@@ -121,10 +131,7 @@ const SanPhamAdminPage = () => {
   };
 
   const handleChange = (name, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
     setPage(0);
   };
 
@@ -145,16 +152,28 @@ const SanPhamAdminPage = () => {
 
   return (
     <div style={{ padding: "20px" }}>
-      <h1>Danh sách sản phẩm Admin</h1>
+
+      {/* // ======================================================= */}
+      {/* // === BẮT ĐẦU PHẦN JSX MỚI === */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+           Quản lý phiên bản: {tenSanPhamGoc}
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={handleAddVariant}
+        >
+          Thêm sản phẩm chi tiết
+        </Button>
+      </Box>
+      {/* // === KẾT THÚC PHẦN JSX MỚI === */}
+      {/* // ======================================================= */}
+
 
       {/* Bộ lọc */}
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
-        <TextField
-          label="Tên sản phẩm"
-          value={filters.tenSanPham}
-          onChange={(e) => handleChange("tenSanPham", e.target.value)}
-          size="small"
-        />
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3, p: 2, border: '1px solid #ddd', borderRadius: '8px' }}>
         <Select
           value={filters.thuongHieuId}
           onChange={(e) => handleChange("thuongHieuId", e.target.value)}
@@ -164,9 +183,7 @@ const SanPhamAdminPage = () => {
         >
           <MenuItem value="">Tất cả thương hiệu</MenuItem>
           {thuongHieuList.map((th) => (
-            <MenuItem key={th.id} value={th.id}>
-              {th.ten}
-            </MenuItem>
+            <MenuItem key={th.id} value={th.id}>{th.ten}</MenuItem>
           ))}
         </Select>
 
@@ -179,9 +196,7 @@ const SanPhamAdminPage = () => {
         >
           <MenuItem value="">Tất cả màu sắc</MenuItem>
           {mauSacList.map((ms) => (
-            <MenuItem key={ms.id} value={ms.id}>
-              {ms.ten}
-            </MenuItem>
+            <MenuItem key={ms.id} value={ms.id}>{ms.ten}</MenuItem>
           ))}
         </Select>
 
@@ -194,9 +209,7 @@ const SanPhamAdminPage = () => {
         >
           <MenuItem value="">Tất cả chất liệu</MenuItem>
           {chatLieuList.map((cl) => (
-            <MenuItem key={cl.id} value={cl.id}>
-              {cl.ten}
-            </MenuItem>
+            <MenuItem key={cl.id} value={cl.id}>{cl.ten}</MenuItem>
           ))}
         </Select>
 
@@ -209,9 +222,7 @@ const SanPhamAdminPage = () => {
         >
           <MenuItem value="">Tất cả kích thước</MenuItem>
           {kichCoList.map((kc) => (
-            <MenuItem key={kc.id} value={kc.id}>
-              {kc.ten}
-            </MenuItem>
+            <MenuItem key={kc.id} value={kc.id}>{kc.ten}</MenuItem>
           ))}
         </Select>
 
@@ -243,23 +254,18 @@ const SanPhamAdminPage = () => {
           <CircularProgress />
         </Box>
       ) : sanPhamList.length === 0 ? (
-        <Typography>Không có sản phẩm nào hoặc ID không hợp lệ.</Typography>
+        <Typography>Không có phiên bản sản phẩm nào.</Typography>
       ) : (
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell>STT</TableCell>
               <TableCell>Hình ảnh</TableCell>
-              <TableCell>Tên sản phẩm</TableCell>
               <TableCell>Giá bán</TableCell>
-              <TableCell>Thương hiệu</TableCell>
               <TableCell>Màu sắc</TableCell>
-              <TableCell>Chất liệu</TableCell>
               <TableCell>Kích thước</TableCell>
-              <TableCell>Số lượng</TableCell>
-              <TableCell>Xuất xứ</TableCell>
+              <TableCell>Số lượng tồn</TableCell>
               <TableCell>Trạng thái</TableCell>
-              <TableCell>Xoá sp</TableCell>
               <TableCell>Hành động</TableCell>
             </TableRow>
           </TableHead>
@@ -269,25 +275,19 @@ const SanPhamAdminPage = () => {
                 <TableCell>{index + 1 + page * filters.size}</TableCell>
                 <TableCell>
                   <img
-                    src={
-                      sp.tenHinhAnhSp
-                        ? `http://localhost:8080/uploads/${sp.tenHinhAnhSp}`
-                        : "https://via.placeholder.com/80"
-                    }
-                    alt={sp.tenSanPham}
+                    src={sp.tenHinhAnhSp ? `http://localhost:8080/uploads/${sp.tenHinhAnhSp}` : "https://via.placeholder.com/80"}
+                    alt={sp.tenSanPham || "Sản phẩm không tên"}
                     style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 4 }}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://via.placeholder.com/80";
+                    }}
                   />
                 </TableCell>
-                <TableCell>{sp.tenSanPham}</TableCell>
-                <TableCell>{sp.giaBan?.toLocaleString()} ₫</TableCell>
-                <TableCell>{sp.tenThuongHieu}</TableCell>
-                <TableCell>{sp.tenMauSac}</TableCell>
-                <TableCell>{sp.tenChatLieu}</TableCell>
-                <TableCell>{sp.tenKichThuoc}</TableCell>
-                <TableCell>{sp.soLuong}</TableCell>
-                <TableCell>{sp.tenXuatXu}</TableCell>
-                <TableCell>{sp.trangThai == 1 ?'Đang bán':'Ngưng bán'}</TableCell>
-
+                <TableCell>{sp.giaBan ? sp.giaBan.toLocaleString() + " ₫" : "0 ₫"}</TableCell>
+                <TableCell>{sp.tenMauSac ?? "-"}</TableCell>
+                <TableCell>{sp.tenKichThuoc ?? "-"}</TableCell>
+                <TableCell>{sp.soLuong ?? "-"}</TableCell>
                 <TableCell>
                   <FormControlLabel
                     control={
@@ -295,13 +295,15 @@ const SanPhamAdminPage = () => {
                         checked={sp.trangThai === 1}
                         onChange={() => handleChangeStatus(sp.id, sp.trangThai)}
                         color="primary"
+                        size="small"
                       />
                     }
+                    label={sp.trangThai === 1 ? "Đang bán" : "Ngưng bán"}
                   />
                 </TableCell>
                 <TableCell>
                   <IconButton onClick={() => handleViewProduct(sp.id)}>
-                    <VisibilityIcon color="primary" />
+                    <VisibilityIcon color="info" />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -311,27 +313,29 @@ const SanPhamAdminPage = () => {
       )}
 
       {/* Phân trang */}
-      <div style={{ marginTop: "20px" }}>
-        <Button
-          disabled={page === 0}
-          onClick={() => setPage(page - 1)}
-          variant="outlined"
-          size="small"
-        >
-          Prev
-        </Button>
-        <span style={{ margin: "0 10px" }}>
-          {page + 1} / {totalPages}
-        </span>
-        <Button
-          disabled={page + 1 >= totalPages}
-          onClick={() => setPage(page + 1)}
-          variant="outlined"
-          size="small"
-        >
-          Next
-        </Button>
-      </div>
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <Button
+            disabled={page === 0}
+            onClick={() => setPage(page - 1)}
+            variant="outlined"
+            size="small"
+          >
+            Trang trước
+          </Button>
+          <Typography sx={{ mx: 2, alignSelf: 'center' }}>
+            {page + 1} / {totalPages}
+          </Typography>
+          <Button
+            disabled={page + 1 >= totalPages}
+            onClick={() => setPage(page + 1)}
+            variant="outlined"
+            size="small"
+          >
+            Trang sau
+          </Button>
+        </Box>
+      )}
     </div>
   );
 };

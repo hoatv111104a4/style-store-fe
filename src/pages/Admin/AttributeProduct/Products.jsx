@@ -7,7 +7,6 @@ import {
   Typography,
   TextField,
   IconButton,
-  Chip,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -27,10 +26,9 @@ import {
   Sync as SyncIcon,
   Search as SearchIcon,
   Close as CloseIcon,
-  PauseCircle as PauseCircleIcon,
-  RemoveShoppingCart as RemoveShoppingCartIcon,
-  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
+import { createSanPham } from '../../../services/Admin/ThuocTinhSanPhamApi';
+import { chuyenTrangThaiSP } from '../../../services/Website/ProductApis';
 
 const orange = '#ff8800';
 const black = '#222';
@@ -68,6 +66,12 @@ const Products = () => {
   const [totalElements, setTotalElements] = useState(0);
   const [skipFetch, setSkipFetch] = useState(false);
 
+  // State cho modal thêm nhanh sản phẩm
+  const [openQuickAddModal, setOpenQuickAddModal] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState('');
+
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -82,7 +86,6 @@ const Products = () => {
         response.content.map(item => ({
           ...item.sanPham,
           totalQuantity: item.totalQuantity || 0,
-          trangThai: item.sanPham.trangThai,
         })) || []
       );
       setTotalPages(response.totalPages || 0);
@@ -126,7 +129,7 @@ const Products = () => {
 
   const handleToggleStatus = useCallback(async () => {
     try {
-      await toggleStatusSP(confirmModal.id);
+      await chuyenTrangThaiSP(confirmModal.id);
       setAlertMessage('Chuyển đổi trạng thái sản phẩm thành công');
       setAlertType('success');
       await fetchData(currentPage, pageSize, searchTerm);
@@ -165,13 +168,48 @@ const Products = () => {
     }
   }, [handleSearch]);
 
-  const getStatusLabel = (trangThai, totalQuantity) => {
-    if (totalQuantity === 0) return 'Hết Hàng';
+  // Xử lý thêm nhanh sản phẩm
+  const handleOpenQuickAddModal = () => {
+    setOpenQuickAddModal(true);
+    setNewProductName('');
+    setModalError('');
+  };
+
+  const handleCloseQuickAddModal = () => {
+    setOpenQuickAddModal(false);
+    setNewProductName('');
+    setModalError('');
+  };
+
+  const handleAddQuickProduct = async () => {
+    if (!newProductName.trim()) {
+      setModalError('Vui lòng nhập tên sản phẩm');
+      return;
+    }
+
+    setModalLoading(true);
+    setModalError('');
+
+    try {
+      await createSanPham({ ten: newProductName });
+      setAlertMessage('Thêm sản phẩm thành công!');
+      setAlertType('success');
+      handleCloseQuickAddModal();
+      fetchData(currentPage, pageSize, searchTerm);
+    } catch (error) {
+      setModalError(error.message || 'Lỗi khi thêm sản phẩm');
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Đã sửa: Hàm getStatusLabel giờ chỉ dựa vào 'trangThai' (0 hoặc 1), không phụ thuộc vào 'totalQuantity'.
+  const getStatusLabel = (trangThai) => {
     switch (trangThai) {
       case 1:
         return 'Đang Kinh Doanh';
-      case 2:
-        return 'Tạm Ngưng';
+      case 0:
+        return 'Ngừng Kinh Doanh';
       default:
         return 'Không xác định';
     }
@@ -203,7 +241,7 @@ const Products = () => {
         align="center"
         sx={{ letterSpacing: 2, mb: 3 }}
       >
-        QUẢN LÝ SẢN PHẨM
+        Quản lý Sản Phẩm
       </Typography>
       <Grid container spacing={2} alignItems="center" mb={3}>
         <Grid item xs={12} md={7}>
@@ -257,11 +295,11 @@ const Products = () => {
             />
           </Box>
         </Grid>
-        <Grid item xs={12} md={5} display="flex" justifyContent={isMobile ? 'flex-start' : 'flex-end'}>
+        <Grid item xs={12} md={5} display="flex" justifyContent={isMobile ? 'flex-start' : 'flex-end'} gap={2}>
           <OrangeButton
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={handleAddProduct}
+            onClick={handleOpenQuickAddModal}
             sx={{ minWidth: 180, boxShadow: '0 2px 8px rgba(255,136,0,0.08)' }}
           >
             Thêm sản phẩm
@@ -309,20 +347,17 @@ const Products = () => {
                         fontSize: "0.85rem",
                         fontWeight: 500,
                         backgroundColor:
-                          product.totalQuantity === 0
-                            ? "#f8d7da"
-                            : product.trangThai === 1
-                              ? "#d1e7dd"
-                              : "#e2e3e5",
+                          product.trangThai === 1
+                            ? "#d1e7dd"
+                            : "#e2e3e5",
                         color:
-                          product.totalQuantity === 0
-                            ? "#842029"
-                            : product.trangThai === 1
-                              ? "#0f5132"
-                              : "#444",
+                          product.trangThai === 1
+                            ? "#0f5132"
+                            : "#444",
                       }}
                     >
-                      {getStatusLabel(product.trangThai, product.totalQuantity)}
+                      {/* Đã sửa: Gọi getStatusLabel chỉ với tham số trangThai */}
+                      {getStatusLabel(product.trangThai)}
                     </span>
                   </td>
                   <td>
@@ -343,30 +378,24 @@ const Products = () => {
                           <span className="d-none d-md-inline">Xem</span>
                         </button>
                       </Tooltip>
-                      { <Tooltip title={product.totalQuantity === 0 ? 'Không thể chuyển đổi trạng thái' : (product.trangThai === 1 ? 'Tạm ngưng' : 'Đang kinh doanh')} arrow>
+                      <Tooltip title={product.trangThai === 1 ? 'Tạm ngưng' : 'Đang kinh doanh'} arrow>
                         <button
                           onClick={() =>
-                            product.totalQuantity !== 0 &&
                             setConfirmModal({
                               open: true,
                               id: product.id,
                               currentStatus: product.trangThai,
                             })
                           }
-                          disabled={product.totalQuantity === 0}
                           style={{
-                            backgroundColor: product.totalQuantity === 0
-                              ? "#6c757d"
-                              : product.trangThai === 1
-                                ? "#dc3545"
-                                : "#28a745",
+                            backgroundColor:
+                              product.trangThai === 1 ? "#dc3545" : "#28a745",
                             color: "#fff",
                             border: "none",
                             borderRadius: 6,
                             padding: "6px 12px",
                             fontSize: "0.85rem",
-                            opacity: product.totalQuantity === 0 ? 0.65 : 1,
-                            cursor: product.totalQuantity === 0 ? "not-allowed" : "pointer",
+                            cursor: "pointer",
                           }}
                         >
                           <SyncIcon fontSize="small" style={{ marginRight: 4 }} />
@@ -374,7 +403,7 @@ const Products = () => {
                             {product.trangThai === 1 ? "Ngưng" : "Kinh doanh"}
                           </span>
                         </button>
-                      </Tooltip> }
+                      </Tooltip>
                     </div>
                   </td>
                 </tr>
@@ -403,6 +432,8 @@ const Products = () => {
           Trang {totalPages > 0 ? currentPage + 1 : 0} / {totalPages} ({totalElements} sản phẩm)
         </Typography>
       </Box>
+
+      {/* Snackbar thông báo */}
       <Snackbar
         open={!!alertMessage}
         autoHideDuration={4000}
@@ -423,6 +454,8 @@ const Products = () => {
           {alertMessage}
         </Alert>
       </Snackbar>
+
+      {/* Dialog xác nhận chuyển trạng thái */}
       <Dialog
         open={confirmModal.open}
         onClose={() => setConfirmModal({ open: false, id: null, currentStatus: null })}
@@ -433,7 +466,7 @@ const Products = () => {
         <DialogContent>
           <Typography>
             Bạn có chắc muốn chuyển trạng thái sản phẩm sang "
-            {confirmModal.currentStatus === 1 ? 'Tạm Ngưng' : 'Đang Kinh Doanh'}"?
+            {confirmModal.currentStatus === 1 ? 'Ngừng Kinh Doanh' : 'Đang Kinh Doanh'}"?
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -446,6 +479,47 @@ const Products = () => {
           </Button>
           <OrangeButton variant="contained" onClick={handleToggleStatus}>
             Xác nhận
+          </OrangeButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh sản phẩm */}
+      <Dialog
+        open={openQuickAddModal}
+        onClose={handleCloseQuickAddModal}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle>Thêm sản phẩm</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên sản phẩm"
+            fullWidth
+            variant="outlined"
+            value={newProductName}
+            onChange={(e) => setNewProductName(e.target.value)}
+            error={!!modalError}
+            helperText={modalError}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseQuickAddModal}
+            color="secondary"
+            disabled={modalLoading}
+            sx={{ borderRadius: 2 }}
+          >
+            Hủy
+          </Button>
+          <OrangeButton
+            onClick={handleAddQuickProduct}
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={24} color="inherit" /> : "Thêm"}
           </OrangeButton>
         </DialogActions>
       </Dialog>

@@ -218,15 +218,7 @@ const getStatusButtonLabel = () => {
 // Sửa lại hàm handleChuyenTrangThai
 const handleChuyenTrangThai = async () => {
   const nextStatus = getNextStatus();
-  
-  // Kiểm tra nếu đang chuyển sang trạng thái 2 (Đang giao)
-  if (nextStatus === 2) {
-    // Kiểm tra thông tin người giao hàng
-    if (!hoaDon.tenNguoiGiaoHang || !hoaDon.sdtNguoiGiaoHang) {
-      toast.error("Vui lòng nhập đầy đủ thông tin người giao hàng trước khi chuyển sang trạng thái 'Đang giao'");
-      return;
-    }
-  }
+
 
   // Nếu trạng thái hiện tại là 2 (Đang giao) và khách còn thiếu tiền
   if (

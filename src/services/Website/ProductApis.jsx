@@ -252,3 +252,13 @@ export const chuyenTrangThaiSPCT = async (id) => {
     throw error;
   }
 };
+
+export const chuyenTrangThaiSP = async (id) => {
+  try {
+    const response = await apiClient.get(`/chuyen-trang-thai-sp/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi chuyển trạng thái sản phẩm :", error);
+    throw error;
+  }
+};

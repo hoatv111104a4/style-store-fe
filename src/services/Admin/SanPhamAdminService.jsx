@@ -12,7 +12,7 @@ const axiosInstance = axios.create({
 
 // Lấy token từ localStorage
 const getToken = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('adminToken');
   if (!token) {
     console.warn('⚠️ Không tìm thấy token trong localStorage');
   }
