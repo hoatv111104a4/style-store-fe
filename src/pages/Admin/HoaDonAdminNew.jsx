@@ -218,7 +218,7 @@ const HoaDonAdminList = () => {
                   <tr key={hoaDon.id}>
                     <td>{(page - 1) * 5 + index + 1}</td>
                     <td>{hoaDon.ma || "N/A"}</td>
-                    <td>{hoaDon.nguoiDatHang || "N/A"}</td>
+                    <td>{hoaDon.nguoiNhanHang || "N/A"}</td>
                     <td>{hoaDon.soDtNguoiNhan || "N/A"}</td>
                     <td>{hoaDon.tongSoLuongSp || 0}</td>
                     <td>{hoaDon.ngayDat ? new Date(hoaDon.ngayDat).toLocaleDateString("vi-VN") : "N/A"}</td>

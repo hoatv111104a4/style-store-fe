@@ -347,7 +347,7 @@ const CheckOutPage = () => {
           note: "",
           payment: "cod",
         });
-        navigate("/website/dat-hang/lich-su-dat-hang");
+
       }
     } catch (error) {
       toast.error("Có lỗi xảy ra khi tạo đơn hàng hoặc thanh toán!");

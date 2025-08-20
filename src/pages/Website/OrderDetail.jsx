@@ -116,6 +116,10 @@ const OrderDetail = () => {
                 <th>STT</th>
                 <th>Ảnh sản phẩm</th>
                 <th>Tên sản phẩm</th>
+                <th>Màu sắc</th>
+                <th>Kích thước</th>
+                <th>Chất liệu</th>
+                <th>Thương hiệu</th>
                 <th>Số lượng</th>
                 <th>Đơn giá</th>
                 <th>Thành tiền</th>
@@ -133,7 +137,13 @@ const OrderDetail = () => {
                       style={{ objectFit: "cover", height: "80px", width: "80px", borderRadius: "8px" }}
                     />
                     <td>{item.tenSanPham}</td>
+                    <td>{item.tenMauSac}</td>
+                    <td>{item.tenKichThuoc}</td>
+                    <td>{item.tenChatLieu}</td> 
+                    <td>{item.tenThuongHieu}</td> 
+
                     <td>{item.soLuong}</td>
+
                     <td>{item.giaTien?.toLocaleString()}₫</td>
                     <td>{(item.soLuong * item.giaTien)?.toLocaleString()}₫</td>
                   </tr>

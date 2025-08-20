@@ -15,16 +15,18 @@ export const createOder = async (oderData) => {
     try {
         const token = Cookies.get("token");
 
-        if (!token) {
-            throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+        const headers = {
+            "Content-Type": "application/json",
+        };
+
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
         }
 
         const response = await apiClient.post("/dat-hang-online-chua-thanh-toan", oderData, {
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`, 
-            },
+            headers,
         });
+
         return response.data;
     } catch (error) {
         console.error("Lỗi khi tạo đơn hàng:", error.message || error);
@@ -32,19 +34,23 @@ export const createOder = async (oderData) => {
     }
 };
 
+
 export const submitVNPayOrder = async (donHangData) => {
   try {
     const token = Cookies.get("token");
-    if (!token) {
-      throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+
+    const headers = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
     const response = await vnpayClient.post("/submitOrder", donHangData, {
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
+      headers,
     });
+
     console.log("Response từ VNPay API:", response.data);
     return response.data; // Trả về URL VNPay
   } catch (error) {
@@ -56,6 +62,7 @@ export const submitVNPayOrder = async (donHangData) => {
     throw error;
   }
 };
+
 
 export const getLichSuDatHang = async ({
   page = 0,

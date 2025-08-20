@@ -1,44 +1,57 @@
 import React, { useState } from "react";
-import { Box, TextField, Button, Typography, Link, Paper, IconButton, InputAdornment, Modal } from "@mui/material";
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Link,
+  IconButton,
+  InputAdornment,
+  Modal,
+} from "@mui/material";
 import { Visibility, VisibilityOff, Close } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { jwtDecode } from "jwt-decode";
 import { login } from "../../services/Website/UserApi";
 import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
+import { useNavigate } from "react-router-dom"; // ✅ dùng để điều hướng
 
 const Login = ({ open, onClose }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate(); // ✅ hook điều hướng
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const data = await login(email, password);
-    if (data.code === 0 && data.result?.authenticated) {
-      const token = data.result.token;
-      const userInfo = jwtDecode(token);
-      Cookies.set("token", token, { expires: 7 });
-      Cookies.set("user", JSON.stringify(userInfo), { expires: 7 });
-      
-      
-      onClose();
-      
-      toast.success("Đăng nhập thành công!", {
-        onClose: () => {
-          setTimeout(() => {
-            window.location.reload();
-          }, 500); // Small delay to ensure toast is fully closed
-        },
-      });
-    } else {
-      toast.error("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!");
+    e.preventDefault();
+    try {
+      const data = await login(email, password);
+      if (data.code === 0 && data.result?.authenticated) {
+        const token = data.result.token;
+        const userInfo = jwtDecode(token);
+
+        // Lưu token và user vào cookie
+        Cookies.set("token", token, { expires: 7 });
+        Cookies.set("user", JSON.stringify(userInfo), { expires: 7 });
+
+        onClose();
+
+        toast.success("Đăng nhập thành công!", {
+          onClose: () => {
+            setTimeout(() => {
+              navigate("/"); 
+              window.location.reload(); 
+            }, 300);
+          },
+        });
+      } else {
+        toast.error("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!");
+      }
+    } catch (err) {
+      toast.error(err.message || "Đăng nhập thất bại. Vui lòng thử lại!");
     }
-  } catch (err) {
-    toast.error(err.message || "Đăng nhập thất bại. Vui lòng thử lại!");
-  }
-};
+  };
 
   return (
     <Modal
@@ -62,14 +75,24 @@ const Login = ({ open, onClose }) => {
           outline: "none",
         }}
       >
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5" id="login-modal-title" sx={{ color: "#ff6600", fontWeight: 700 }}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
+          <Typography
+            variant="h5"
+            id="login-modal-title"
+            sx={{ color: "#ff6600", fontWeight: 700 }}
+          >
             Đăng nhập
           </Typography>
           <IconButton onClick={onClose} sx={{ color: "#888" }}>
             <Close />
           </IconButton>
         </Box>
+
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             label="Gmail"
@@ -88,6 +111,7 @@ const Login = ({ open, onClose }) => {
               },
             }}
           />
+
           <TextField
             label="Mật khẩu"
             type={showPassword ? "text" : "password"}
@@ -118,11 +142,17 @@ const Login = ({ open, onClose }) => {
               ),
             }}
           />
+
           <Box display="flex" justifyContent="flex-end" mb={2}>
-            <Link href="#" underline="hover" sx={{ color: "#ff6600", fontSize: 15 }}>
+            <Link
+              href="#"
+              underline="hover"
+              sx={{ color: "#ff6600", fontSize: 15 }}
+            >
               Quên mật khẩu?
             </Link>
           </Box>
+
           <Button
             type="submit"
             fullWidth

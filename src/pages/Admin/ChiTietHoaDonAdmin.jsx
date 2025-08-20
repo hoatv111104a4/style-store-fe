@@ -53,8 +53,8 @@ const HoaDonDetailPage = () => {
   const [updateLoading, setUpdateLoading] = useState(false);
 
   const [openPayModal, setOpenPayModal] = useState(false);
-const [soTienConThieu, setSoTienConThieu] = useState(0);
-const [paying, setPaying] = useState(false);
+  const [soTienConThieu, setSoTienConThieu] = useState(0);
+  const [paying, setPaying] = useState(false);
 
   // Thêm state cho lịch sử đơn hàng và chuyển trạng thái
   const [lichSu, setLichSu] = useState([]);
@@ -83,6 +83,7 @@ const [paying, setPaying] = useState(false);
       setLoading(true);
       const response = await getHoaDonById(id);
       setHoaDon(response);
+      console.log("Chi tiết hóa đơn:", response);
       setError(null);
     } catch (err) {
       console.error("Lỗi khi load chi tiết hóa đơn:", err);
@@ -188,190 +189,151 @@ const [paying, setPaying] = useState(false);
     }
   };
 
- const isEditableStatus = () => {
-  return hoaDon?.trangThai !== undefined && hoaDon.trangThai <= 2;
-};
+  const isEditableStatus = () => {
+    return hoaDon?.trangThai !== undefined && hoaDon.trangThai <= 2;
+  };
 
-// Thêm hàm xác định trạng thái tiếp theo
-const getNextStatus = () => {
-  if (!hoaDon) return 0;
-  const currentStatus = hoaDon.trangThai;
-  if (currentStatus < 3) return currentStatus + 1;
-  return currentStatus;
-};
+  // Thêm hàm xác định trạng thái tiếp theo
+  const getNextStatus = () => {
+    if (!hoaDon) return 0;
+    const currentStatus = hoaDon.trangThai;
+    if (currentStatus < 3) return currentStatus + 1;
+    return currentStatus;
+  };
 
-// Thêm hàm lấy label cho nút chuyển trạng thái
-const getStatusButtonLabel = () => {
-  if (!hoaDon) return "Chuyển trạng thái";
-  const nextStatus = getNextStatus();
-  
-  const statusLabels = {
-    1: "Xác nhận đơn hàng",
-    2: "Chuyển sang Đang giao",
-    3: "Hoàn thành đơn hàng",
-    4: "Đơn hàng đã hoàn thành"
+  // Thêm hàm lấy label cho nút chuyển trạng thái
+  const getStatusButtonLabel = () => {
+    if (!hoaDon) return "Chuyển trạng thái";
+    const nextStatus = getNextStatus();
+    
+    const statusLabels = {
+      1: "Xác nhận đơn hàng",
+      2: "Chuyển sang Đang giao",
+      3: "Hoàn thành đơn hàng",
+      4: "Đơn hàng đã hoàn thành"
+    };
+    
+    return statusLabels[nextStatus] || "Chuyển trạng thái";
+  };
+
+  // Sửa lại hàm handleChuyenTrangThai
+  const handleChuyenTrangThai = async () => {
+    const nextStatus = getNextStatus();
+
+    // Nếu trạng thái hiện tại là 2 (Đang giao) và khách còn thiếu tiền
+    if (
+      hoaDon.trangThai === 2 &&
+      hoaDon.tienKhachTra < hoaDon.tongTien + hoaDon.tienThue
+    ) {
+      setSoTienConThieu((hoaDon.tongTien + hoaDon.tienThue) - hoaDon.tienKhachTra);
+      setOpenPayModal(true);
+      return;
+    }
+
+    if (!window.confirm(`Bạn có chắc chắn muốn chuyển đơn hàng sang trạng thái "${getStatusLabel(nextStatus).label}"?`)) return;
+
+    try {
+      setUpdatingStatus(true);
+      await chuyenTrangThaiDonHang(id);
+      await fetchData();
+      await fetchLichSu();
+      toast.success(`Chuyển trạng thái thành công sang "${getStatusLabel(nextStatus).label}"`);
+    } catch (error) {
+      toast.error("Chuyển trạng thái thất bại");
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
   
-  return statusLabels[nextStatus] || "Chuyển trạng thái";
-};
-
-// Sửa lại hàm handleChuyenTrangThai
-const handleChuyenTrangThai = async () => {
-  const nextStatus = getNextStatus();
-
-
-  // Nếu trạng thái hiện tại là 2 (Đang giao) và khách còn thiếu tiền
-  if (
-    hoaDon.trangThai === 2 &&
-    hoaDon.tienKhachTra < hoaDon.tongTien + hoaDon.tienThue
-  ) {
-    setSoTienConThieu((hoaDon.tongTien + hoaDon.tienThue) - hoaDon.tienKhachTra);
-    setOpenPayModal(true);
-    return;
-  }
-
-  if (!window.confirm(`Bạn có chắc chắn muốn chuyển đơn hàng sang trạng thái "${getStatusLabel(nextStatus).label}"?`)) return;
-
-  try {
-    setUpdatingStatus(true);
-    await chuyenTrangThaiDonHang(id);
-    await fetchData();
-    await fetchLichSu();
-    toast.success(`Chuyển trạng thái thành công sang "${getStatusLabel(nextStatus).label}"`);
-  } catch (error) {
-    toast.error("Chuyển trạng thái thất bại");
-  } finally {
-    setUpdatingStatus(false);
-  }
-};
-const handleConfirmPayAndChangeStatus = async () => {
-  setPaying(true);
-  try {
-    // Gọi API cập nhật số tiền khách trả (nếu có API riêng, thay thế bằng API phù hợp)
-    await updateHoaDonUDDetail(id, {
-      ...hoaDon,
-      tienKhachTra: hoaDon.tongTien + hoaDon.tienThue,
-    });
-    await chuyenTrangThaiDonHang(id);
-    await fetchData();
-    await fetchLichSu();
-    toast.success("Đã thu đủ tiền và chuyển trạng thái thành công");
-    setOpenPayModal(false);
-  } catch (error) {
-    toast.error("Có lỗi xảy ra, vui lòng thử lại");
-  } finally {
-    setPaying(false);
-  }
-};
-const getTimelineTitle = (tieuDe) => {
-  switch (tieuDe) {
-    case "1":
-      return "Đã xác nhận";
-    case "2":
-      return "Đang giao";
-    case "3":
-      return "Đã giao";
-    case "4":
-      return "Đã huỷ";
-    default:
-      return tieuDe || "";
-  }
-};
-const getTimelineNoiDung = (noiDung) => {
-  switch (noiDung) {
-    case "1":
-      return "Đã xác nhận";
-    case "2":
-      return "Đang giao";
-    case "3":
-      return "Đã giao";
-    case "4":
-      return "Đã huỷ";
-    default:
-      return noiDung || "";
-  }
-};
+  const handleConfirmPayAndChangeStatus = async () => {
+    setPaying(true);
+    try {
+      // Gọi API cập nhật số tiền khách trả (nếu có API riêng, thay thế bằng API phù hợp)
+      await updateHoaDonUDDetail(id, {
+        ...hoaDon,
+        tienKhachTra: hoaDon.tongTien + hoaDon.tienThue,
+      });
+      await chuyenTrangThaiDonHang(id);
+      await fetchData();
+      await fetchLichSu();
+      toast.success("Đã thu đủ tiền và chuyển trạng thái thành công");
+      setOpenPayModal(false);
+    } catch (error) {
+      toast.error("Có lỗi xảy ra, vui lòng thử lại");
+    } finally {
+      setPaying(false);
+    }
+  };
+  
+  const getTimelineTitle = (tieuDe) => {
+    switch (tieuDe) {
+      case "1":
+        return "Đã xác nhận";
+      case "2":
+        return "Đang giao";
+      case "3":
+        return "Đã giao";
+      case "4":
+        return "Đã huỷ";
+      default:
+        return tieuDe || "";
+    }
+  };
+  
+  const getTimelineNoiDung = (noiDung) => {
+    switch (noiDung) {
+      case "1":
+        return "Đã xác nhận";
+      case "2":
+        return "Đang giao";
+      case "3":
+        return "Đã giao";
+      case "4":
+        return "Đã huỷ";
+      default:
+        return noiDung || "";
+    }
+  };
 
   const renderOrderHistoryTimeline = () => {
-  if (loadingLichSu) {
-    return (
-      <Box display="flex" justifyContent="center" p={2}>
-        <CircularProgress size={24} />
-      </Box>
-    );
-  }
+    if (loadingLichSu) {
+      return (
+        <Box display="flex" justifyContent="center" p={2}>
+          <CircularProgress size={24} />
+        </Box>
+      );
+    }
 
-  // Luôn hiển thị "Chờ xác nhận" đầu tiên
-  return (
-    <Box
-      sx={{
-        width: '100%',
-        maxWidth: '100vw',
-        overflowX: 'auto',
-        py: 3,
-        position: 'relative',
-        '&::-webkit-scrollbar': {
-          height: '6px',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: 'rgba(0,0,0,.2)',
-          borderRadius: '3px',
-        },
-      }}
-    >
+    // Luôn hiển thị "Chờ xác nhận" đầu tiên
+    return (
       <Box
         sx={{
-          display: 'flex',
+          width: '100%',
+          maxWidth: '100vw',
+          overflowX: 'auto',
+          py: 3,
           position: 'relative',
-          zIndex: 1,
-          gap: 2,
-          px: 2,
-          minWidth: 0,
+          '&::-webkit-scrollbar': {
+            height: '6px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,.2)',
+            borderRadius: '3px',
+          },
         }}
       >
-        {/* Bước "Chờ xác nhận" */}
         <Box
           sx={{
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            minWidth: 200,
-            flexShrink: 0,
+            position: 'relative',
+            zIndex: 1,
+            gap: 2,
+            px: 2,
+            minWidth: 0,
           }}
         >
+          {/* Bước "Chờ xác nhận" */}
           <Box
-            sx={{
-              width: 12,
-              height: 12,
-              borderRadius: '50%',
-              bgcolor: 'warning.main',
-              mb: 1,
-              border: '2px solid white',
-              boxShadow: 1,
-              zIndex: 2,
-            }}
-          />
-          <Paper
-            elevation={3}
-            sx={{
-              p: 2,
-              width: '100%',
-              borderRadius: 2,
-              bgcolor: 'background.paper',
-            }}
-          >
-            <Typography fontWeight="bold" color="warning.main">
-              Chờ xác nhận
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
-              Đơn hàng đang chờ xác nhận
-            </Typography>
-          </Paper>
-        </Box>
-        {/* Các bước lịch sử */}
-        {lichSu.slice().reverse().map((item, idx, arr) => (
-          <Box
-            key={item.id}
             sx={{
               display: 'flex',
               flexDirection: 'column',
@@ -385,7 +347,7 @@ const getTimelineNoiDung = (noiDung) => {
                 width: 12,
                 height: 12,
                 borderRadius: '50%',
-                bgcolor: idx === arr.length - 1 ? 'primary.main' : 'grey.500',
+                bgcolor: 'warning.main',
                 mb: 1,
                 border: '2px solid white',
                 boxShadow: 1,
@@ -401,23 +363,64 @@ const getTimelineNoiDung = (noiDung) => {
                 bgcolor: 'background.paper',
               }}
             >
-              <Typography fontWeight="bold" color={idx === arr.length - 1 ? 'primary.main' : 'text.primary'}>
-                {getTimelineTitle(item.tieuDe) || `Trạng thái ${item.trangThai}`}
+              <Typography fontWeight="bold" color="warning.main">
+                Chờ xác nhận
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
-                {getTimelineNoiDung(item.noiDung) || `Trạng thái ${item.trangThai}`}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString() : ''}
-                {item.nguoiThucHien ? ` - ${item.nguoiThucHien}` : ''}
+                Đơn hàng đang chờ xác nhận
               </Typography>
             </Paper>
           </Box>
-        ))}
+          {/* Các bước lịch sử */}
+          {lichSu.slice().reverse().map((item, idx, arr) => (
+            <Box
+              key={item.id}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                minWidth: 200,
+                flexShrink: 0,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  bgcolor: idx === arr.length - 1 ? 'primary.main' : 'grey.500',
+                  mb: 1,
+                  border: '2px solid white',
+                  boxShadow: 1,
+                  zIndex: 2,
+                }}
+              />
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 2,
+                  width: '100%',
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                }}
+              >
+                <Typography fontWeight="bold" color={idx === arr.length - 1 ? 'primary.main' : 'text.primary'}>
+                  {getTimelineTitle(item.tieuDe) || `Trạng thái ${item.trangThai}`}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
+                  {getTimelineNoiDung(item.noiDung) || `Trạng thái ${item.trangThai}`}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString() : ''}
+                  {item.nguoiThucHien ? ` - ${item.nguoiThucHien}` : ''}
+                </Typography>
+              </Paper>
+            </Box>
+          ))}
+        </Box>
       </Box>
-    </Box>
-  );
-};
+    );
+  };
 
   if (loading) {
     return (
@@ -492,13 +495,13 @@ const getTimelineNoiDung = (noiDung) => {
               <b>Thông tin thanh toán</b>
             </Typography>
             <Typography>
-              <b>Phương thức:</b> {hoaDon.ptThanhToan || "Chưa xác định"}
+              <b>Phương thức:</b> {hoaDon.ptThanhToan}
             </Typography>
             <Typography>
               <b>Trạng thái thanh toán:</b> {hoaDon.trangThaiThanhToan === 1 ? "Đã thanh toán" : "Chưa thanh toán"}
             </Typography>
             <Typography>
-              <b>Ngày đặt:</b> {new Date(hoaDon.ngayDat).toLocaleString()}
+              <b>Ngày đặt:</b> {hoaDon.ngayDat ? new Date(hoaDon.ngayDat).toLocaleString() : null}
             </Typography>
           </Box>
 
@@ -507,19 +510,19 @@ const getTimelineNoiDung = (noiDung) => {
               <b>Thông tin khách hàng</b>
             </Typography>
             <Typography>
-              <b>Người nhận:</b> {hoaDon?.nguoiNhanHang || "N/A"}
+              <b>Người nhận:</b> {hoaDon.nguoiNhanHang}
             </Typography>
             <Typography>
-              <b>SĐT:</b> { hoaDon?.soDtNguoiNhan || "N/A"}
+              <b>SĐT:</b> {hoaDon.soDtNguoiNhan}
             </Typography>
             <Typography>
-              <b>Địa chỉ:</b> {hoaDon?.diaChiNhanHang || "N/A"}
+              <b>Địa chỉ:</b> {hoaDon.diaChiNhanHang}
             </Typography>
             <Typography>
-              <b>Người giao hàng:</b> {hoaDon?.tenNguoiGiaoHang || "N/A"}
+              <b>Người giao hàng:</b> {hoaDon.tenNguoiGiaoHang}
             </Typography>
             <Typography>
-              <b>SĐT người giao:</b> {hoaDon?.sdtNguoiGiaoHang || "N/A"}
+              <b>SĐT người giao:</b> {hoaDon.sdtNguoiGiaoHang}
             </Typography>
           </Box>
         </Box>
@@ -538,6 +541,7 @@ const getTimelineNoiDung = (noiDung) => {
               <TableCell align="right">Đơn giá</TableCell>
               <TableCell align="right">Số lượng</TableCell>
               <TableCell align="right">Thành tiền</TableCell>
+              <TableCell align="center">Thao tác</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -621,12 +625,12 @@ const getTimelineNoiDung = (noiDung) => {
               <Typography>{formatCurrency(hoaDon.tienKhachTra)}</Typography>
             </Box>
             {hoaDon.tienKhachTra < hoaDon.tongTien + hoaDon.tienThue && (
-        <Box mt={1}>
-          <Typography color="error" fontWeight="bold">
-            Khách cần trả thêm {formatCurrency((hoaDon.tongTien + hoaDon.tienThue) - hoaDon.tienKhachTra)}
-          </Typography>
-        </Box>
-      )}
+              <Box mt={1}>
+                <Typography color="error" fontWeight="bold">
+                  Khách cần trả thêm {formatCurrency((hoaDon.tongTien + hoaDon.tienThue) - hoaDon.tienKhachTra)}
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Box>
       </Paper>
@@ -729,42 +733,41 @@ const getTimelineNoiDung = (noiDung) => {
       </Modal>
 
       <Modal open={openPayModal} onClose={() => setOpenPayModal(false)}>
-  <Box
-    sx={{
-      position: "absolute",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      width: 400,
-      bgcolor: "background.paper",
-      boxShadow: 24,
-      p: 4,
-      borderRadius: 2,
-    }}
-  >
-    <Typography variant="h6" gutterBottom>
-      Khách còn thiếu {formatCurrency(soTienConThieu)}
-    </Typography>
-    <Typography sx={{ mb: 2 }}>
-      Vui lòng xác nhận đã thu đủ số tiền còn thiếu trước khi hoàn thành đơn hàng.
-    </Typography>
-    <Box display="flex" justifyContent="flex-end" gap={2}>
-      <Button variant="outlined" onClick={() => setOpenPayModal(false)}>
-        Hủy
-      </Button>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleConfirmPayAndChangeStatus}
-        disabled={paying}
-      >
-        {paying ? "Đang xác nhận..." : "Đã thu đủ tiền, hoàn thành đơn"}
-      </Button>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Khách còn thiếu {formatCurrency(soTienConThieu)}
+          </Typography>
+          <Typography sx={{ mb: 2 }}>
+            Vui lòng xác nhận đã thu đủ số tiền còn thiếu trước khi hoàn thành đơn hàng.
+          </Typography>
+          <Box display="flex" justifyContent="flex-end" gap={2}>
+            <Button variant="outlined" onClick={() => setOpenPayModal(false)}>
+              Hủy
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleConfirmPayAndChangeStatus}
+              disabled={paying}
+            >
+              {paying ? "Đang xác nhận..." : "Đã thu đủ tiền, hoàn thành đơn"}
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
-  </Box>
-</Modal>
-    </Box>
-    
   );
 };
 
