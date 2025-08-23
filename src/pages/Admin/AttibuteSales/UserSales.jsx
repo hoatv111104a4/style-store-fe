@@ -8,6 +8,36 @@ import "react-toastify/dist/ReactToastify.css";
 import { set } from 'lodash';
 const API_PROVINCE_URL = "https://provinces.open-api.vn/api/";
 
+const DEFAULT_SHIPPING_LOCATION = {
+    tinh: "Hà Nội",
+    huyen: "Bắc Từ Liêm",
+    xa: "Phường Phương Canh",
+    address: "Đường Trịnh Văn Bô",
+    coordinates: { lat: 21.038045, lng: 105.746841 }
+};
+
+// Hàm tính khoảng cách Euclid (chim bay) giữa 2 điểm
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Bán kính Trái đất tính bằng km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Khoảng cách tính bằng km
+};
+
+// Hàm tính phí vận chuyển dựa trên khoảng cách
+const calculateShippingFee = (distance) => {
+    if (distance <= 5) return 15000; // Dưới 5km: 15,000đ
+    if (distance <= 10) return 25000; // Dưới 10km: 25,000đ
+    if (distance <= 20) return 35000; // Dưới 20km: 35,000đ
+    if (distance <= 50) return 50000; // Dưới 50km: 50,000đ
+    return 80000; // Trên 50km: 80,000đ
+};
+
 const Client = forwardRef(({
     hoaDonId,
     khachHangMap,
@@ -17,13 +47,15 @@ const Client = forwardRef(({
     setXacNhanKhachHangMap,
     hinhThucNhanHang,
     setHinhThucNhanHang,
-    setSoDienThoai
+    setSoDienThoai,
+    setShippingFee
 }, ref) => {
     const [loading, setLoading] = useState(false);
     const [khachHang, setKhachHang] = useState(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showSearchInput, setShowSearchInput] = useState(true); // Default to show search
     const [searchSdt, setSearchSdt] = useState('');
+    const [distance, setDistance] = useState(0);
     const [diaChiNhanId, setDiaChiNhanId] = useState(null);
     const [daXacNhanState, setDaXacNhanState] = useState(false);
     const [showDiaChiModal, setShowDiaChiModal] = useState(false);
@@ -57,6 +89,34 @@ const Client = forwardRef(({
         idChucVu: 3,
     };
     const [newCustomer, setNewCustomer] = useState(initialCustomerState);
+
+    const updateShippingFee = async () => {
+        if (!newDiaChi.tinh || !newDiaChi.huyen || !newDiaChi.xa) {
+            setShippingFee(0);
+            setDistance(0);
+            return;
+        }
+
+        try {
+            // Giả lập tọa độ dựa trên địa chỉ (trong thực tế nên dùng API Geocoding)
+            const destinationLat = DEFAULT_SHIPPING_LOCATION.coordinates.lat + (Math.random() * 0.1 - 0.05);
+            const destinationLng = DEFAULT_SHIPPING_LOCATION.coordinates.lng + (Math.random() * 0.1 - 0.05);
+
+            const dist = calculateDistance(
+                DEFAULT_SHIPPING_LOCATION.coordinates.lat,
+                DEFAULT_SHIPPING_LOCATION.coordinates.lng,
+                destinationLat,
+                destinationLng
+            );
+
+            setDistance(dist);
+            setShippingFee(calculateShippingFee(dist));
+        } catch (error) {
+            console.error("Lỗi tính toán phí vận chuyển:", error);
+            setShippingFee(35000); // Mặc định 35,000đ nếu có lỗi
+        }
+    };
+
 
     useEffect(() => {
         fetch(`${API_PROVINCE_URL}?depth=1`).then(res => res.json()).then(setProvinces);
@@ -191,6 +251,11 @@ const Client = forwardRef(({
         }
     }, [daXacNhanState, hoaDonId, setXacNhanKhachHangMap, khachHang, hinhThucNhanHang, diaChiNhanId]);
 
+    useEffect(() => {
+        updateShippingFee();
+    }, [newDiaChi.tinh, newDiaChi.huyen, newDiaChi.xa]);
+
+
     const handleLocalSearch = async () => {
         if (!searchSdt?.trim()) {
             toast.warning('Vui lòng nhập số điện thoại.');
@@ -260,10 +325,34 @@ const Client = forwardRef(({
             setLoading(false);
         }
     };
-    const handleReload = () => {
+    const handleReload = (targetHoaDonId = hoaDonId) => {
         setShowSearchInput(true);
         setSearchSdt('');
         setDaXacNhanState(false);
+
+        // Xóa dữ liệu theo targetHoaDonId
+        localStorage.removeItem(`selectedCustomer-${targetHoaDonId}`);
+        localStorage.removeItem(`daXacNhan-${targetHoaDonId}`);
+        localStorage.removeItem(`diaChiNhanId-${targetHoaDonId}`);
+        localStorage.removeItem(`hinhThucNhanHang-${targetHoaDonId}`);
+
+        if (typeof setKhachHangMap === 'function') {
+            setKhachHangMap(prevMap => ({
+                ...prevMap,
+                [targetHoaDonId]: null
+            }));
+        }
+    };
+
+    useImperativeHandle(ref, () => ({
+        reloadClient: (targetHoaDonId) => handleReload(targetHoaDonId)
+    }));
+
+    const handleReloadUS = () => {
+        setShowSearchInput(true);
+        setSearchSdt('');
+        setDaXacNhanState(false);
+        setHinhThucNhanHang(0);
 
         // Xóa dữ liệu theo hoaDonId
         localStorage.removeItem(`selectedCustomer-${hoaDonId}`);
@@ -288,10 +377,6 @@ const Client = forwardRef(({
         }
     };
 
-    useImperativeHandle(ref, () => ({
-        reloadClient: handleReload
-    }));
-
     const handleDiaChiChange = (dc, index) => {
         setDiaChiNhanId(dc.id || index);
 
@@ -305,7 +390,14 @@ const Client = forwardRef(({
                 [hoaDonId]: phone
             }));
         }
-
+        setNewDiaChi({
+            ...newDiaChi,
+            tinh: dc.tinh,
+            huyen: dc.huyen,
+            xa: dc.xa,
+            diaChi: dc.diaChi,
+            soNha: dc.soNha,
+        });
 
         localStorage.setItem(`diaChiNhanId-${hoaDonId}`, dc.id || index);
     };
@@ -504,7 +596,7 @@ const Client = forwardRef(({
                     <div className="alert alert-info py-2 px-3 mb-2">
                         <div className="d-flex justify-content-between align-items-start">
                             <h6 className="fw-bold mb-1">{khachHang.hoTen}</h6>
-                            <button className="btn btn-sm btn-outline-danger" title="Chọn lại khách hàng" onClick={handleReload}>
+                            <button className="btn btn-sm btn-outline-danger" title="Chọn lại khách hàng" onClick={handleReloadUS}>
                                 <FontAwesomeIcon icon={faSyncAlt} />
                             </button>
                         </div>
