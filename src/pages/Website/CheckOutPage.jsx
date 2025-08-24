@@ -479,7 +479,7 @@ const CheckOutPage = () => {
               value={form.address}
               onChange={handleChange}
               fullWidth
-              required
+              x
               sx={{ mb: 2 }}
             />
             <TextField
