@@ -493,7 +493,6 @@ const UserProfile = () => {
           </Grid>
         </Grid>
       </Box>
-      <Account />
       <ToastContainer />
     </Box>
     

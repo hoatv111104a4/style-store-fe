@@ -8,7 +8,7 @@ const apiClient = axios.create({
 });
 
 const getAuthHeaders = () => {
-  const token = Cookies.get("token");
+  const token = Cookies.get("adminToken");
   if (!token) {
     throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
   }
@@ -53,23 +53,41 @@ export const applyVoucher = async (applyData) => {
   }
 };
 export const updateGiamGia = async (id, apDungGGUpdateRequest) => {
-    try {
-        const response = await apiClient.put(`/cap-nhat/${id}`, apDungGGUpdateRequest);
-        return response.data;
-    } catch (error) {
-        console.error("Lỗi khi gọi API cập nhật mã giảm giá", error);
-        throw error;
+  try {
+    const token = Cookies.get("adminToken");
+    if (!token) {
+      throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
     }
+    const response = await apiClient.put(`/cap-nhat/${id}`, apDungGGUpdateRequest, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API cập nhật mã giảm giá", error);
+    throw error;
+  }
 };
 
 export const getGiamGiaDetail = async (id) => {
-    try {
-        const response = await apiClient.get(`/chi-tiet/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error("Lỗi khi gọi API lấy chi tiết mã giảm giá", error);
-        throw error;
+  try {
+    const token = Cookies.get("adminToken");
+    if (!token) {
+      throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
     }
+    const response = await apiClient.get(`/chi-tiet/${id}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API lấy chi tiết mã giảm giá", error);
+    throw error;
+  }
 };
 export const getPageGiamGia = async (
   page = 0,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate ,useLocation} from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { getPageSanPhamAdmin } from "../../services/Website/ProductApis";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -7,8 +7,10 @@ import "../../styles/Website/DetailProductCss.css";
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 
+const MAX_QUANTITY = 20;
+
 const DetailProduct = () => {
-  const { id } = useParams(); // id sản phẩm gốc
+  const { id } = useParams();
   const [productList, setProductList] = useState([]);
   const [productDetail, setProductDetail] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -18,48 +20,43 @@ const DetailProduct = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Lấy danh sách sản phẩm chi tiết theo id sản phẩm
   useEffect(() => {
-  const fetchDetail = async () => {
-    try {
-      const data = await getPageSanPhamAdmin(id, { page: 0, size: 100 });
-      const list = data.content || [];
-      setProductList(list);
-      
-      // Kiểm tra nếu có state từ navigation
-      if (location.state) {
-        const { selectedColor, selectedSize, selectedMaterial } = location.state;
-        setSelectedColor(selectedColor || "");
-        setSelectedSize(selectedSize || "");
-        setSelectedMaterial(selectedMaterial || "");
-        
-        // Tìm sản phẩm phù hợp với các thuộc tính đã chọn
-        const matchedProduct = list.find(
-          item =>
-            (selectedColor ? item.mauSacId === selectedColor : true) &&
-            (selectedSize ? item.kichThuocId === selectedSize : true) &&
-            (selectedMaterial ? item.chatLieuId === selectedMaterial : true)
-        );
-        
-        if (matchedProduct) {
-          setProductDetail(matchedProduct);
+    const fetchDetail = async () => {
+      try {
+        const data = await getPageSanPhamAdmin(id, { page: 0, size: 100 });
+        const list = data.content || [];
+        setProductList(list);
+
+        if (location.state) {
+          const { selectedColor, selectedSize, selectedMaterial } = location.state;
+          setSelectedColor(selectedColor || "");
+          setSelectedSize(selectedSize || "");
+          setSelectedMaterial(selectedMaterial || "");
+
+          const matchedProduct = list.find(
+            item =>
+              (selectedColor ? item.mauSacId === selectedColor : true) &&
+              (selectedSize ? item.kichThuocId === selectedSize : true) &&
+              (selectedMaterial ? item.chatLieuId === selectedMaterial : true)
+          );
+
+          if (matchedProduct) {
+            setProductDetail(matchedProduct);
+          } else if (list.length > 0) {
+            setProductDetail(list[0]);
+          }
         } else if (list.length > 0) {
-          // Nếu không tìm thấy, chọn sản phẩm đầu tiên
           setProductDetail(list[0]);
         }
-      } else if (list.length > 0) {
-        // Nếu không có state từ navigation, chọn sản phẩm đầu tiên
-        setProductDetail(list[0]);
+
+        setQuantity(1);
+      } catch (error) {
+        toast.error("Không thể tải chi tiết sản phẩm!");
       }
-      
-      setQuantity(1);
-    } catch (error) {
-      toast.error("Không thể tải chi tiết sản phẩm!");
-    }
-  };
-  fetchDetail();
-}, [id, location.state]); // Thêm location.state vào dependencies
-  // Lấy tất cả màu, size và chất liệu (không lọc)
+    };
+    fetchDetail();
+  }, [id, location.state]);
+
   const allColors = Array.from(new Set(productList.map(item => item.mauSacId)))
     .map(msId => {
       const item = productList.find(i => i.mauSacId === msId);
@@ -78,11 +75,9 @@ const DetailProduct = () => {
       return { id: clId, name: item.tenChatLieu };
     });
 
-  // Khi chọn màu/kích thước/chất liệu, tìm sản phẩm chi tiết phù hợp
   useEffect(() => {
     if (productList.length === 0) return;
 
-    // Tìm sản phẩm phù hợp với các thuộc tính đã chọn
     let foundProduct = productList.find(
       item =>
         (selectedColor ? item.mauSacId === selectedColor : true) &&
@@ -90,17 +85,15 @@ const DetailProduct = () => {
         (selectedMaterial ? item.chatLieuId === selectedMaterial : true)
     );
 
-    // Nếu không tìm thấy sản phẩm phù hợp
     if (!foundProduct) {
-      // Tạo một sản phẩm "ảo" với số lượng = 0 để hiển thị
       const firstColor = allColors.find(c => c.id === selectedColor) || {};
       const firstSize = allSizes.find(s => s.id === selectedSize) || {};
       const firstMaterial = allMaterials.find(m => m.id === selectedMaterial) || {};
       const firstProduct = productList[0] || {};
-      
+
       foundProduct = {
         ...firstProduct,
-        id: null, // Đánh dấu là không tồn tại
+        id: null,
         soLuong: 0,
         tenMauSac: firstColor.name || '',
         tenKichThuoc: firstSize.name || '',
@@ -109,20 +102,64 @@ const DetailProduct = () => {
         kichThuocId: selectedSize,
         chatLieuId: selectedMaterial
       };
-
-      // Hiển thị thông báo nếu đã chọn ít nhất 1 thuộc tính
-      
     }
 
     setProductDetail(foundProduct);
     setQuantity(1);
   }, [selectedColor, selectedSize, selectedMaterial, productList]);
 
+  // Lấy số lượng tối đa có thể đặt
+  const getMaxOrderQuantity = () => {
+    if (!productDetail) return MAX_QUANTITY;
+    return Math.min(productDetail.soLuong || 0, MAX_QUANTITY);
+  };
+
+  // Xử lý khi thay đổi số lượng
   const handleQuantityChange = (e) => {
-    let value = Number(e.target.value);
-    if (value > (productDetail?.soLuong || 0)) value = productDetail?.soLuong || 0;
-    if (value < 1) value = 1;
-    setQuantity(value);
+    let val = e.target.value.replace(/\D/g, ""); // chỉ lấy số
+    if (val === "") {
+      setQuantity("");
+      return;
+    }
+    val = parseInt(val, 10);
+    if (val < 1) val = 1;
+    if (val > getMaxOrderQuantity()) val = getMaxOrderQuantity();
+    setQuantity(val);
+  };
+
+  // Xử lý khi blur input số lượng
+  const handleQuantityBlur = () => {
+    let val = parseInt(quantity, 10);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > getMaxOrderQuantity()) {
+      toast.error(
+        val > MAX_QUANTITY
+          ? `Chỉ được mua tối đa ${MAX_QUANTITY} sản phẩm!`
+          : "Số lượng vượt quá số lượng còn!"
+      );
+      val = getMaxOrderQuantity();
+    }
+    setQuantity(val);
+  };
+
+  const isProductAvailable = productDetail?.id && productDetail?.soLuong > 0;
+
+  // Validate số lượng khi nhấn nút
+  const validateQuantity = () => {
+    const val = parseInt(quantity, 10);
+    if (isNaN(val) || val < 1) {
+      toast.error("Số lượng phải lớn hơn 0!");
+      return false;
+    }
+    if (val > getMaxOrderQuantity()) {
+      toast.error(
+        val > MAX_QUANTITY
+          ? `Chỉ được mua tối đa ${MAX_QUANTITY} sản phẩm!`
+          : "Số lượng vượt quá số lượng còn!"
+      );
+      return false;
+    }
+    return true;
   };
 
   const handleAddToCart = () => {
@@ -130,6 +167,7 @@ const DetailProduct = () => {
       toast.error("Sản phẩm không khả dụng!");
       return;
     }
+    if (!validateQuantity()) return;
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     const existIndex = cart.findIndex(item => item.id === productDetail.id);
     const productToAdd = {
@@ -146,10 +184,10 @@ const DetailProduct = () => {
       tenChatLieu: productDetail.tenChatLieu,
       moTa: productDetail.moTa,
       giaBanGoc: productDetail.giaBanGoc,
-      quantity,
+      quantity: parseInt(quantity, 10),
     };
     if (existIndex !== -1) {
-      cart[existIndex].quantity += quantity;
+      cart[existIndex].quantity += parseInt(quantity, 10);
     } else {
       cart.push(productToAdd);
     }
@@ -162,6 +200,7 @@ const DetailProduct = () => {
       toast.error("Sản phẩm không khả dụng!");
       return;
     }
+    if (!validateQuantity()) return;
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     const existIndex = cart.findIndex(item => item.id === productDetail.id);
     const productToAdd = {
@@ -178,10 +217,10 @@ const DetailProduct = () => {
       tenChatLieu: productDetail.tenChatLieu,
       moTa: productDetail.moTa,
       giaBanGoc: productDetail.giaBanGoc,
-      quantity,
+      quantity: parseInt(quantity, 10),
     };
     if (existIndex !== -1) {
-      cart[existIndex].quantity += quantity;
+      cart[existIndex].quantity += parseInt(quantity, 10);
     } else {
       cart.push(productToAdd);
     }
@@ -189,9 +228,6 @@ const DetailProduct = () => {
     localStorage.setItem("orderNow", JSON.stringify([productToAdd]));
     navigate("/website/dat-hang", { state: { selectedItems: [productToAdd] } });
   };
-
-  // Kiểm tra sản phẩm có khả dụng không
-  const isProductAvailable = productDetail?.id && productDetail?.soLuong > 0;
 
   return (
     <div className="container py-4">
@@ -356,13 +392,6 @@ const DetailProduct = () => {
                 ))}
               </div>
             </div>
-            {/* <div className="mb-2">
-              <b>Thương hiệu:</b> {productDetail.tenThuongHieu}
-            </div>
-            <div className="mb-2">
-              <b>Xuất xứ:</b> {productDetail.tenXuatXu}
-            </div> */}
-            
             <div className="mb-2">
               <b>Giá bán:</b>{" "}
               <span style={{ color: "#e53935", fontWeight: 600 }}>
@@ -383,35 +412,37 @@ const DetailProduct = () => {
             </div>
             <div className="d-flex align-items-center gap-3 mt-3">
               <TextField
-                type="number"
+                type="text"
                 label="Số lượng"
                 variant="outlined"
                 size="small"
                 value={quantity}
                 onChange={handleQuantityChange}
+                onBlur={handleQuantityBlur}
                 inputProps={{
                   min: 1,
-                  max: productDetail?.soLuong || 0,
-                  style: { fontWeight: 600, textAlign: "center" }
+                  max: getMaxOrderQuantity(),
+                  style: { fontWeight: 600, textAlign: "center" },
                 }}
                 disabled={!isProductAvailable}
-                sx={{ 
-                  width: 120, 
-                  background: "#fff", 
+                sx={{
+                  width: 120,
+                  background: "#fff",
                   borderRadius: 2,
                   '& .MuiInputBase-root.Mui-disabled': {
                     backgroundColor: '#f5f5f5'
                   }
                 }}
               />
+
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleOrderNow}
                 disabled={!isProductAvailable}
-                sx={{ 
-                  minWidth: 140, 
-                  borderRadius: 2, 
+                sx={{
+                  minWidth: 140,
+                  borderRadius: 2,
                   fontWeight: 700,
                   opacity: isProductAvailable ? 1 : 0.7
                 }}
@@ -423,9 +454,9 @@ const DetailProduct = () => {
                 color="error"
                 onClick={handleAddToCart}
                 disabled={!isProductAvailable}
-                sx={{ 
-                  minWidth: 140, 
-                  borderRadius: 2, 
+                sx={{
+                  minWidth: 140,
+                  borderRadius: 2,
                   fontWeight: 700,
                   opacity: isProductAvailable ? 1 : 0.7
                 }}

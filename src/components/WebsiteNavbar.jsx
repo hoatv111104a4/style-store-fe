@@ -26,7 +26,7 @@ import "../styles/MainCss.css";
 import logo from "../assets/logo.jpg";
 import Login from "../pages/Website/Login";
 import Register from "../pages/Website/Register";
-
+import { getByIdSanPhamCtAdmin } from "../services/Website/ProductApis";
 const WebsiteNavbar = () => {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
@@ -130,21 +130,42 @@ const WebsiteNavbar = () => {
     );
   };
 
-  const handleOrderClick = () => {
-    if (selectedCartItems.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một sản phẩm để đặt hàng!");
+  const handleOrderClick = async () => {
+  if (selectedCartItems.length === 0) {
+    toast.error("Vui lòng chọn ít nhất một sản phẩm để đặt hàng!");
+    return;
+  }
+
+  // Kiểm tra tồn kho và số lượng tối đa
+  for (const itemId of selectedCartItems) {
+    const item = cartItems.find((i) => i.id === itemId);
+    try {
+      const res = await getByIdSanPhamCtAdmin(itemId);
+      const soLuongTonKho = res?.soLuong ?? 0;
+
+      if (item.quantity > soLuongTonKho) {
+        toast.error(`Số lượng sản phẩm "${item.tenSanPham}" đang lớn hơn tồn kho (${soLuongTonKho})!`);
+        return;
+      }
+      if (item.quantity > 20) {
+        toast.error(`Chỉ cho phép mua tối đa 20 sản phẩm "${item.tenSanPham}" cho mỗi đơn hàng!`);
+        return;
+      }
+    } catch (err) {
+      toast.error(`Không kiểm tra được tồn kho sản phẩm "${item.tenSanPham}".`);
       return;
     }
+  }
 
-    const selectedItems = cartItems.filter((item) =>
-      selectedCartItems.includes(item.id)
-    );
+  const selectedItems = cartItems.filter((item) =>
+    selectedCartItems.includes(item.id)
+  );
 
-    handleCloseCart();
-    navigate("/website/dat-hang", {
-      state: { selectedItems },
-    });
-  };
+  handleCloseCart();
+  navigate("/website/dat-hang", {
+    state: { selectedItems },
+  });
+};
 
   useEffect(() => {
     const checkToken = () => {

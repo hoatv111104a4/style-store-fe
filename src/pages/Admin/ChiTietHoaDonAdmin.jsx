@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom"; // Added useNavigate
 import {
   Box,
   Typography,
@@ -36,6 +36,7 @@ import TimelineDot from "@mui/lab/TimelineDot";
 
 const HoaDonDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate(); // Initialize useNavigate
   const [hoaDon, setHoaDon] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,12 +52,9 @@ const HoaDonDetailPage = () => {
     sdtNguoiGiaoHang: "",
   });
   const [updateLoading, setUpdateLoading] = useState(false);
-
   const [openPayModal, setOpenPayModal] = useState(false);
   const [soTienConThieu, setSoTienConThieu] = useState(0);
   const [paying, setPaying] = useState(false);
-
-  // Thêm state cho lịch sử đơn hàng và chuyển trạng thái
   const [lichSu, setLichSu] = useState([]);
   const [loadingLichSu, setLoadingLichSu] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -85,9 +83,13 @@ const HoaDonDetailPage = () => {
       setHoaDon(response);
       console.log("Chi tiết hóa đơn:", response);
       setError(null);
-    } catch (err) {
-      console.error("Lỗi khi load chi tiết hóa đơn:", err);
-      setError("Không thể tải dữ liệu hóa đơn");
+    } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        console.error("Lỗi khi load chi tiết hóa đơn:", error);
+        setError("Không thể tải dữ liệu hóa đơn");
+      }
     } finally {
       setLoading(false);
     }
@@ -98,8 +100,13 @@ const HoaDonDetailPage = () => {
       setLoadingLichSu(true);
       const data = await getLichSuDonHang(id);
       setLichSu(data || []);
-    } catch (err) {
-      setLichSu([]);
+    } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        console.error("Lỗi khi lấy lịch sử đơn hàng:", error);
+        setLichSu([]);
+      }
     } finally {
       setLoadingLichSu(false);
     }
@@ -125,8 +132,12 @@ const HoaDonDetailPage = () => {
       await fetchLichSu();
       toast.success("Xóa sản phẩm thành công");
     } catch (error) {
-      console.error("Lỗi khi xóa sản phẩm khỏi hoá đơn:", error);
-      toast.error("Xóa sản phẩm thất bại, vui lòng thử lại.");
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        console.error("Lỗi khi xóa sản phẩm khỏi hoá đơn:", error);
+        toast.error("Xóa sản phẩm thất bại, vui lòng thử lại.");
+      }
     } finally {
       setDeletingId(null);
     }
@@ -146,8 +157,12 @@ const HoaDonDetailPage = () => {
       });
       setOpenUpdateModal(true);
     } catch (error) {
-      console.error("Lỗi khi lấy thông tin vận chuyển:", error);
-      toast.error("Không thể tải thông tin vận chuyển");
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        console.error("Lỗi khi lấy thông tin vận chuyển:", error);
+        toast.error("Không thể tải thông tin vận chuyển");
+      }
     } finally {
       setUpdateLoading(false);
     }
@@ -182,8 +197,12 @@ const HoaDonDetailPage = () => {
       toast.success("Cập nhật thành công");
       handleCloseUpdateModal();
     } catch (error) {
-      console.error("Lỗi khi cập nhật thông tin vận chuyển:", error);
-      toast.error("Cập nhật thất bại, vui lòng thử lại.");
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        console.error("Lỗi khi cập nhật thông tin vận chuyển:", error);
+        toast.error("Cập nhật thất bại, vui lòng thử lại.");
+      }
     } finally {
       setUpdateLoading(false);
     }
@@ -193,7 +212,6 @@ const HoaDonDetailPage = () => {
     return hoaDon?.trangThai !== undefined && hoaDon.trangThai <= 2;
   };
 
-  // Thêm hàm xác định trạng thái tiếp theo
   const getNextStatus = () => {
     if (!hoaDon) return 0;
     const currentStatus = hoaDon.trangThai;
@@ -201,26 +219,20 @@ const HoaDonDetailPage = () => {
     return currentStatus;
   };
 
-  // Thêm hàm lấy label cho nút chuyển trạng thái
   const getStatusButtonLabel = () => {
     if (!hoaDon) return "Chuyển trạng thái";
     const nextStatus = getNextStatus();
-    
     const statusLabels = {
       1: "Xác nhận đơn hàng",
       2: "Chuyển sang Đang giao",
       3: "Hoàn thành đơn hàng",
-      4: "Đơn hàng đã hoàn thành"
+      4: "Đơn hàng đã hoàn thành",
     };
-    
     return statusLabels[nextStatus] || "Chuyển trạng thái";
   };
 
-  // Sửa lại hàm handleChuyenTrangThai
   const handleChuyenTrangThai = async () => {
     const nextStatus = getNextStatus();
-
-    // Nếu trạng thái hiện tại là 2 (Đang giao) và khách còn thiếu tiền
     if (
       hoaDon.trangThai === 2 &&
       hoaDon.tienKhachTra < hoaDon.tongTien + hoaDon.tienThue
@@ -239,16 +251,20 @@ const HoaDonDetailPage = () => {
       await fetchLichSu();
       toast.success(`Chuyển trạng thái thành công sang "${getStatusLabel(nextStatus).label}"`);
     } catch (error) {
-      toast.error("Chuyển trạng thái thất bại");
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        console.error("Lỗi khi chuyển trạng thái đơn hàng:", error);
+        toast.error("Chuyển trạng thái thất bại");
+      }
     } finally {
       setUpdatingStatus(false);
     }
   };
-  
+
   const handleConfirmPayAndChangeStatus = async () => {
     setPaying(true);
     try {
-      // Gọi API cập nhật số tiền khách trả (nếu có API riêng, thay thế bằng API phù hợp)
       await updateHoaDonUDDetail(id, {
         ...hoaDon,
         tienKhachTra: hoaDon.tongTien + hoaDon.tienThue,
@@ -259,12 +275,17 @@ const HoaDonDetailPage = () => {
       toast.success("Đã thu đủ tiền và chuyển trạng thái thành công");
       setOpenPayModal(false);
     } catch (error) {
-      toast.error("Có lỗi xảy ra, vui lòng thử lại");
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        console.error("Lỗi khi xác nhận thanh toán và chuyển trạng thái:", error);
+        toast.error("Có lỗi xảy ra, vui lòng thử lại");
+      }
     } finally {
       setPaying(false);
     }
   };
-  
+
   const getTimelineTitle = (tieuDe) => {
     switch (tieuDe) {
       case "1":
@@ -279,7 +300,7 @@ const HoaDonDetailPage = () => {
         return tieuDe || "";
     }
   };
-  
+
   const getTimelineNoiDung = (noiDung) => {
     switch (noiDung) {
       case "1":
@@ -304,7 +325,6 @@ const HoaDonDetailPage = () => {
       );
     }
 
-    // Luôn hiển thị "Chờ xác nhận" đầu tiên
     return (
       <Box
         sx={{
@@ -332,7 +352,6 @@ const HoaDonDetailPage = () => {
             minWidth: 0,
           }}
         >
-          {/* Bước "Chờ xác nhận" */}
           <Box
             sx={{
               display: 'flex',
@@ -371,7 +390,6 @@ const HoaDonDetailPage = () => {
               </Typography>
             </Paper>
           </Box>
-          {/* Các bước lịch sử */}
           {lichSu.slice().reverse().map((item, idx, arr) => (
             <Box
               key={item.id}
@@ -451,8 +469,6 @@ const HoaDonDetailPage = () => {
   return (
     <Box p={3}>
       <ToastContainer />
-
-      {/* Timeline lịch sử đơn hàng */}
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h6">Lịch sử đơn hàng</Typography>
@@ -476,19 +492,16 @@ const HoaDonDetailPage = () => {
             </Typography>
             <Chip label={statusInfo.label} color={statusInfo.color} variant="outlined" />
           </Box>
-
-          <Button 
-            variant="contained" 
-            color="primary" 
+          <Button
+            variant="contained"
+            color="primary"
             onClick={handleOpenUpdateModal}
             disabled={!isEditableStatus()}
           >
             Cập nhật đơn hàng
           </Button>
         </Box>
-
         <Divider sx={{ my: 2 }} />
-
         <Box display="flex" flexWrap="wrap" gap={3}>
           <Box flex={1} minWidth={300}>
             <Typography variant="subtitle1" gutterBottom>
@@ -504,7 +517,6 @@ const HoaDonDetailPage = () => {
               <b>Ngày đặt:</b> {hoaDon.ngayDat ? new Date(hoaDon.ngayDat).toLocaleString() : null}
             </Typography>
           </Box>
-
           <Box flex={1} minWidth={300}>
             <Typography variant="subtitle1" gutterBottom>
               <b>Thông tin khách hàng</b>
@@ -589,11 +601,10 @@ const HoaDonDetailPage = () => {
             ))}
           </TableBody>
         </Table>
-
         <Box mt={2} display="flex" justifyContent="flex-end">
-          <Button 
-            variant="contained" 
-            color="primary" 
+          <Button
+            variant="contained"
+            color="primary"
             onClick={() => setOpenProductModal(true)}
             disabled={!isEditableStatus()}
           >

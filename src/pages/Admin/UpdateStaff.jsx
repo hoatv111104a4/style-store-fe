@@ -178,7 +178,7 @@ useEffect(() => {
         hoTen: userData.hoTen || "",
         soDienThoai: userData.soDienThoai || "",
         email: userData.email || "",
-        address: addressOnly, // ✅ chỉ gán phần địa chỉ cụ thể
+        address: addressOnly,
         gioiTinh: userData.gioiTinh?.toString() || "1",
         namSinh: formattedNamSinh,
         trangThai: userData.trangThai?.toString() || "1",
@@ -191,12 +191,79 @@ useEffect(() => {
         ward: "",
       }));
     } catch (error) {
-      toast.error("Không thể tải dữ liệu nhân viên");
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        toast.error("Không thể tải dữ liệu nhân viên");
+      }
     }
   };
 
   if (id && isProvincesLoaded) fetchUser();
 }, [id, isProvincesLoaded]);
+
+const handleUpdate = async (e) => {
+  e.preventDefault();
+  if (
+    !form.hoTen ||
+    !form.soDienThoai ||
+    !form.email ||
+    !form.province ||
+    !form.district ||
+    !form.ward ||
+    !form.address ||
+    !form.namSinh
+  ) {
+    toast.error("Vui lòng nhập đầy đủ thông tin!");
+    return;
+  }
+
+  setIsLoading(true);
+  const formattedDate = new Date(form.namSinh).toISOString().split("T")[0];
+  const payload = {
+    hoTen: form.hoTen,
+    soDienThoai: form.soDienThoai,
+    email: form.email,
+    gioiTinh: parseInt(form.gioiTinh),
+    namSinh: formattedDate,
+    trangThai: parseInt(form.trangThai),
+    diaChi: `${form.address}, ${wardNames[form.ward] || ""}, ${districtNames[form.district] || ""}, ${provinceNames[form.province] || ""}`,
+    tinh: provinceNames[form.province] || "",
+    huyen: districtNames[form.district] || "",
+    xa: wardNames[form.ward] || "",
+    ...(form.cccd ? { cccd: form.cccd } : {}),
+  };
+
+  const result = await Swal.fire({
+    title: "Xác nhận cập nhật nhân viên",
+    text: "Bạn có chắc chắn muốn cập nhật thông tin này không?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ff6600",
+    cancelButtonColor: "#888",
+    confirmButtonText: "Cập nhật",
+    cancelButtonText: "Hủy",
+  });
+
+  if (result.isConfirmed) {
+    try {
+      console.log("Payload gửi đi:", payload);
+      await updateUser(id, payload);
+      toast.success("Cập nhật thành công!");
+    } catch (err) {
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        toast.error("Lỗi khi cập nhật nhân viên!");
+        console.error("Chi tiết lỗi:", err);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  } else {
+    setIsLoading(false);
+  }
+};
 
 
   // Map tinh, huyen, xa to province, district, ward
@@ -254,65 +321,7 @@ useEffect(() => {
     }));
   };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (
-      !form.hoTen ||
-      !form.soDienThoai ||
-      !form.email ||
-      !form.province ||
-      !form.district ||
-      !form.ward ||
-      !form.address ||
-      !form.namSinh
-    ) {
-      toast.error("Vui lòng nhập đầy đủ thông tin!");
-      return;
-    }
-
-    setIsLoading(true);
-    const formattedDate = new Date(form.namSinh).toISOString().split("T")[0];
-    const payload = {
-      hoTen: form.hoTen,
-      soDienThoai: form.soDienThoai,
-      email: form.email,
-      gioiTinh: parseInt(form.gioiTinh),
-      namSinh: formattedDate,
-      trangThai: parseInt(form.trangThai),
-      diaChi: `${form.address}, ${wardNames[form.ward] || ""}, ${districtNames[form.district] || ""}, ${provinceNames[form.province] || ""}`,
-      tinh: provinceNames[form.province] || "",
-      huyen: districtNames[form.district] || "",
-      xa: wardNames[form.ward] || "",
-      ...(form.cccd ? { cccd: form.cccd } : {}),
-    };
-
-    const result = await Swal.fire({
-      title: "Xác nhận cập nhật nhân viên",
-      text: "Bạn có chắc chắn muốn cập nhật thông tin này không?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ff6600",
-      cancelButtonColor: "#888",
-      confirmButtonText: "Cập nhật",
-      cancelButtonText: "Hủy",
-    });
-
-    if (result.isConfirmed) {
-      try {
-      console.log("Payload gửi đi:", payload);
-      await updateUser(id, payload);
-      toast.success("Cập nhật thành công!");
-    } catch (err) {
-      toast.error("Lỗi khi cập nhật nhân viên!");
-      console.error("Chi tiết lỗi:", err);
-    } finally {
-      setIsLoading(false);
-    }
-    }else{
-      setIsLoading(false);
-    }
-    
-  };
+ 
 
   return (
     <Box sx={{ maxWidth: 1100, mx: "auto", p: { xs: 2, sm: 4 } }}>

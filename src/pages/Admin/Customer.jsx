@@ -23,30 +23,65 @@ const CustomerList = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const fetchData = async (pageNum = 1, filters = {}) => {
-    try {
-      setLoading(true);
-      const data = await getPageKhachHang(
-        pageNum - 1,
-        5,
-        filters.search || undefined,
-        filters.gender || undefined,
-        filters.status || undefined
-      );
-      if (data && data.content) {
-        setCustomers(data.content);
-        setTotalPages(data.totalPages || 1);
-      } else {
-        setCustomers([]);
-        setTotalPages(1);
-      }
-    } catch (error) {
+  try {
+    setLoading(true);
+    const data = await getPageKhachHang(
+      pageNum - 1,
+      5,
+      filters.search || undefined,
+      filters.gender || undefined,
+      filters.status || undefined
+    );
+    if (data && data.content) {
+      setCustomers(data.content);
+      setTotalPages(data.totalPages || 1);
+    } else {
+      setCustomers([]);
+      setTotalPages(1);
+    }
+  } catch (error) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      navigate("/access-denied");
+    } else {
       console.error("Lỗi khi tải danh sách khách hàng:", error);
       setCustomers([]);
       setTotalPages(1);
-    } finally {
-      setLoading(false);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleDelete = async (id) => {
+  const result = await Swal.fire({
+    title: "Xác nhận xóa",
+    text: "Bạn có chắc chắn muốn xóa khách hàng này không?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ff6600",
+    cancelButtonColor: "#888",
+    confirmButtonText: "Xóa",
+    cancelButtonText: "Hủy",
+  });
+  if (result.isConfirmed) {
+    try {
+      await deleteUser(id);
+      toast.success("Xoá khách hàng thành công!");
+      fetchData(page, {
+        search: search || undefined,
+        gender: genderFilter || undefined,
+        status: statusFilter || undefined,
+      });
+    } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        toast.error("Lỗi khi xoá khách hàng.");
+        console.error("Xoá thất bại:", error);
+      }
+    }
+  }
+};
 
   // Chỉ gọi fetchData khi component mount lần đầu
   useEffect(() => {
@@ -88,32 +123,7 @@ const CustomerList = () => {
     });
   };
 
-  const handleDelete = async (id) => {
-    const result = await Swal.fire({
-      title: "Xác nhận xóa",
-      text: "Bạn có chắc chắn muốn xóa khách hàng này không?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ff6600",
-      cancelButtonColor: "#888",
-      confirmButtonText: "Xóa",
-      cancelButtonText: "Hủy",
-    });
-    if (result.isConfirmed) {
-      try {
-        await deleteUser(id);
-        toast.success("Xoá khách hàng thành công!");
-        fetchData(page, {
-          search: search || undefined,
-          gender: genderFilter || undefined,
-          status: statusFilter || undefined,
-        });
-      } catch (error) {
-        toast.error("Lỗi khi xoá khách hàng.");
-        console.error("Xoá thất bại:", error);
-      }
-    }
-  };
+  
 
   return (
     <section className="mt-4">

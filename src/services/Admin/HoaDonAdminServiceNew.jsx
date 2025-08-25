@@ -1,4 +1,5 @@
 import axios from "axios";
+import Cookies from "js-cookie"; // Ensure Cookies is imported
 
 const apiClient = axios.create({
   baseURL: "http://localhost:8080/admin/hoa-don-admin",
@@ -14,7 +15,10 @@ export const pageHoaDonAdmin = async ({
   phuongThucThanhToan = null,
 } = {}) => {
   try {
+    const token = Cookies.get("adminToken");
+    if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
     const response = await apiClient.get("/danh-sach-hoa-don", {
+      headers: { Authorization: `Bearer ${token}` },
       params: {
         page,
         size,
@@ -37,8 +41,12 @@ export const pageHoaDonAdmin = async ({
 
 export const getHoaDonById = async (id) => {
   try {
-    const response = await apiClient.get(`/chi-tiet/${id}`);
-    return response.data.result; // tùy theo cấu trúc ApiResponse
+    const token = Cookies.get("adminToken");
+    if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    const response = await apiClient.get(`/chi-tiet/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data.result;
   } catch (error) {
     console.error("Lỗi khi lấy thông tin hóa đơn:", error);
     throw error;
@@ -47,7 +55,11 @@ export const getHoaDonById = async (id) => {
 
 export const addSanPhamHoaDon = async (request) => {
   try {
-    const response = await apiClient.post("/them-san-pham-hoa-don", request);
+    const token = Cookies.get("adminToken");
+    if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    const response = await apiClient.post("/them-san-pham-hoa-don", request, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     return response.data.result;
   } catch (error) {
     console.error("Lỗi khi thêm sản phẩm vào hóa đơn:", error);
@@ -57,7 +69,11 @@ export const addSanPhamHoaDon = async (request) => {
 
 export const deleteSanPhamHoaDon = async (id) => {
   try {
-    const response = await apiClient.delete(`/xoa-san-pham-hoa-don/${id}`);
+    const token = Cookies.get("adminToken");
+    if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    const response = await apiClient.delete(`/xoa-san-pham-hoa-don/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     return response.data;
   } catch (error) {
     console.error("Lỗi khi xóa sản phẩm khỏi hóa đơn:", error);
@@ -67,7 +83,11 @@ export const deleteSanPhamHoaDon = async (id) => {
 
 export const getHoaDonUDDetail = async (id) => {
   try {
-    const response = await apiClient.get(`/chi-tiet-thong-tin-van-chuyen/${id}`);
+    const token = Cookies.get("adminToken");
+    if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    const response = await apiClient.get(`/chi-tiet-thong-tin-van-chuyen/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     return response.data.result;
   } catch (error) {
     console.error("Lỗi khi lấy thông tin vận chuyển hóa đơn:", error);
@@ -77,7 +97,11 @@ export const getHoaDonUDDetail = async (id) => {
 
 export const updateHoaDonUDDetail = async (id, request) => {
   try {
-    const response = await apiClient.put(`/cap-nhat-thong-tin-van-chuyen/${id}`, request);
+    const token = Cookies.get("adminToken");
+    if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    const response = await apiClient.put(`/cap-nhat-thong-tin-van-chuyen/${id}`, request, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     return response.data.result;
   } catch (error) {
     console.error("Lỗi khi cập nhật thông tin vận chuyển hóa đơn:", error);
@@ -87,8 +111,12 @@ export const updateHoaDonUDDetail = async (id, request) => {
 
 export const chuyenTrangThaiDonHang = async (id) => {
   try {
-    const response = await apiClient.get(`/chuyen-trang-thai-don-hang/${id}`);
-    return response.data; 
+    const token = Cookies.get("adminToken");
+    if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    const response = await apiClient.get(`/chuyen-trang-thai-don-hang/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
   } catch (error) {
     console.error("Lỗi khi chuyển trạng thái đơn hàng:", error);
     throw error;
@@ -97,8 +125,12 @@ export const chuyenTrangThaiDonHang = async (id) => {
 
 export const getLichSuDonHang = async (id) => {
   try {
-    const response = await apiClient.get(`/lich-su-don-hang/${id}`);
-    return response.data; 
+    const token = Cookies.get("adminToken");
+    if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+    const response = await apiClient.get(`/lich-su-don-hang/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
   } catch (error) {
     console.error("Lỗi khi lấy lịch sử đơn hàng:", error);
     throw error;

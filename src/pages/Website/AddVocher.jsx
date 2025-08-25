@@ -146,46 +146,50 @@ const AddVoucher = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Kiểm tra các trường bắt buộc
-    const requiredFields = ['tenDotGiam', 'giamGia', 'giamToiDa', 'dieuKienGiam', 'ngayBatDau', 'ngayKetThuc'];
-    const isFormEmpty = requiredFields.some(field => !formData[field]);
-    
-    if (isFormEmpty) {
-      toast.error("Vui lòng nhập đầy đủ thông tin!");
-      return;
-    }
+  // Kiểm tra các trường bắt buộc
+  const requiredFields = ['tenDotGiam', 'giamGia', 'giamToiDa', 'dieuKienGiam', 'ngayBatDau', 'ngayKetThuc'];
+  const isFormEmpty = requiredFields.some(field => !formData[field]);
+  
+  if (isFormEmpty) {
+    toast.error("Vui lòng nhập đầy đủ thông tin!");
+    return;
+  }
 
-    if (selectedChiTietIds.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một sản phẩm chi tiết!");
-      return;
-    }
+  if (selectedChiTietIds.length === 0) {
+    toast.error("Vui lòng chọn ít nhất một sản phẩm chi tiết!");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    const voucherData = {
-      ...formData,
-      giamGia: parseFloat(formData.giamGia) || 0,
-      giamToiDa: parseInt(formData.giamToiDa) || 0,
-      dieuKienGiam: parseInt(formData.dieuKienGiam) || 0,
-      ngayBatDau: formData.ngayBatDau || null,
-      ngayKetThuc: formData.ngayKetThuc || null,
-      sanPhamCtIds: selectedChiTietIds,
-    };
+  const voucherData = {
+    ...formData,
+    giamGia: parseFloat(formData.giamGia) || 0,
+    giamToiDa: parseInt(formData.giamToiDa) || 0,
+    dieuKienGiam: parseInt(formData.dieuKienGiam) || 0,
+    ngayBatDau: formData.ngayBatDau || null,
+    ngayKetThuc: formData.ngayKetThuc || null,
+    sanPhamCtIds: selectedChiTietIds,
+  };
 
-    try {
-      await applyVoucher(voucherData);
-      toast.success("Áp dụng giảm giá thành công!");
-      setTimeout(() => navigate("/admin/giam-gia"), 2000);
-    } catch (error) {
+  try {
+    await applyVoucher(voucherData);
+    toast.success("Áp dụng giảm giá thành công!");
+    setTimeout(() => navigate("/admin/giam-gia"), 2000);
+  } catch (error) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      navigate("/access-denied");
+    } else {
       const errorMessage = error.response?.data?.result || "Lỗi khi tạo voucher!";
       toast.error(errorMessage);
       console.error("Chi tiết lỗi:", error);
-    } finally {
-      setLoading(false);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <section className="mt-4">

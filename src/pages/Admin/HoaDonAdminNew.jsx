@@ -34,7 +34,6 @@ const HoaDonAdminList = () => {
 
   const navigate = useNavigate();
 
-  // Hàm lấy danh sách hóa đơn từ API
   const fetchHoaDons = async (pageNum = 1, filters = {}) => {
     try {
       setLoading(true);
@@ -47,9 +46,13 @@ const HoaDonAdminList = () => {
       // Đảm bảo hoaDons luôn là mảng, ngay cả khi API trả về null
       setHoaDons(res.content ? res.content : []);
       setTotalPages(res.totalPages || 1);
-    } catch (err) {
-      console.error("Lỗi khi tải danh sách hóa đơn:", err);
-      setHoaDons([]); // Đặt mảng rỗng khi có lỗi
+    } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
+        console.error("Lỗi khi tải danh sách hóa đơn:", error);
+        setHoaDons([]); // Đặt mảng rỗng khi có lỗi
+      }
     } finally {
       setLoading(false);
     }
@@ -169,7 +172,7 @@ const HoaDonAdminList = () => {
           <MenuItem value="">Tất cả</MenuItem>
           <MenuItem value="1">Ship cod</MenuItem>
           <MenuItem value="2">Tại quầy</MenuItem>
-          <MenuItem value="3">Online</MenuItem>
+          <MenuItem value="3">VNP</MenuItem>
         </Select>
 
         <IconButton
@@ -187,7 +190,6 @@ const HoaDonAdminList = () => {
         <Tab label="Đang giao hàng" value="2" />
         <Tab label="Đã hoàn thành" value="3" />
         <Tab label="Đã hủy" value="4" />
-        <Tab label="Đã hoàn trả" value="5" />
       </Tabs>
 
       {loading ? (
@@ -208,13 +210,17 @@ const HoaDonAdminList = () => {
                 
                 <th>Trạng thái</th>
                 <th>Trạng thái thanh toán</th>
+                <th>Loại đơn</th>
                 <th>Tổng tiền</th>
+
                 <th>Hành động</th>
               </tr>
             </thead>
             <tbody>
               {hoaDons.length > 0 ? (
-                hoaDons.map((hoaDon, index) => (
+                hoaDons
+                .filter((hoaDon) => hoaDon.trangThai !== 6) 
+                .map((hoaDon, index) => (
                   <tr key={hoaDon.id}>
                     <td>{(page - 1) * 5 + index + 1}</td>
                     <td>{hoaDon.ma || "N/A"}</td>
@@ -258,10 +264,15 @@ const HoaDonAdminList = () => {
                     <td>
                       {hoaDon.trangThaiThanhToan === 0 ? "Chưa thanh toán" : hoaDon.trangThaiThanhToan === 1 ? "Đã thanh toán" : "N/A"}
                     </td>
+                    <td>
+                      <td>{hoaDon.idPtTT ==2?'Tại quầy':'Online' }</td>
+
+                    </td>
                     
                     <td style={{ color: "#d10404ff", fontWeight: 600 }}>
                       {(hoaDon.tongTien + (hoaDon.tienThue || 0)).toLocaleString()}₫
                     </td>
+
                     
                     <td>
                       <button
@@ -275,6 +286,7 @@ const HoaDonAdminList = () => {
                         <i className="bi bi-eye-fill me-1"></i> Xem
                       </button>
                     </td>
+
                   </tr>
                 ))
               ) : (

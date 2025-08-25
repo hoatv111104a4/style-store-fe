@@ -139,81 +139,84 @@ const AddStaff = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  e.preventDefault();
+  setIsLoading(true);
 
-    const {
-      hoTen,
-      soDienThoai,
-      email,
-      province,
-      district,
-      ward,
-      address,
-      namSinh,
-      gioiTinh,
-      trangThai,
-      cccd,
-    } = form;
+  const {
+    hoTen,
+    soDienThoai,
+    email,
+    province,
+    district,
+    ward,
+    address,
+    namSinh,
+    gioiTinh,
+    trangThai,
+    cccd,
+  } = form;
 
-    // Đảm bảo định dạng YYYY-MM-DD
-    const formattedDate = namSinh ? new Date(namSinh).toISOString().split("T")[0] : "";
+  // Đảm bảo định dạng YYYY-MM-DD
+  const formattedDate = namSinh ? new Date(namSinh).toISOString().split("T")[0] : "";
 
-    const payload = {
-      hoTen,
-      soDienThoai,
-      email,
-      gioiTinh: parseInt(gioiTinh),
-      namSinh: formattedDate,
-      trangThai: parseInt(trangThai),
-      diaChi: `${address}, ${wardNames[ward] || ""}, ${districtNames[district] || ""}, ${provinceNames[province] || ""}`,
-      tinh: provinceNames[province] || "",
-      huyen: districtNames[district] || "",
-      xa: wardNames[ward] || "",
-      ...(cccd ? { cccd } : {}),
-    };
+  const payload = {
+    hoTen,
+    soDienThoai,
+    email,
+    gioiTinh: parseInt(gioiTinh),
+    namSinh: formattedDate,
+    trangThai: parseInt(trangThai),
+    diaChi: `${address}, ${wardNames[ward] || ""}, ${districtNames[district] || ""}, ${provinceNames[province] || ""}`,
+    tinh: provinceNames[province] || "",
+    huyen: districtNames[district] || "",
+    xa: wardNames[ward] || "",
+    ...(cccd ? { cccd } : {}),
+  };
 
-    const result = await Swal.fire({
-      title: "Xác nhận thêm nhân viên",
-      text: "Bạn có chắc chắn muốn thêm nhân viên này không?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ff6600",
-      cancelButtonColor: "#888",
-      confirmButtonText: "Thêm",
-      cancelButtonText: "Hủy",
-    });
+  const result = await Swal.fire({
+    title: "Xác nhận thêm nhân viên",
+    text: "Bạn có chắc chắn muốn thêm nhân viên này không?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ff6600",
+    cancelButtonColor: "#888",
+    confirmButtonText: "Thêm",
+    cancelButtonText: "Hủy",
+  });
 
-    if (result.isConfirmed) {
-      try {
-        console.log("Payload gửi đi:", payload);
-        await createNhanVien(payload);
-        toast.success("Thêm nhân viên thành công!");
-        setForm({
-          hoTen: "",
-          soDienThoai: "",
-          email: "",
-          province: "",
-          district: "",
-          ward: "",
-          address: "",
-          gioiTinh: "1",
-          namSinh: "",
-          trangThai: "1",
-          cccd: "",
-        });
-      } catch (err) {
-        // Hiển thị lỗi từ backend, lấy giá trị từ result
+  if (result.isConfirmed) {
+    try {
+      console.log("Payload gửi đi:", payload);
+      await createNhanVien(payload);
+      toast.success("Thêm nhân viên thành công!");
+      setForm({
+        hoTen: "",
+        soDienThoai: "",
+        email: "",
+        province: "",
+        district: "",
+        ward: "",
+        address: "",
+        gioiTinh: "1",
+        namSinh: "",
+        trangThai: "1",
+        cccd: "",
+      });
+    } catch (err) {
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
         const errorMessage = err.response?.data?.result || "Lỗi khi thêm nhân viên!";
         toast.error(errorMessage);
         console.error("Chi tiết lỗi:", err);
-      } finally {
-        setIsLoading(false);
       }
-    } else {
+    } finally {
       setIsLoading(false);
     }
-  };
+  } else {
+    setIsLoading(false);
+  }
+};
 
   return (
     <Box sx={{ maxWidth: 1100, mx: "auto", p: { xs: 2, sm: 4 } }}>

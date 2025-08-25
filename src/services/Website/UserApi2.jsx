@@ -17,10 +17,13 @@ export const registerUser = async (userCreationRequest) => {
     }
 };
 
-// Thêm nhân viên
 export const createNhanVien = async (userCreationRequest) => {
     try {
-        const response = await apiClient.post("/them-nhan-vien", userCreationRequest);
+        const token = Cookies.get("adminToken");
+        if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+        const response = await apiClient.post("/them-nhan-vien", userCreationRequest, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
         return response.data;
     } catch (error) {
         console.error("Lỗi khi gọi API thêm nhân viên", error);
@@ -30,7 +33,11 @@ export const createNhanVien = async (userCreationRequest) => {
 
 export const createKhachHang = async (userCreationRequest) => {
     try {
-        const response = await apiClient.post("/them-khach-hang", userCreationRequest);
+        const token = Cookies.get("adminToken");
+        if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+        const response = await apiClient.post("/them-khach-hang", userCreationRequest, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
         return response.data;
     } catch (error) {
         console.error("Lỗi khi gọi API thêm khách hàng", error);
@@ -38,7 +45,6 @@ export const createKhachHang = async (userCreationRequest) => {
     }
 };
 
-// Lấy danh sách nhân viên
 export const getPageNhanVien = async (
     page = 0,
     size = 5,
@@ -47,7 +53,10 @@ export const getPageNhanVien = async (
     trangThai = null
 ) => {
     try {
+        const token = Cookies.get("adminToken");
+        if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
         const response = await apiClient.get("/danh-sach-nhan-vien", {
+            headers: { Authorization: `Bearer ${token}` },
             params: {
                 page,
                 size,
@@ -63,7 +72,6 @@ export const getPageNhanVien = async (
     }
 };
 
-// Lấy danh sách khách hàng
 export const getPageKhachHang = async (
     page = 0,
     size = 5,
@@ -72,7 +80,10 @@ export const getPageKhachHang = async (
     trangThai = null
 ) => {
     try {
+        const token = Cookies.get("adminToken");
+        if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
         const response = await apiClient.get("/danh-sach-khach-hang", {
+            headers: { Authorization: `Bearer ${token}` },
             params: {
                 page,
                 size,
@@ -88,10 +99,13 @@ export const getPageKhachHang = async (
     }
 };
 
-// Lấy chi tiết người dùng
 export const getUserDetail = async (id) => {
     try {
-        const response = await apiClient.get(`/chi-tiet/${id}`);
+        const token = Cookies.get("adminToken");
+        if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+        const response = await apiClient.get(`/chi-tiet/${id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
         return response.data;
     } catch (error) {
         console.error("Lỗi khi gọi API chi tiết người dùng", error);
@@ -99,10 +113,13 @@ export const getUserDetail = async (id) => {
     }
 };
 
-// Cập nhật thông tin người dùng
 export const updateUser = async (id, userUpdateRequest) => {
     try {
-        const response = await apiClient.put(`/sua-thong-tin/${id}`, userUpdateRequest);
+        const token = Cookies.get("adminToken");
+        if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+        const response = await apiClient.put(`/sua-thong-tin/${id}`, userUpdateRequest, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
         return response.data;
     } catch (error) {
         console.error("Lỗi khi gọi API cập nhật thông tin người dùng", error);
@@ -110,13 +127,19 @@ export const updateUser = async (id, userUpdateRequest) => {
     }
 };
 
-
-export const deleteUser = (id) => {
-  return apiClient.delete(`/xoa-nguoi-dung/${id}`);
+export const deleteUser = async (id) => {
+    try {
+        const token = Cookies.get("adminToken");
+        if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập lại.");
+        const response = await apiClient.delete(`/xoa-nguoi-dung/${id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi gọi API xóa người dùng", error);
+        throw error;
+    }
 };
-
-
-
 
 
 

@@ -51,7 +51,7 @@ import {
   createThuongHieu,
   createChatLieu,
 } from "../../services/Admin/ThuocTinhSanPhamApi";
-
+import { addChatLieu } from "../../services/Admin/ChatLieuService";
 const AddSanPhamChiTietAdmin = () => {
   const navigate = useNavigate();
   // State cho danh sách lựa chọn
@@ -348,22 +348,30 @@ const AddSanPhamChiTietAdmin = () => {
     setErrorMessage("");
   };
   const handleAddChatLieuMoi = async () => {
-    if (!tenChatLieuMoi.trim()) {
-      setErrorMessage("Vui lòng nhập tên chất liệu.");
-      return;
-    }
-    setModalLoading(true);
-    setErrorMessage("");
-    try {
-      await createChatLieu({ ten: tenChatLieuMoi });
-      handleCloseModalChatLieu();
-      setChatLieuList(await listChatLieu());
-    } catch (error) {
-      setErrorMessage(error.message || "Lỗi khi thêm chất liệu.");
-    } finally {
-      setModalLoading(false);
-    }
-  };
+  if (!tenChatLieuMoi.trim()) {
+    setErrorMessage("Vui lòng nhập tên chất liệu.");
+    return;
+  }
+  setModalLoading(true);
+  setErrorMessage("");
+  try {
+    await addChatLieu({
+      ma: `CL-${crypto.randomUUID().substring(0, 8)}`,
+      ten: tenChatLieuMoi.trim(),
+      moTa: "",
+      trangThai: 1,
+      ngayTao: new Date().toISOString(),
+      ngaySua: new Date().toISOString(),
+      ngayXoa: null,
+    });
+    handleCloseModalChatLieu();
+    setChatLieuList(await listChatLieu());
+  } catch (error) {
+    setErrorMessage(error.response?.data?.message || error.message || "Lỗi khi thêm chất liệu.");
+  } finally {
+    setModalLoading(false);
+  }
+};
 
   // --- Kết thúc phần xử lý cho các modal thêm nhanh ---
 

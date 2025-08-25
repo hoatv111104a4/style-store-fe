@@ -123,38 +123,36 @@ const WebSiteSidebar = () => {
   }, [JSON.stringify(appliedFilters)]);
 
   // Gộp các sản phẩm chi tiết cùng sản phẩm gốc
-  const groupedProducts = useMemo(() => {
-    const groups = {};
-    
-    allProducts.forEach(product => {
-      if (!groups[product.sanPhamId]) {
-        groups[product.sanPhamId] = [];
+  // ...existing code...
+// ...existing code...
+const groupedProducts = useMemo(() => {
+  const groups = {};
+  allProducts.forEach(product => {
+    if (!groups[product.sanPhamId]) groups[product.sanPhamId] = [];
+    groups[product.sanPhamId].push(product);
+  });
+  return Object.values(groups).map(group => {
+    // Ưu tiên giảm giá lớn nhất, sau đó giá thấp nhất
+    const sorted = [...group].sort((a, b) => {
+      if ((a.giamGia || 0) !== (b.giamGia || 0)) {
+        return (b.giamGia || 0) - (a.giamGia || 0);
       }
-      groups[product.sanPhamId].push(product);
+      return a.giaBan - b.giaBan;
     });
-
-    return Object.values(groups).map(group => {
-      // Sắp xếp các biến thể theo ngày tạo mới nhất trước
-      const sortedVariants = [...group].sort((a, b) => {
-        // Ưu tiên sản phẩm mới nhất (ngày tạo lớn nhất)
-        const dateA = new Date(a.ngayTao || 0);
-        const dateB = new Date(b.ngayTao || 0);
-        return dateB - dateA;
-      });
-
-      const representative = sortedVariants[0];
-      
-      return {
-        ...representative,
-        variantCount: group.length,
-        minPrice: Math.min(...group.map(p => p.giaBan)),
-        maxPrice: Math.max(...group.map(p => p.giaBan)),
-        hasDiscount: group.some(p => p.giamGia && p.giamGia > 0),
-        // Lưu lại ngày tạo mới nhất của nhóm sản phẩm
-        latestCreatedDate: sortedVariants[0].ngayTao
-      };
-    });
-  }, [allProducts]);
+    const representative = sorted[0];
+    // Tìm ngày tạo mới nhất của nhóm
+    const latestCreatedDate = Math.max(...group.map(p => new Date(p.ngayTao || 0).getTime()));
+    return {
+      ...representative,
+      variantCount: group.length,
+      minPrice: Math.min(...group.map(p => p.giaBan)),
+      maxPrice: Math.max(...group.map(p => p.giaBan)),
+      hasDiscount: group.some(p => p.giamGia && p.giamGia > 0),
+      latestCreatedDate // thêm trường này để sắp xếp
+    };
+  });
+}, [allProducts]);
+// ...existing code...
 
   // Sắp xếp groupedProducts
   const sortedGroupedProducts = useMemo(() => {
@@ -362,14 +360,14 @@ const WebSiteSidebar = () => {
                 {paginatedProducts.map(product => (
                   <div key={product.id} className="col-12 col-sm-6 col-md-4 col-lg-3">
                     <div className="card h-100 product-card-custom" style={{ transition: "box-shadow 0.2s" }}>
-                      {product.hasDiscount && (
+                      {product.hasDiscount && product.giamGia ? (
                         <span style={{
                           position: "absolute", top: 8, right: 8, background: "#ff6600", color: "#fff",
                           padding: "4px 10px", borderRadius: "16px", fontWeight: "bold", fontSize: 13, zIndex: 2
                         }}>
-                          {product.giamGia ? `-${Math.round(product.giamGia * 1)}%` : "Khuyến mãi"}
+                          -{Math.round(product.giamGia * 1)}%
                         </span>
-                      )}
+                      ) : null}
                       <img src={product.tenHinhAnhSp ? `http://localhost:8080/uploads/${product.tenHinhAnhSp}` : "/placeholder-image.png"}
                         className="card-img-top product-image" alt={product.tenSanPham} style={{ objectFit: "cover", height: "180px" }} />
                       <div className="card-body do-an-info d-flex flex-column">

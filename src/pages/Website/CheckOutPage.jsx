@@ -16,8 +16,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createOder, submitVNPayOrder } from "../../services/Website/OrderApi";
 import AddAddressModal from "./AddAddressModal";
 const API_PROVINCE = "https://provinces.open-api.vn/api/";
-
-// Địa chỉ gửi hàng mặc định (Cao đẳng FPT)
+import { getByIdSanPhamCtAdmin } from "../../services/Website/ProductApis";
 const DEFAULT_SHIPPING_LOCATION = {
   province: "Hà Nội",
   district: "Bắc Từ Liêm",
@@ -31,9 +30,8 @@ const fallbackProvinces = [
   { code: "02", name: "Hồ Chí Minh" },
 ];
 
-// Hàm tính khoảng cách Euclid (chim bay) giữa 2 điểm
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // Bán kính Trái đất tính bằng km
+  const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
@@ -41,16 +39,15 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Khoảng cách tính bằng km
+  return R * c;
 };
 
-// Hàm tính phí vận chuyển dựa trên khoảng cách
 const calculateShippingFee = (distance) => {
-  if (distance <= 5) return 15000; // Dưới 5km: 15,000đ
-  if (distance <= 10) return 25000; // Dưới 10km: 25,000đ
-  if (distance <= 20) return 35000; // Dưới 20km: 35,000đ
-  if (distance <= 50) return 50000; // Dưới 50km: 50,000đ
-  return 80000; // Trên 50km: 80,000đ
+  if (distance <= 5) return 15000;
+  if (distance <= 10) return 25000;
+  if (distance <= 20) return 35000;
+  if (distance <= 50) return 50000;
+  return 80000;
 };
 
 const CheckOutPage = () => {
@@ -76,34 +73,30 @@ const CheckOutPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [distance, setDistance] = useState(0);
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hàm tính toán phí vận chuyển khi địa chỉ thay đổi
+  // Tính phí vận chuyển khi địa chỉ thay đổi
   const updateShippingFee = async () => {
     if (!form.province || !form.district || !form.ward) {
       setShippingFee(0);
       setDistance(0);
       return;
     }
-
     try {
-      // Giả lập tọa độ dựa trên địa chỉ (trong thực tế nên dùng API Geocoding)
       const destinationLat = DEFAULT_SHIPPING_LOCATION.coordinates.lat + (Math.random() * 0.1 - 0.05);
       const destinationLng = DEFAULT_SHIPPING_LOCATION.coordinates.lng + (Math.random() * 0.1 - 0.05);
-      
       const dist = calculateDistance(
         DEFAULT_SHIPPING_LOCATION.coordinates.lat,
         DEFAULT_SHIPPING_LOCATION.coordinates.lng,
         destinationLat,
         destinationLng
       );
-      
       setDistance(dist);
       setShippingFee(calculateShippingFee(dist));
     } catch (error) {
-      console.error("Lỗi tính toán phí vận chuyển:", error);
-      setShippingFee(35000); // Mặc định 35,000đ nếu có lỗi
+      setShippingFee(35000);
     }
   };
 
@@ -118,19 +111,14 @@ const CheckOutPage = () => {
     setExpectedDate(date.toLocaleDateString("vi-VN"));
 
     fetch(API_PROVINCE + "?depth=1")
-      .then((res) => {
-        if (!res.ok) throw new Error("Không thể tải dữ liệu từ API");
-        return res.json();
-      })
+      .then((res) => res.ok ? res.json() : Promise.reject())
       .then((data) => {
         const names = {};
         data.forEach((p) => (names[p.code] = p.name));
         setProvinces(data);
         setProvinceNames(names);
       })
-      .catch((error) => {
-        console.error("Lỗi khi gọi API tỉnh thành:", error);
-        toast.error("Không thể tải dữ liệu từ API. Sử dụng dữ liệu địa phương.");
+      .catch(() => {
         const names = {};
         fallbackProvinces.forEach((p) => (names[p.code] = p.name));
         setProvinces(fallbackProvinces);
@@ -138,28 +126,19 @@ const CheckOutPage = () => {
       });
   }, [location.state?.selectedItems]);
 
-  useEffect(() => {
-    return () => {
-      setCartItems([]);
-    };
-  }, []);
+  useEffect(() => () => setCartItems([]), []);
 
   useEffect(() => {
     if (form.province) {
       fetch(`${API_PROVINCE}p/${form.province}?depth=2`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Không thể tải dữ liệu quận huyện");
-          return res.json();
-        })
+        .then((res) => res.ok ? res.json() : Promise.reject())
         .then((data) => {
           const names = {};
           data.districts.forEach((d) => (names[d.code] = d.name));
           setDistricts(data.districts || []);
           setDistrictNames(names);
         })
-        .catch((error) => {
-          console.error("Lỗi khi gọi API quận huyện:", error);
-          toast.error("Không thể tải dữ liệu quận huyện. Sử dụng dữ liệu mẫu.");
+        .catch(() => {
           const sampleDistricts = [
             { code: "001", name: "Quận 1" },
             { code: "002", name: "Quận 2" },
@@ -179,19 +158,14 @@ const CheckOutPage = () => {
   useEffect(() => {
     if (form.district) {
       fetch(`${API_PROVINCE}d/${form.district}?depth=2`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Không thể tải dữ liệu phường xã");
-          return res.json();
-        })
+        .then((res) => res.ok ? res.json() : Promise.reject())
         .then((data) => {
           const names = {};
           data.wards.forEach((w) => (names[w.code] = w.name));
           setWards(data.wards || []);
           setWardNames(names);
         })
-        .catch((error) => {
-          console.error("Lỗi khi gọi API phường xã:", error);
-          toast.error("Không thể tải dữ liệu phường xã. Sử dụng dữ liệu mẫu.");
+        .catch(() => {
           const sampleWards = [
             { code: "0001", name: "Phường 1" },
             { code: "0002", name: "Phường 2" },
@@ -207,7 +181,6 @@ const CheckOutPage = () => {
     }
   }, [form.district]);
 
-  // Cập nhật phí vận chuyển khi địa chỉ thay đổi
   useEffect(() => {
     updateShippingFee();
   }, [form.province, form.district, form.ward]);
@@ -215,18 +188,38 @@ const CheckOutPage = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: false }));
   };
 
+  // Tối ưu nhập số lượng sản phẩm
   const handleQuantityChange = (id, value) => {
-    let quantity = Number(value);
-    if (quantity < 1) quantity = 1;
     const newCart = cartItems.map((item) =>
-      item.id === id ? { ...item, quantity } : item
+      item.id === id ? { ...item, quantity: value } : item
     );
     setCartItems(newCart);
+  };
+
+  const handleQuantityBlur = (id, value) => {
+    let qty = Number(value);
+    const item = cartItems.find((sp) => sp.id === id);
+    const stockQty = item.soLuong || 0;
+    const maxQty = Math.min(stockQty, 20);
+
+    if (!qty || qty < 1) qty = 1;
+    if (qty > maxQty) {
+      if (stockQty < 20) toast.error("Số lượng vượt quá số lượng còn!");
+      qty = maxQty;
+    }
+
+    const newCart = cartItems.map((sp) =>
+      sp.id === id ? { ...sp, quantity: qty } : sp
+    );
+    setCartItems(newCart);
+
+    // Cập nhật lại localStorage
     const fullCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const updatedFullCart = fullCart.map((item) =>
-      item.id === id ? { ...item, quantity } : item
+    const updatedFullCart = fullCart.map((sp) =>
+      sp.id === id ? { ...sp, quantity: qty } : sp
     );
     localStorage.setItem("cart", JSON.stringify(updatedFullCart));
   };
@@ -247,7 +240,7 @@ const CheckOutPage = () => {
     if (provinceCode) {
       try {
         const res = await fetch(`${API_PROVINCE}p/${provinceCode}?depth=2`);
-        if (!res.ok) throw new Error("Không thể tải dữ liệu quận huyện");
+        if (!res.ok) throw new Error();
         const data = await res.json();
         const names = {};
         data.districts.forEach((d) => (names[d.code] = d.name));
@@ -258,7 +251,7 @@ const CheckOutPage = () => {
 
         if (districtCode) {
           const wardRes = await fetch(`${API_PROVINCE}d/${districtCode}?depth=2`);
-          if (!wardRes.ok) throw new Error("Không thể tải dữ liệu phường xã");
+          if (!wardRes.ok) throw new Error();
           const wardData = await wardRes.json();
           const wardNames = {};
           wardData.wards.forEach((w) => (wardNames[w.code] = w.name));
@@ -268,7 +261,6 @@ const CheckOutPage = () => {
           wardCode = wardData.wards.find((w) => w.name === address.xa)?.code || "";
         }
       } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu địa phương:", error);
         toast.error("Không thể tải dữ liệu địa phương!");
       }
     }
@@ -285,80 +277,113 @@ const CheckOutPage = () => {
     setOpenModal(false);
   };
 
-  const handleOrder = async (e) => {
-    e.preventDefault();
-    if (
-      !form.name ||
-      !form.phone ||
-      !form.province ||
-      !form.district ||
-      !form.ward ||
-      !form.address
-    ) {
+  // Validate form nhập thông tin
+  const validateForm = () => {
+    const newErrors = {};
+    if (!form.name.trim()) newErrors.name = true;
+    if (!form.phone.trim()) newErrors.phone = true;
+    if (!form.province) newErrors.province = true;
+    if (!form.district) newErrors.district = true;
+    if (!form.ward) newErrors.ward = true;
+    if (!form.address.trim()) newErrors.address = true;
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
       toast.error("Vui lòng nhập đầy đủ thông tin!");
-      return;
+      return false;
     }
-    if (cartItems.length === 0) {
-      toast.error("Giỏ hàng trống!");
-      return;
-    }
-
-    setIsLoading(true);
-
-    const donHangData = {
-      nguoiDatHang: form.phone,
-      nguoiNhanHang: form.name,
-      diaChiNhanHang: `${form.address}, ${wardNames[form.ward] || ''}, ${districtNames[form.district] || ''}, ${provinceNames[form.province] || ''}`,
-      tongSoLuongSp: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-      tongTien: total + shippingFee,
-      tienThue: shippingFee,
-      moTa: form.note,
-      chiTietDonHang: cartItems.map((item) => ({
-        sanPhamctId: item.id,
-        tenSanPham: item.tenSanPham || '',
-        giaTien: item.giaBan,
-        soLuong: item.quantity,
-        thanhTien: item.quantity * item.giaBan,
-      })),
-      soDtNguoiNhan: form.phone,
-    };
-
-    try {
-      if (form.payment === "online") {
-        const vnpayUrl = await submitVNPayOrder(donHangData);
-        window.location.href = vnpayUrl;
-        return;
-      } else {
-        await createOder(donHangData);
-        toast.success("Đặt hàng thành công!");
-        const fullCart = JSON.parse(localStorage.getItem("cart") || "[]");
-        const updatedFullCart = fullCart.filter(
-          (item) => !cartItems.some((selected) => selected.id === item.id)
-        );
-        localStorage.setItem("cart", JSON.stringify(updatedFullCart));
-        setCartItems([]);
-        setForm({
-          name: "",
-          phone: "",
-          province: "",
-          district: "",
-          ward: "",
-          address: "",
-          note: "",
-          payment: "cod",
-        });
-
-      }
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi tạo đơn hàng hoặc thanh toán!");
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
+    return true;
   };
 
+  // ...existing code...
+const handleOrder = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+  if (cartItems.length === 0) {
+    toast.error("Giỏ hàng trống!");
+    return;
+  }
+
+  // Kiểm tra tồn kho, số lượng tối đa và trạng thái sản phẩm
+  for (const item of cartItems) {
+    try {
+      const res = await getByIdSanPhamCtAdmin(item.id);
+      const soLuongTonKho = res?.soLuong ?? 0;
+      const trangThai = res?.trangThai;
+
+      if (trangThai === 0) {
+        toast.error(`Sản phẩm "${item.tenSanPham}" vừa được cập nhật ngưng bán, vui lòng chọn lại sản phẩm khác!`);
+        return;
+      }
+      if (Number(item.quantity) > soLuongTonKho) {
+        toast.error(`Số lượng sản phẩm "${item.tenSanPham}" đang lớn hơn tồn kho (${soLuongTonKho})!`);
+        return;
+      }
+      if (Number(item.quantity) > 20) {
+        toast.error(`Chỉ cho phép mua tối đa 20 sản phẩm "${item.tenSanPham}" cho mỗi đơn hàng!`);
+        return;
+      }
+    } catch (err) {
+      toast.error(`Không kiểm tra được tồn kho sản phẩm "${item.tenSanPham}".`);
+      return;
+    }
+  }
+
+  setIsLoading(true);
+
+  const donHangData = {
+    nguoiDatHang: form.phone,
+    nguoiNhanHang: form.name,
+    diaChiNhanHang: `${form.address}, ${wardNames[form.ward] || ''}, ${districtNames[form.district] || ''}, ${provinceNames[form.province] || ''}`,
+    tongSoLuongSp: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
+    tongTien: total + shippingFee,
+    tienThue: shippingFee,
+    moTa: form.note,
+    chiTietDonHang: cartItems.map((item) => ({
+      sanPhamctId: item.id,
+      tenSanPham: item.tenSanPham || '',
+      giaTien: item.giaBan,
+      soLuong: Number(item.quantity),
+      thanhTien: Number(item.quantity) * item.giaBan,
+    })),
+    soDtNguoiNhan: form.phone,
+  };
+
+  try {
+    if (form.payment === "online") {
+      const vnpayUrl = await submitVNPayOrder(donHangData);
+      window.location.href = vnpayUrl;
+      return;
+    } else {
+      await createOder(donHangData);
+      toast.success("Đặt hàng thành công!");
+      const fullCart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const updatedFullCart = fullCart.filter(
+        (item) => !cartItems.some((selected) => selected.id === item.id)
+      );
+      localStorage.setItem("cart", JSON.stringify(updatedFullCart));
+      setCartItems([]);
+      setForm({
+        name: "",
+        phone: "",
+        province: "",
+        district: "",
+        ward: "",
+        address: "",
+        note: "",
+        payment: "cod",
+      });
+      setErrors({});
+    }
+  } catch (error) {
+    toast.error("Có lỗi xảy ra khi tạo đơn hàng hoặc thanh toán!");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   const total = cartItems.reduce(
-    (sum, item) => sum + item.quantity * item.giaBan,
+    (sum, item) => sum + Number(item.quantity) * item.giaBan,
     0
   );
 
@@ -398,14 +423,15 @@ const CheckOutPage = () => {
               Chọn địa chỉ nhận
             </Button>
           </Box>
-          <form onSubmit={handleOrder}>
+          <form onSubmit={handleOrder} autoComplete="off">
             <TextField
               label="Họ và tên"
               name="name"
               value={form.name}
               onChange={handleChange}
               fullWidth
-              required
+              error={!!errors.name}
+              helperText={errors.name ? "Vui lòng nhập họ tên" : ""}
               sx={{ mb: 2 }}
             />
             <TextField
@@ -414,7 +440,8 @@ const CheckOutPage = () => {
               value={form.phone}
               onChange={handleChange}
               fullWidth
-              required
+              error={!!errors.phone}
+              helperText={errors.phone ? "Vui lòng nhập số điện thoại" : ""}
               sx={{ mb: 2 }}
             />
             <TextField
@@ -424,8 +451,9 @@ const CheckOutPage = () => {
               value={form.province}
               onChange={handleChange}
               fullWidth
+              error={!!errors.province}
+              helperText={errors.province ? "Vui lòng chọn tỉnh/thành phố" : ""}
               SelectProps={{ native: true }}
-              required
               sx={{ mb: 2 }}
             >
               <option value=""></option>
@@ -442,8 +470,9 @@ const CheckOutPage = () => {
               value={form.district}
               onChange={handleChange}
               fullWidth
+              error={!!errors.district}
+              helperText={errors.district ? "Vui lòng chọn quận/huyện" : ""}
               SelectProps={{ native: true }}
-              required
               sx={{ mb: 2 }}
               disabled={!form.province}
             >
@@ -461,8 +490,9 @@ const CheckOutPage = () => {
               value={form.ward}
               onChange={handleChange}
               fullWidth
+              error={!!errors.ward}
+              helperText={errors.ward ? "Vui lòng chọn xã/phường/thị trấn" : ""}
               SelectProps={{ native: true }}
-              required
               sx={{ mb: 2 }}
               disabled={!form.district}
             >
@@ -479,7 +509,8 @@ const CheckOutPage = () => {
               value={form.address}
               onChange={handleChange}
               fullWidth
-              x
+              error={!!errors.address}
+              helperText={errors.address ? "Vui lòng nhập địa chỉ" : ""}
               sx={{ mb: 2 }}
             />
             <TextField
@@ -563,20 +594,20 @@ const CheckOutPage = () => {
                       </td>
                       <td style={{ textAlign: "center" }}>
                         <TextField
-                          type="number"
+                          type="text"
                           size="small"
                           value={item.quantity}
                           inputProps={{
                             min: 1,
+                            max: Math.min(item.soLuong || 0, 20),
                             style: { width: 50, textAlign: "center" },
                           }}
-                          onChange={(e) =>
-                            handleQuantityChange(item.id, e.target.value)
-                          }
+                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                          onBlur={(e) => handleQuantityBlur(item.id, e.target.value)}
                         />
                       </td>
                       <td style={{ textAlign: "right" }}>
-                        {(item.quantity * item.giaBan).toLocaleString("vi-VN")}₫
+                        {(Number(item.quantity) * item.giaBan).toLocaleString("vi-VN")}₫
                       </td>
                       <td style={{ textAlign: "center" }}>
                         <IconButton
@@ -591,10 +622,6 @@ const CheckOutPage = () => {
                   ))}
                 </tbody>
               </table>
-              <Box className="d-flex justify-content-between mb-2">
-                <span>Khoảng cách:</span>
-                <span>{distance.toFixed(1)} km</span>
-              </Box>
               <Box className="d-flex justify-content-between mb-2">
                 <span>Phí vận chuyển:</span>
                 <span>{shippingFee.toLocaleString("vi-VN")}₫</span>

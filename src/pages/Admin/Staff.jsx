@@ -23,30 +23,34 @@ const StaffList = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const fetchData = async (pageNum = 1, filters = {}) => {
-    try {
-      setLoading(true);
-      const data = await getPageNhanVien(
-        pageNum - 1,
-        5,
-        filters.search || undefined,
-        filters.gender || undefined,
-        filters.status || undefined
-      );
-      if (data && data.content) {
-        setStaffs(data.content);
-        setTotalPages(data.totalPages || 1);
-      } else {
-        setStaffs([]);
-        setTotalPages(1);
-      }
-    } catch (error) {
+  try {
+    setLoading(true);
+    const data = await getPageNhanVien(
+      pageNum - 1,
+      5,
+      filters.search || undefined,
+      filters.gender || undefined,
+      filters.status || undefined
+    );
+    if (data && data.content) {
+      setStaffs(data.content);
+      setTotalPages(data.totalPages || 1);
+    } else {
+      setStaffs([]);
+      setTotalPages(1);
+    }
+  } catch (error) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      navigate("/access-denied");
+    } else {
       console.error("Lỗi khi tải danh sách nhân viên:", error);
       setStaffs([]);
       setTotalPages(1);
-    } finally {
-      setLoading(false);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Chỉ gọi fetchData khi component mount lần đầu
   useEffect(() => {
@@ -89,31 +93,35 @@ const StaffList = () => {
   };
 
   const handleDelete = async (id) => {
-    const result = await Swal.fire({
-      title: "Xác nhận xóa",
-      text: "Bạn có chắc chắn muốn xóa nhân viên này không?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ff6600",
-      cancelButtonColor: "#888",
-      confirmButtonText: "Xóa",
-      cancelButtonText: "Hủy",
-    });
-    if (result.isConfirmed) {
-      try {
-        await deleteUser(id);
-        toast.success("Xoá nhân viên thành công!");
-        fetchData(page, {
-          search: search || undefined,
-          gender: genderFilter || undefined,
-          status: statusFilter || undefined,
-        });
-      } catch (error) {
+  const result = await Swal.fire({
+    title: "Xác nhận xóa",
+    text: "Bạn có chắc chắn muốn xóa nhân viên này không?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ff6600",
+    cancelButtonColor: "#888",
+    confirmButtonText: "Xóa",
+    cancelButtonText: "Hủy",
+  });
+  if (result.isConfirmed) {
+    try {
+      await deleteUser(id);
+      toast.success("Xoá nhân viên thành công!");
+      fetchData(page, {
+        search: search || undefined,
+        gender: genderFilter || undefined,
+        status: statusFilter || undefined,
+      });
+    } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
         toast.error("Lỗi khi xoá nhân viên.");
         console.error("Xoá thất bại:", error);
       }
     }
-  };
+  }
+};
 
   return (
     <section className="mt-4">

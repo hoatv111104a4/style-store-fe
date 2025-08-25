@@ -10,6 +10,7 @@ import {
   FaUndoAlt 
 } from "react-icons/fa";
 
+// ...existing code...
 const statusConfig = {
   0: { 
     label: "Chờ xác nhận", 
@@ -30,15 +31,15 @@ const statusConfig = {
     percentage: 75 
   },
   3: { 
-    label: "Đã hủy", 
-    icon: FaTimesCircle, 
-    color: "#f44336"
-  },
-  4: { 
     label: "Giao thành công", 
     icon: FaCheckCircle, 
     color: "#8bc34a",
     percentage: 100 
+  },
+  4: { 
+    label: "Đã hủy", 
+    icon: FaTimesCircle, 
+    color: "#f44336"
   },
   5: { 
     label: "Đã hoàn trả", 
@@ -52,7 +53,8 @@ const statusConfig = {
   }
 };
 
-const mainPath = [0, 1, 2, 4];
+const mainPath = [0, 1, 2, 3];
+// ...existing code...
 
 const OrderTimeline = ({ trangThaiDonHang }) => {
   // Ép kiểu trangThaiDonHang thành số

@@ -45,46 +45,45 @@ const UpdateVoucher = () => {
 
   // Fetch chi tiết mã giảm giá khi component mount
   useEffect(() => {
-    const fetchGiamGiaDetail = async () => {
-      try {
-        setLoading(true);
-        const response = await getGiamGiaDetail(id);
-        const { result } = response;
-        setFormData({
-          tenDotGiam: result.tenDotGiam || "",
-          giamGia: result.giamGia?.toString() || "",
-          giamToiDa: result.giamToiDa?.toString() || "",
-          dieuKienGiam: result.dieuKienGiam?.toString() || "",
-          ngayBatDau: result.ngayBatDau ? new Date(result.ngayBatDau).toISOString().split("T")[0] : "",
-          ngayKetThuc: result.ngayKetThuc ? new Date(result.ngayKetThuc).toISOString().split("T")[0] : "",
-          moTa: result.moTa || "",
-        });
-        // Tích tự động các sản phẩm
-        setSelectedIds(result.idSanPham || []);
-        // Tích tự động các chi tiết sản phẩm
-        setSelectedChiTietIds(result.idChiTietSanPham || []);
-
-        // Lấy chi tiết sản phẩm dựa trên idSanPham
-        const chiTietPromises = (result.idSanPham || []).map(async (sanPhamId) => {
-          const data = await getListSanPhamGiamGia({ sanPhamId });
-          return data;
-        });
-        const chiTietList = (await Promise.all(chiTietPromises)).flat().filter(ct => ct?.id);
-        // Loại bỏ trùng lặp
-        const uniqueChiTietList = Array.from(new Map(chiTietList.map(item => [item.id, item])).values());
-        setChiTietSanPhamList(uniqueChiTietList);
-      } catch (error) {
+  const fetchGiamGiaDetail = async () => {
+    try {
+      setLoading(true);
+      const response = await getGiamGiaDetail(id);
+      const { result } = response;
+      setFormData({
+        tenDotGiam: result.tenDotGiam || "",
+        giamGia: result.giamGia?.toString() || "",
+        giamToiDa: result.giamToiDa?.toString() || "",
+        dieuKienGiam: result.dieuKienGiam?.toString() || "",
+        ngayBatDau: result.ngayBatDau ? new Date(result.ngayBatDau).toISOString().split("T")[0] : "",
+        ngayKetThuc: result.ngayKetThuc ? new Date(result.ngayKetThuc).toISOString().split("T")[0] : "",
+        moTa: result.moTa || "",
+      });
+      setSelectedIds(result.idSanPham || []);
+      setSelectedChiTietIds(result.idChiTietSanPham || []);
+      const chiTietPromises = (result.idSanPham || []).map(async (sanPhamId) => {
+        const data = await getListSanPhamGiamGia({ sanPhamId });
+        return data;
+      });
+      const chiTietList = (await Promise.all(chiTietPromises)).flat().filter(ct => ct?.id);
+      const uniqueChiTietList = Array.from(new Map(chiTietList.map(item => [item.id, item])).values());
+      setChiTietSanPhamList(uniqueChiTietList);
+    } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        navigate("/access-denied");
+      } else {
         console.error("Lỗi khi lấy chi tiết mã giảm giá:", error);
         toast.error(error.response?.data?.result || "Không thể tải thông tin mã giảm giá.");
-      } finally {
-        setLoading(false);
       }
-    };
-
-    if (id) {
-      fetchGiamGiaDetail();
+    } finally {
+      setLoading(false);
     }
-  }, [id]);
+  };
+
+  if (id) {
+    fetchGiamGiaDetail();
+  }
+}, [id, navigate]);
 
   const fetchData = async (pageIndex) => {
     try {
@@ -186,24 +185,27 @@ const UpdateVoucher = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    const voucherData = {
-      ...formData,
-      giamGia: parseFloat(formData.giamGia) || 0,
-      giamToiDa: parseInt(formData.giamToiDa) || 0,
-      dieuKienGiam: parseInt(formData.dieuKienGiam) || 0,
-      ngayBatDau: formData.ngayBatDau || null,
-      ngayKetThuc: formData.ngayKetThuc || null,
-      sanPhamCtIds: selectedChiTietIds,
-    };
+  const voucherData = {
+    ...formData,
+    giamGia: parseFloat(formData.giamGia) || 0,
+    giamToiDa: parseInt(formData.giamToiDa) || 0,
+    dieuKienGiam: parseInt(formData.dieuKienGiam) || 0,
+    ngayBatDau: formData.ngayBatDau || null,
+    ngayKetThuc: formData.ngayKetThuc || null,
+    sanPhamCtIds: selectedChiTietIds,
+  };
 
-    try {
-      await updateGiamGia(id, voucherData);
-      toast.success("Cập nhật mã giảm giá thành công!");
-      setTimeout(() => navigate("/admin/giam-gia"), 2000);
-    } catch (error) {
+  try {
+    await updateGiamGia(id, voucherData);
+    toast.success("Cập nhật mã giảm giá thành công!");
+    setTimeout(() => navigate("/admin/giam-gia"), 2000);
+  } catch (error) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      navigate("/access-denied");
+    } else {
       const errorMessage = error.response?.data?.result || "Lỗi khi cập nhật voucher!";
       if (error.response?.data?.errorCode === 1104) {
         toast.error("Ngày kết thúc phải sau ngày bắt đầu!");
@@ -211,10 +213,11 @@ const UpdateVoucher = () => {
         toast.error(errorMessage);
       }
       console.error("Chi tiết lỗi:", error);
-    } finally {
-      setLoading(false);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <section className="mt-4">
