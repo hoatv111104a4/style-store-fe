@@ -14,7 +14,6 @@ import weekOfYear from 'dayjs/plugin/weekOfYear';
 import { getHoaDonByNgayBatDauVaKetThuc, getHoaDonByNgayBatDauVaKetThucT, getAllHDC } from '../../services/Admin/CounterSales/HoaDonSAdmService';
 import { thongKeTheoThang, thongKeTheoNam, thongKeTheoTuan } from '../../services/Admin/ThongKe/ThongKeService';
 import { useNavigate } from "react-router-dom";
-
 dayjs.extend(weekOfYear);
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -115,7 +114,7 @@ const dashboardStyle = `
 }
 `;
 
-const DashboardDoanhSo = ({ hoaDons = [] }) => {
+const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false }) => {
     const [doanhSoHomNay, setDoanhSoHomNay] = useState(0);
     const [doanhSoTuanNay, setDoanhSoTuanNay] = useState(0);
     const [doanhSoThangNay, setDoanhSoThangNay] = useState(0);
@@ -127,7 +126,8 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
 
     useEffect(() => {
         const today = dayjs();
-        const startOfWeek = today.startOf('week');
+        const startOfWeek = today.startOf('week');   // ví dụ: Thứ 2
+        const endOfWeek = today.endOf('week');       // ví dụ: Chủ nhật
         const startOfMonth = today.startOf('month');
         const endOfMonth = today.endOf('month');
 
@@ -138,7 +138,12 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
                 const tien = Number(hd.tongTien) || 0;
 
                 if (ngayNhan.isSame(today, 'day')) acc.doanhSoNgay += tien;
-                if (ngayNhan.isSame(today, 'week')) acc.doanhSoTuan += tien;
+                if (
+                    (ngayNhan.isAfter(startOfWeek) || ngayNhan.isSame(startOfWeek, "day")) &&
+                    (ngayNhan.isBefore(endOfWeek) || ngayNhan.isSame(endOfWeek, "day"))
+                ) {
+                    acc.doanhSoTuan += tien;
+                }
                 if (ngayNhan.isAfter(startOfMonth.subtract(1, 'day')) && ngayNhan.isBefore(endOfMonth.add(1, 'day'))) {
                     acc.doanhSoThang += tien;
                 }
@@ -147,11 +152,25 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
             { doanhSoNgay: 0, doanhSoTuan: 0, doanhSoThang: 0 }
         );
 
-        setDoanhSoHomNay(stats.doanhSoNgay);
+        const doanhSoHomNay = (hoaDonsAll || []).reduce((sum, hd) => {
+            if (!hd.ngayNhan || hd.trangThai !== 3) return sum;
+            const ngayNhan = dayjs(hd.ngayNhan);
+            return ngayNhan.isSame(today, "day")
+                ? sum + (Number(hd.tongTien) || 0)
+                : sum;
+        }, 0);
+
+        setDoanhSoHomNay(doanhSoHomNay);
         setDoanhSoTuanNay(stats.doanhSoTuan);
         setDoanhSoThangNay(stats.doanhSoThang);
 
-        // Thay fetchTrangThaiData bằng xử lý trực tiếp trên hoaDons:
+
+
+    }, [hoaDons]);
+
+    // Thay fetchTrangThaiData bằng xử lý trực tiếp trên hoaDons:
+    useEffect(() => {
+        // Đặt lại dữ liệu thống kê khi thay đổi loại
         const countMap = {};
         (hoaDons || []).forEach(hd => {
             const key = getTrangThaiLabel(hd.trangThai);
@@ -206,10 +225,10 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
             case 1: return 'Chờ vận chuyển';
             case 2: return 'Đang vận chuyển';
             case 3: return 'Đã hoàn thành';
-            case 4: return 'Đã huỷ';
-            case 5: return 'Hoàn tiền / Trả hàng';
-            case 6: return 'Hoá đơn chờ tại quầy';
-            default: return 'Không xác định';
+            // case 4: return 'Đã huỷ';
+            // case 5: return 'Hoàn tiền / Trả hàng';
+            // case 6: return 'Hoá đơn chờ tại quầy';
+            // default: return 'Không xác định';
         }
     };
 
@@ -265,10 +284,10 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
         { label: 'Chờ vận chuyển', color: '#ffd54f' },       // Vàng tươi
         { label: 'Đang vận chuyển', color: '#42a5f5' },      // Xanh dương sáng
         { label: 'Đã hoàn thành', color: '#66bb6a' },        // Xanh lá cây
-        { label: 'Đã huỷ', color: '#bdbdbd' },               // Xám nhạt
-        { label: 'Hoàn tiền / Trả hàng', color: '#ab47bc' }, // Tím nhạt
-        { label: 'Hoá đơn chờ tại quầy', color: '#29b6f6' }, // Xanh cyan
-        { label: 'Không xác định', color: '#ef9a9a' },       // Hồng nhạt
+        // { label: 'Đã huỷ', color: '#bdbdbd' },               // Xám nhạt
+        // { label: 'Hoàn tiền / Trả hàng', color: '#ab47bc' }, // Tím nhạt
+        // { label: 'Hoá đơn chờ tại quầy', color: '#29b6f6' }, // Xanh cyan
+        // { label: 'Không xác định', color: '#ef9a9a' },       // Hồng nhạt
     ];
 
     const doughnutData = {
@@ -286,25 +305,41 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
             <h2>Tổng quan bán hàng</h2>
 
             <div className="row mb-4">
-                <div className="col">
-                    <div className="card p-3">
-                        <h5>Doanh số hôm nay</h5>
-                        <p>{doanhSoHomNay.toLocaleString()} VND</p>
+                {isCustomRange ? (
+                    <div className="col d-flex justify-content-center">
+                        <div className="card p-5" style={{ maxWidth: "500px" }}>
+                            <h5 className="mb-3" style={{ fontSize: "22px", fontWeight: "600", color: "#212529" }}>
+                                Doanh số tuỳ chọn
+                            </h5>
+                            <p className="mb-0" style={{ fontSize: "26px", fontWeight: "700", color: "#212529" }}>
+                                {doanhSoThangNay.toLocaleString()} VND
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <div className="col">
-                    <div className="card p-3">
-                        <h5>Doanh số tuần này</h5>
-                        <p>{doanhSoTuanNay.toLocaleString()} VND</p>
-                    </div>
-                </div>
-                <div className="col">
-                    <div className="card p-3">
-                        <h5>Doanh số tháng này</h5>
-                        <p>{doanhSoThangNay.toLocaleString()} VND</p>
-                    </div>
-                </div>
+                ) : (
+                    <>
+                        <div className="col">
+                            <div className="card p-3">
+                                <h5>Doanh số hôm nay</h5>
+                                <p>{doanhSoHomNay.toLocaleString()} VND</p>
+                            </div>
+                        </div>
+                        <div className="col">
+                            <div className="card p-3">
+                                <h5>Doanh số tuần này</h5>
+                                <p>{doanhSoTuanNay.toLocaleString()} VND</p>
+                            </div>
+                        </div>
+                        <div className="col">
+                            <div className="card p-3">
+                                <h5>Doanh số tháng này</h5>
+                                <p>{doanhSoThangNay.toLocaleString()} VND</p>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
+
 
             <div className="row">
                 <div className="col-md-8">
@@ -410,10 +445,12 @@ const DashboardDoanhSo = ({ hoaDons = [] }) => {
 
 const AdminDashboard = () => {
     const [hoaDons, setHoaDons] = useState([]);
+    const [hoaDonsAll, setHoaDonSAll] = useState([]);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isCustomRange, setIsCustomRange] = useState(false); // trạng thái chọn khoảng thời gian tuỳ chỉnh
 
     const fetchHoaDons = async () => {
         if (!startDate || !endDate) {
@@ -439,19 +476,52 @@ const AdminDashboard = () => {
         }
     };
 
+    const fetchHoaDonsAll = async () => {
+        const today = dayjs().format('YYYY-MM-DD');
+
+        try {
+            setLoading(true);
+            setError(null);
+            // Đổi hàm gọi API ở đây:
+            const result = await getHoaDonByNgayBatDauVaKetThucT(
+                `${today}T00:00:00`,
+                `${today}T23:59:59`
+            );
+            setHoaDonSAll(result || []);
+        } catch (err) {
+            console.error("Lỗi khi lấy hóa đơn:", err);
+            setError("Không thể tải dữ liệu hóa đơn.");
+            setHoaDonSAll([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         const startOfMonth = dayjs().startOf('month').format('YYYY-MM-DD');
-        const endOfMonth = dayjs().endOf('month').format('YYYY-MM-DD');
+        //const endOfMonth = dayjs().endOf('month').format('YYYY-MM-DD');
+        const today = dayjs().format('YYYY-MM-DD');
         setStartDate(startOfMonth);
-        setEndDate(endOfMonth);
+        setEndDate(today);
+        setIsCustomRange(false); // Mặc định chọn khoảng thời gian tuỳ chỉnh
     }, []);
+    const handleStartDateChange = (value) => {
+        setStartDate(value);
+        setIsCustomRange(true);
+    };
+    const handleEndDateChange = (value) => {
+        setEndDate(value);
+        setIsCustomRange(true);
+    };
 
     useEffect(() => {
         fetchHoaDons();
     }, [startDate, endDate]);
 
-    // Thêm đoạn này vào đầu component AdminDashboard (trước return):
-    // (Chỉ cần xuất hiện 1 lần trong file)
+    useEffect(() => {
+        fetchHoaDonsAll();
+    }, []);
+
     if (typeof document !== "undefined" && !document.getElementById("dashboard-style")) {
         const style = document.createElement("style");
         style.id = "dashboard-style";
@@ -471,7 +541,11 @@ const AdminDashboard = () => {
                         type="date"
                         className="form-control"
                         value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
+                        max={endDate} // không cho lớn hơn ngày hiện tại
+                        onChange={(e) => {
+                            setStartDate(e.target.value);
+                            setIsCustomRange(true);
+                        }}
                     />
                 </div>
                 <div>
@@ -480,12 +554,17 @@ const AdminDashboard = () => {
                         type="date"
                         className="form-control"
                         value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate} // không cho nhỏ hơn ngày bắt đầu
+                        max={new Date().toISOString().split("T")[0]}
+                        onChange={(e) => {
+                            setEndDate(e.target.value);
+                            setIsCustomRange(true);
+                        }}
                     />
                 </div>
             </div>
 
-            <DashboardDoanhSo hoaDons={hoaDons} />
+            <DashboardDoanhSo hoaDons={hoaDons} hoaDonsAll={hoaDonsAll} isCustomRange={isCustomRange} />
         </div>
     );
 };
