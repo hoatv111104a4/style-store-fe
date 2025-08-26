@@ -157,7 +157,7 @@ const SanPhamAdminPage = () => {
       {/* // === BẮT ĐẦU PHẦN JSX MỚI === */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-           Quản lý phiên bản: {tenSanPhamGoc}
+           Quản lý sản phẩm: {tenSanPhamGoc}
         </Typography>
         <Button
           variant="contained"
@@ -263,6 +263,8 @@ const SanPhamAdminPage = () => {
               <TableCell>Hình ảnh</TableCell>
               <TableCell>Giá bán</TableCell>
               <TableCell>Màu sắc</TableCell>
+              <TableCell>Chất liệu</TableCell>
+              <TableCell>Thương hiệu</TableCell>
               <TableCell>Kích thước</TableCell>
               <TableCell>Số lượng tồn</TableCell>
               <TableCell>Trạng thái</TableCell>
@@ -286,6 +288,9 @@ const SanPhamAdminPage = () => {
                 </TableCell>
                 <TableCell>{sp.giaBan ? sp.giaBan.toLocaleString() + " ₫" : "0 ₫"}</TableCell>
                 <TableCell>{sp.tenMauSac ?? "-"}</TableCell>
+                <TableCell>{sp.tenChatLieu ?? "-"}</TableCell>
+                <TableCell>{sp.tenThuongHieu ?? "-"}</TableCell>
+
                 <TableCell>{sp.tenKichThuoc ?? "-"}</TableCell>
                 <TableCell>{sp.soLuong ?? "-"}</TableCell>
                 <TableCell>

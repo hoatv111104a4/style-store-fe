@@ -193,45 +193,43 @@ const UpdateSpCtPage = () => {
   };
 
   const handleSaveChanges = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
+    console.log('Form data before save:', formData); // Log toàn bộ formData
+    const requestData = {
+      idSanPham: formData.idSanPham || "",
+      idMauSac: formData.idMauSac || "",
+      idThuongHieu: formData.idThuongHieu || "",
+      idKichThuoc: formData.idKichThuoc || "",
+      idXuatXu: formData.idXuatXu || "",
+      idChatLieu: formData.idChatLieu || "",
+      idHinhAnhSp: formData.idHinhAnhSp || null,
+      ma: formData.ma || "",
+      giaNhap: parseFloat(formData.giaNhap) || 0,
+      giaBan: parseFloat(formData.giaBan) || 0,
+      soLuong: parseInt(formData.soLuong) || 0,
+      trangThai: parseInt(formData.trangThai) || 1,
+      moTa: formData.moTa || "",
+      giaBanGoc: parseFloat(formData.giaBanGoc) || parseFloat(formData.giaBan) || 0,
+    };
+    console.log('Request data:', requestData); // Log requestData gửi đi
 
-      // Chuẩn bị dữ liệu để gửi lên server
-      const requestData = {
-        idSanPham: formData.idSanPham,
-        idMauSac: formData.idMauSac,
-        idThuongHieu: formData.idThuongHieu,
-        idKichThuoc: formData.idKichThuoc,
-        idXuatXu: formData.idXuatXu,
-        idChatLieu: formData.idChatLieu,
-        idHinhAnhSp: formData.idHinhAnhSp,
-        giaNhap: parseFloat(formData.giaNhap),
-        giaBan: parseFloat(formData.giaBan),
-        soLuong: parseInt(formData.soLuong),
-        trangThai: parseInt(formData.trangThai),
-        moTa: formData.moTa,
-        giaBanGoc: parseFloat(formData.giaBanGoc || formData.giaBan), 
-      };
+    const response = await updateSanPhamCtAdmin(formData.id, requestData); // Lưu response
+    console.log('API response:', response); // Log response từ backend
 
-      // Gọi API cập nhật
-      await updateSanPhamCtAdmin(formData.id, requestData);
+    toast.success("Cập nhật sản phẩm thành công!");
+    setEditMode(false);
 
-      // Hiển thị thông báo thành công
-      toast.success("Cập nhật sản phẩm thành công!");
-      setEditMode(false);
-
-      // Load lại dữ liệu nếu cần
-      const updatedData = await getByIdSanPhamCtAdmin(id);
-      setProductDetail(updatedData);
-    } catch (error) {
-      // Xử lý lỗi từ backend
-      const errorMessage = error.response?.data?.result || "Lỗi khi cập nhật sản phẩm!";
-      toast.error(errorMessage); // Hiển thị thông báo lỗi bằng toast
-      console.error("Lỗi khi cập nhật sản phẩm:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const updatedData = await getByIdSanPhamCtAdmin(id);
+    setProductDetail(updatedData);
+  } catch (error) {
+    const errorMessage = error.response?.data?.result || error.response?.data?.message || "Lỗi khi cập nhật sản phẩm!";
+    console.error('Error details:', error); // Log full error
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSelectImage = (imageId) => {
     setFormData(prev => ({
