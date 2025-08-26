@@ -34,12 +34,6 @@ const SanPhamAdminPage = () => {
   const { sanPhamId } = useParams();
   const navigate = useNavigate();
 
-  const handleAddVariant = () => {
-  navigate(`/admin/quan-ly-sp/them-san-pham`, {
-    state: { sanPhamId, tenSanPham: tenSanPhamGoc }, // 👈 truyền thêm state
-  });
-};
-
   if (!sanPhamId) {
     return <Typography color="error">Lỗi: Không tìm thấy ID sản phẩm.</Typography>;
   }
@@ -113,7 +107,10 @@ const SanPhamAdminPage = () => {
   // =======================================================
   // === BẮT ĐẦU PHẦN CODE MỚI ===
   
-
+  // Xử lý khi nhấn nút thêm phiên bản
+  const handleAddVariant = () => {
+    navigate('/admin/quan-ly-sp/them-san-pham');
+  };
 
   // === KẾT THÚC PHẦN CODE MỚI ===
   // =======================================================

@@ -31,7 +31,7 @@ import {
   Grid,
   CircularProgress,
 } from "@mui/material";
-import { useNavigate ,useLocation} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ImageIcon from "@mui/icons-material/Image";
@@ -71,9 +71,6 @@ const AddSanPhamChiTietAdmin = () => {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [imageDescription, setImageDescription] = useState("");
-      const location = useLocation();
-
-  const { sanPhamId, tenSanPham } = location.state || {};
 
   // State cho form
   const [selectedXuatXu, setSelectedXuatXu] = useState("");
@@ -130,17 +127,19 @@ const AddSanPhamChiTietAdmin = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const spList = await listSanPham();
-        setSanPhamList(spList);
-        if (sanPhamId) {
-          setSelectedSanPham(sanPhamId); 
-        }
+        setXuatXuList(await listXuatXu());
+        setSanPhamList(await listSanPham());
+        setThuongHieuList(await listThuongHieu());
+        setChatLieuList(await listChatLieu());
+        setMauSacList(await listMauSac());
+        setKichCoList(await listKichCo());
+        setHinhAnhList(await listHinhAnh());
       } catch (error) {
         console.error("Lỗi khi load dữ liệu:", error);
       }
     };
     fetchData();
-  }, [sanPhamId]);
+  }, []);
 
   // Xử lý chọn màu sắc
   const handleToggleMauSac = (id) => {
@@ -555,7 +554,6 @@ const AddSanPhamChiTietAdmin = () => {
                 ))}
               </Select>
             </FormControl>
-
             <Tooltip title="Thêm nhanh sản phẩm">
               <IconButton color="primary" onClick={handleOpenModalSanPham}>
                 <AddIcon />
