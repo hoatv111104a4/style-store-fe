@@ -160,7 +160,7 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
                 : sum;
         }, 0);
 
-        setDoanhSoHomNay(doanhSoHomNay);
+        setDoanhSoHomNay(stats.doanhSoNgay);
         setDoanhSoTuanNay(stats.doanhSoTuan);
         setDoanhSoThangNay(stats.doanhSoThang);
 
