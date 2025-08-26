@@ -9,7 +9,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { getChiTietDonHang } from "../../services/Website/OrderApi";
 import OrderTimeline from "../../components/OrderTimeline";
 import Swal from "sweetalert2";
-
+import { huyDonHang } from "../../services/Admin/HoaDonAdminServiceNew";
 
 const OrderDetail = () => {
   const { orderId } = useParams();
@@ -73,6 +73,32 @@ const OrderDetail = () => {
 
   if (error) return <div style={{ color: "red", textAlign: "center", marginTop: "20px" }}>{error}</div>;
 
+  const handleCancelOrder = async () => {
+  try {
+    const result = await Swal.fire({
+      title: "Bạn có chắc muốn hủy đơn hàng này?",
+      text: "Hành động này không thể hoàn tác!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Hủy đơn",
+      cancelButtonText: "Thoát",
+    });
+
+    if (result.isConfirmed) {
+      await huyDonHang(orderId);
+      Swal.fire("Đã hủy!", "Đơn hàng của bạn đã được hủy.", "success");
+      setTrangThaiDonHang(4); // cập nhật trạng thái về HỦY
+      fetchData(); // reload lại chi tiết đơn hàng
+    }
+  } catch (err) {
+    console.error("Lỗi khi hủy đơn hàng:", err);
+    Swal.fire("Thất bại", "Không thể hủy đơn hàng. Vui lòng thử lại!", "error");
+  }
+};
+
+
   return (
     <section className="mt-4">
       <h3 className="mb-3 text-center" style={{ color: "#ff6600" }}>
@@ -86,6 +112,17 @@ const OrderDetail = () => {
       >
         Quay lại
       </Button>
+      {(trangThaiDonHang === 0 || trangThaiDonHang === 1) && (
+        <Button
+          variant="contained"
+          color="error"
+          onClick={handleCancelOrder}
+          sx={{ mb: 2, ml: 2 }}
+        >
+          Hủy Đơn
+        </Button>
+      )}
+
       {trangThaiDonHang !== null && <OrderTimeline trangThaiDonHang={trangThaiDonHang} />}
       <form className="d-flex gap-2 mb-4" onSubmit={handleSearch}>
         <TextField

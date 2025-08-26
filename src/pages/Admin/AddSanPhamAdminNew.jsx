@@ -44,6 +44,7 @@ import {
   listKichCo,
   listHinhAnh,
   addSanPhamChiTiet,
+  uploadHinhAnh,
 } from "../../services/Website/ProductApis";
 import {
   createSanPham,
@@ -52,6 +53,11 @@ import {
   createChatLieu,
 } from "../../services/Admin/ThuocTinhSanPhamApi";
 import { addChatLieu } from "../../services/Admin/ChatLieuService";
+import { addMauSac } from "../../services/Admin/MauSacService";
+import { addKichThuoc } from "../../services/Admin/KichThuocService";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 const AddSanPhamChiTietAdmin = () => {
   const navigate = useNavigate();
   // State cho danh sách lựa chọn
@@ -62,6 +68,9 @@ const AddSanPhamChiTietAdmin = () => {
   const [mauSacList, setMauSacList] = useState([]);
   const [kichCoList, setKichCoList] = useState([]);
   const [hinhAnhList, setHinhAnhList] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imageDescription, setImageDescription] = useState("");
 
   // State cho form
   const [selectedXuatXu, setSelectedXuatXu] = useState("");
@@ -104,6 +113,15 @@ const AddSanPhamChiTietAdmin = () => {
 
   const [openModalChatLieu, setOpenModalChatLieu] = useState(false);
   const [tenChatLieuMoi, setTenChatLieuMoi] = useState("");
+
+  // State cho modal thêm nhanh màu sắc
+  const [openModalMauSac, setOpenModalMauSac] = useState(false);
+  const [tenMauSacMoi, setTenMauSacMoi] = useState("");
+  const [maMauSacMoi, setMaMauSacMoi] = useState("#000000");
+
+  // State cho modal thêm nhanh kích cỡ
+  const [openModalKichCo, setOpenModalKichCo] = useState(false);
+  const [tenKichCoMoi, setTenKichCoMoi] = useState("");
 
   // Lấy dữ liệu từ API
   useEffect(() => {
@@ -150,7 +168,21 @@ const AddSanPhamChiTietAdmin = () => {
       selectedMauSac.length === 0 ||
       selectedKichCo.length === 0
     ) {
-      alert("Vui lòng điền đầy đủ thông tin");
+      toast.error("Vui lòng điền đầy đủ thông tin");
+      return;
+    }
+
+    const giaNhapNum = parseFloat(giaNhap);
+    const giaBanNum = parseFloat(giaBan);
+    const soLuongNum = parseInt(soLuong);
+
+    if (giaNhapNum < 0 || giaBanNum < 0 || soLuongNum < 0) {
+      toast.error("Giá trị không được nhỏ hơn 0");
+      return;
+    }
+
+    if (giaNhapNum > giaBanNum) {
+      toast.error("Giá nhập không được lớn hơn giá bán");
       return;
     }
 
@@ -218,6 +250,13 @@ const AddSanPhamChiTietAdmin = () => {
     setSanPhamChiTietList(newList);
   };
 
+  // Cập nhật field trong bảng tạm
+  const handleUpdateField = (index, field, value) => {
+    const newList = [...sanPhamChiTietList];
+    newList[index][field] = value;
+    setSanPhamChiTietList(newList);
+  };
+
   // Mở dialog chọn hình ảnh
   const handleOpenImageDialog = (index) => {
     setCurrentImageIndex(index);
@@ -238,6 +277,27 @@ const AddSanPhamChiTietAdmin = () => {
 
   // Lưu tất cả sản phẩm trong bảng tạm vào DB
   const handleSaveAll = async () => {
+    for (const spct of sanPhamChiTietList) {
+      const giaNhapNum = parseFloat(spct.giaNhap);
+      const giaBanNum = parseFloat(spct.giaBan);
+      const soLuongNum = parseInt(spct.soLuongTon);
+
+      if (isNaN(giaNhapNum) || isNaN(giaBanNum) || isNaN(soLuongNum)) {
+        toast.error("Vui lòng nhập giá trị hợp lệ cho tất cả các trường");
+        return;
+      }
+
+      if (giaNhapNum < 0 || giaBanNum < 0 || soLuongNum < 0) {
+        toast.error("Giá trị không được nhỏ hơn 0");
+        return;
+      }
+
+      if (giaNhapNum > giaBanNum) {
+        toast.error("Giá nhập không được lớn hơn giá bán");
+        return;
+      }
+    }
+
     try {
       for (const spct of sanPhamChiTietList) {
         const requestData = {
@@ -255,11 +315,11 @@ const AddSanPhamChiTietAdmin = () => {
         };
         await addSanPhamChiTiet(requestData);
       }
-      alert("Lưu tất cả sản phẩm thành công!");
+      toast.success("Lưu tất cả sản phẩm thành công!");
       navigate("/admin/quan-ly-sp/san-pham");
     } catch (error) {
       console.error("Lỗi khi lưu sản phẩm chi tiết:", error);
-      alert("Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại!");
+      toast.error("Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại!");
     }
   };
 
@@ -348,30 +408,124 @@ const AddSanPhamChiTietAdmin = () => {
     setErrorMessage("");
   };
   const handleAddChatLieuMoi = async () => {
-  if (!tenChatLieuMoi.trim()) {
-    setErrorMessage("Vui lòng nhập tên chất liệu.");
-    return;
-  }
-  setModalLoading(true);
-  setErrorMessage("");
-  try {
-    await addChatLieu({
-      ma: `CL-${crypto.randomUUID().substring(0, 8)}`,
-      ten: tenChatLieuMoi.trim(),
-      moTa: "",
-      trangThai: 1,
-      ngayTao: new Date().toISOString(),
-      ngaySua: new Date().toISOString(),
-      ngayXoa: null,
-    });
-    handleCloseModalChatLieu();
-    setChatLieuList(await listChatLieu());
-  } catch (error) {
-    setErrorMessage(error.response?.data?.message || error.message || "Lỗi khi thêm chất liệu.");
-  } finally {
-    setModalLoading(false);
-  }
-};
+    if (!tenChatLieuMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên chất liệu.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await addChatLieu({
+        ma: `CL-${crypto.randomUUID().substring(0, 8)}`,
+        ten: tenChatLieuMoi.trim(),
+        moTa: "",
+        trangThai: 1,
+        ngayTao: new Date().toISOString(),
+        ngaySua: new Date().toISOString(),
+        ngayXoa: null,
+      });
+      handleCloseModalChatLieu();
+      setChatLieuList(await listChatLieu());
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || error.message || "Lỗi khi thêm chất liệu.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Màu sắc
+  const handleOpenModalMauSac = () => setOpenModalMauSac(true);
+  const handleCloseModalMauSac = () => {
+    setOpenModalMauSac(false);
+    setTenMauSacMoi("");
+    setMaMauSacMoi("#000000");
+    setErrorMessage("");
+  };
+  const handleAddMauSacMoi = async () => {
+    if (!tenMauSacMoi.trim() || !maMauSacMoi.trim()) {
+      setErrorMessage("Vui lòng nhập đầy đủ thông tin.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await addMauSac({
+        ma: maMauSacMoi,
+        ten: tenMauSacMoi.trim(),
+        moTa: "",
+        trangThai: 1,
+        ngayTao: new Date().toISOString(),
+        ngaySua: new Date().toISOString(),
+        ngayXoa: null,
+      });
+      handleCloseModalMauSac();
+      setMauSacList(await listMauSac());
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || error.message || "Lỗi khi thêm màu sắc.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Kích cỡ
+  const handleOpenModalKichCo = () => setOpenModalKichCo(true);
+  const handleCloseModalKichCo = () => {
+    setOpenModalKichCo(false);
+    setTenKichCoMoi("");
+    setErrorMessage("");
+  };
+  const handleAddKichCoMoi = async () => {
+    if (!tenKichCoMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên kích cỡ.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await addKichThuoc({
+        ma: `KC-${crypto.randomUUID().substring(0, 8)}`,
+        ten: tenKichCoMoi.trim(),
+        moTa: "",
+        trangThai: 1,
+        ngayTao: new Date().toISOString(),
+        ngaySua: new Date().toISOString(),
+        ngayXoa: null,
+      });
+      handleCloseModalKichCo();
+      setKichCoList(await listKichCo());
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || error.message || "Lỗi khi thêm kích cỡ.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleUploadImage = async () => {
+    if (!selectedFile) {
+      toast.error("Vui lòng chọn file hình ảnh");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Sửa ở đây: truyền file và moTa riêng biệt
+      const response = await uploadHinhAnh(selectedFile, imageDescription);
+      
+      // Cập nhật danh sách hình ảnh
+      setHinhAnhList(await listHinhAnh());
+      
+      // Reset form
+      setSelectedFile(null);
+      setImageDescription("");
+      
+      toast.success("Upload hình ảnh thành công!");
+    } catch (error) {
+      console.error("Lỗi khi upload hình ảnh:", error);
+      toast.error("Có lỗi xảy ra khi upload hình ảnh");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // --- Kết thúc phần xử lý cho các modal thêm nhanh ---
 
@@ -479,13 +633,13 @@ const AddSanPhamChiTietAdmin = () => {
 
         {/* Mô tả, giá, số lượng */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mb: 3 }}>
-          <TextField
+          {/* <TextField
             label="Mô tả"
             multiline
             minRows={3}
             value={moTa}
             onChange={(e) => setMoTa(e.target.value)}
-          />
+          /> */}
           <Box sx={{ display: "flex", gap: 4 }}>
             <TextField
               label="Giá nhập"
@@ -493,6 +647,7 @@ const AddSanPhamChiTietAdmin = () => {
               value={giaNhap}
               onChange={(e) => setGiaNhap(e.target.value)}
               sx={{ flex: 1 }}
+              inputProps={{ min: 0 }}
             />
             <TextField
               label="Giá bán"
@@ -500,6 +655,7 @@ const AddSanPhamChiTietAdmin = () => {
               value={giaBan}
               onChange={(e) => setgiaBan(e.target.value)}
               sx={{ flex: 1 }}
+              inputProps={{ min: 0 }}
             />
             <TextField
               label="Số lượng"
@@ -507,6 +663,7 @@ const AddSanPhamChiTietAdmin = () => {
               value={soLuong}
               onChange={(e) => setSoLuong(e.target.value)}
               sx={{ flex: 1 }}
+              inputProps={{ min: 0 }}
             />
           </Box>
         </Box>
@@ -656,12 +813,38 @@ const AddSanPhamChiTietAdmin = () => {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      {parseFloat(spct.giaNhap).toLocaleString()} VNĐ
+                      <TextField
+                        type="number"
+                        value={spct.giaNhap}
+                        onChange={(e) =>
+                          handleUpdateField(index, "giaNhap", e.target.value)
+                        }
+                        size="small"
+                        inputProps={{ min: 0 }}
+                      />
                     </TableCell>
                     <TableCell>
-                      {parseFloat(spct.giaBan).toLocaleString()} VNĐ
+                      <TextField
+                        type="number"
+                        value={spct.giaBan}
+                        onChange={(e) =>
+                          handleUpdateField(index, "giaBan", e.target.value)
+                        }
+                        size="small"
+                        inputProps={{ min: 0 }}
+                      />
                     </TableCell>
-                    <TableCell>{spct.soLuongTon}</TableCell>
+                    <TableCell>
+                      <TextField
+                        type="number"
+                        value={spct.soLuongTon}
+                        onChange={(e) =>
+                          handleUpdateField(index, "soLuongTon", e.target.value)
+                        }
+                        size="small"
+                        inputProps={{ min: 0 }}
+                      />
+                    </TableCell>
                     <TableCell>
                       <IconButton
                         onClick={() => handleDeleteSanPhamChiTiet(index)}
@@ -692,8 +875,60 @@ const AddSanPhamChiTietAdmin = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Chọn hình ảnh cho sản phẩm</DialogTitle>
+        <DialogTitle>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography>Chọn hình ảnh cho sản phẩm</Typography>
+            <Tooltip title="Tải lên hình ảnh mới">
+              <IconButton 
+                color="primary" 
+                onClick={() => document.getElementById('upload-image-input').click()}
+                disabled={uploading}
+              >
+                {uploading ? <CircularProgress size={24} /> : <AddIcon />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </DialogTitle>
         <DialogContent dividers>
+          {/* Phần upload hình ảnh */}
+          {selectedFile && (
+            <Box sx={{ mb: 2, p: 2, border: "1px dashed #ddd", borderRadius: "4px" }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Hình ảnh đã chọn: {selectedFile.name}
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                label="Mô tả hình ảnh (tùy chọn)"
+                value={imageDescription}
+                onChange={(e) => setImageDescription(e.target.value)}
+                sx={{ mb: 1 }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleUploadImage}
+                disabled={uploading}
+                startIcon={uploading ? <CircularProgress size={16} /> : null}
+              >
+                {uploading ? "Đang tải lên..." : "Tải lên"}
+              </Button>
+            </Box>
+          )}
+
+          {/* Input file ẩn */}
+          <input
+            id="upload-image-input"
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setSelectedFile(e.target.files[0]);
+              }
+            }}
+          />
+
+          {/* Danh sách hình ảnh */}
           <Grid container spacing={2}>
             {hinhAnhList.map((hinhAnh) => (
               <Grid item xs={4} sm={3} md={2} key={hinhAnh.id}>
@@ -736,7 +971,16 @@ const AddSanPhamChiTietAdmin = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Chọn màu sắc</DialogTitle>
+        <DialogTitle>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography>Chọn màu sắc</Typography>
+            <Tooltip title="Thêm nhanh màu sắc">
+              <IconButton color="primary" onClick={handleOpenModalMauSac}>
+                <AddIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </DialogTitle>
         <DialogContent dividers>
           <List>
             {mauSacList.map((ms) => (
@@ -783,7 +1027,16 @@ const AddSanPhamChiTietAdmin = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Chọn kích thước</DialogTitle>
+        <DialogTitle>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography>Chọn kích thước</Typography>
+            <Tooltip title="Thêm nhanh kích thước">
+              <IconButton color="primary" onClick={handleOpenModalKichCo}>
+                <AddIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </DialogTitle>
         <DialogContent dividers>
           <List>
             {kichCoList.map((kc) => (
@@ -969,6 +1222,95 @@ const AddSanPhamChiTietAdmin = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal thêm nhanh Màu sắc */}
+      <Dialog
+        open={openModalMauSac}
+        onClose={handleCloseModalMauSac}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm màu sắc nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên màu sắc"
+            fullWidth
+            variant="outlined"
+            value={tenMauSacMoi}
+            onChange={(e) => setTenMauSacMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+          <TextField
+            margin="dense"
+            label="Mã màu"
+            type="color"
+            fullWidth
+            variant="outlined"
+            value={maMauSacMoi}
+            onChange={(e) => setMaMauSacMoi(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalMauSac}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddMauSacMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh Kích cỡ */}
+      <Dialog
+        open={openModalKichCo}
+        onClose={handleCloseModalKichCo}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm kích cỡ nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên kích cỡ"
+            fullWidth
+            variant="outlined"
+            value={tenKichCoMoi}
+            onChange={(e) => setTenKichCoMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalKichCo}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddKichCoMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <ToastContainer />
     </Box>
   );
 };

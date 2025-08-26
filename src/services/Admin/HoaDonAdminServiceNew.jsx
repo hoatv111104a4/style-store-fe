@@ -136,3 +136,22 @@ export const getLichSuDonHang = async (id) => {
     throw error;
   }
 };
+
+
+export const huyDonHang = async (id) => {
+  try {
+    const token = Cookies.get("adminToken");
+
+    const response = await apiClient.get(`/huy-don-hang/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`, 
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi hủy đơn hàng:", error);
+    throw error;
+  }
+};
+

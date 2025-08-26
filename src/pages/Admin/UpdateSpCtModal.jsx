@@ -15,6 +15,10 @@ import {
   Paper,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -27,10 +31,20 @@ import {
   listKichCo,
   listXuatXu,
   listHinhAnh,
-listSanPham,
-updateSanPhamCtAdmin,
-
+  listSanPham,
+  updateSanPhamCtAdmin,
 } from "../../services/Website/ProductApis";
+import {
+  createSanPham,
+  createXuatXu,
+  createThuongHieu,
+} from "../../services/Admin/ThuocTinhSanPhamApi";
+import { addChatLieu } from "../../services/Admin/ChatLieuService";
+import { addMauSac } from "../../services/Admin/MauSacService";
+import { addKichThuoc } from "../../services/Admin/KichThuocService";
+
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'; 
 
 const UpdateSpCtPage = () => {
   const { id } = useParams();
@@ -46,8 +60,7 @@ const UpdateSpCtPage = () => {
   const [mauSacList, setMauSacList] = useState([]);
   const [kichCoList, setKichCoList] = useState([]);
   const [xuatXuList, setXuatXuList] = useState([]);
-    const [sanPhamList, setSanPhamList] = useState([]);
-
+  const [sanPhamList, setSanPhamList] = useState([]);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -69,6 +82,30 @@ const UpdateSpCtPage = () => {
     giaBanGoc: "",
   });
 
+  // State cho modal thêm nhanh (chung)
+  const [modalLoading, setModalLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // State cho các modal thêm nhanh
+  const [openModalSanPham, setOpenModalSanPham] = useState(false);
+  const [tenSanPhamMoi, setTenSanPhamMoi] = useState("");
+
+  const [openModalXuatXu, setOpenModalXuatXu] = useState(false);
+  const [tenXuatXuMoi, setTenXuatXuMoi] = useState("");
+
+  const [openModalThuongHieu, setOpenModalThuongHieu] = useState(false);
+  const [tenThuongHieuMoi, setTenThuongHieuMoi] = useState("");
+
+  const [openModalChatLieu, setOpenModalChatLieu] = useState(false);
+  const [tenChatLieuMoi, setTenChatLieuMoi] = useState("");
+
+  const [openModalMauSac, setOpenModalMauSac] = useState(false);
+  const [tenMauSacMoi, setTenMauSacMoi] = useState("");
+  const [maMauSacMoi, setMaMauSacMoi] = useState("#000000");
+
+  const [openModalKichCo, setOpenModalKichCo] = useState(false);
+  const [tenKichCoMoi, setTenKichCoMoi] = useState("");
+
   // Load dữ liệu ban đầu
   useEffect(() => {
     const fetchData = async () => {
@@ -76,8 +113,8 @@ const UpdateSpCtPage = () => {
         setLoading(true);
         
         // Load danh sách lựa chọn
-        const [sanPham,thuongHieu, chatLieu, mauSac, kichCo, xuatXu, hinhAnh] = await Promise.all([
-            listSanPham(),
+        const [sanPham, thuongHieu, chatLieu, mauSac, kichCo, xuatXu, hinhAnh] = await Promise.all([
+          listSanPham(),
           listThuongHieu(),
           listChatLieu(),
           listMauSac(),
@@ -156,44 +193,45 @@ const UpdateSpCtPage = () => {
   };
 
   const handleSaveChanges = async () => {
-  try {
-    setLoading(true);
-    
-    // Chuẩn bị dữ liệu để gửi lên server
-    const requestData = {
-      idSanPham: formData.idSanPham,
-      idMauSac: formData.idMauSac,
-      idThuongHieu: formData.idThuongHieu,
-      idKichThuoc: formData.idKichThuoc,
-      idXuatXu: formData.idXuatXu,
-      idChatLieu: formData.idChatLieu,
-      idHinhAnhSp: formData.idHinhAnhSp,
-      giaNhap: parseFloat(formData.giaNhap),
-      giaBan: parseFloat(formData.giaBan),
-      soLuong: parseInt(formData.soLuong),
-      trangThai: parseInt(formData.trangThai),
-      moTa: formData.moTa,
-      giaBanGoc: parseFloat(formData.giaBanGoc || formData.giaBan) // Sử dụng giá ban nếu không có giá gốc
-    };
+    try {
+      setLoading(true);
 
-    // Gọi API cập nhật
-    await updateSanPhamCtAdmin(formData.id, requestData);
-    
-    // Hiển thị thông báo thành công
-    alert("Cập nhật sản phẩm thành công!");
-    setEditMode(false);
-    
-    // Có thể load lại dữ liệu nếu cần
-    const updatedData = await getByIdSanPhamCtAdmin(id);
-    setProductDetail(updatedData);
-    
-  } catch (error) {
-    console.error("Lỗi khi cập nhật sản phẩm:", error);
-    alert("Có lỗi xảy ra khi cập nhật sản phẩm!");
-  } finally {
-    setLoading(false);
-  }
-};
+      // Chuẩn bị dữ liệu để gửi lên server
+      const requestData = {
+        idSanPham: formData.idSanPham,
+        idMauSac: formData.idMauSac,
+        idThuongHieu: formData.idThuongHieu,
+        idKichThuoc: formData.idKichThuoc,
+        idXuatXu: formData.idXuatXu,
+        idChatLieu: formData.idChatLieu,
+        idHinhAnhSp: formData.idHinhAnhSp,
+        giaNhap: parseFloat(formData.giaNhap),
+        giaBan: parseFloat(formData.giaBan),
+        soLuong: parseInt(formData.soLuong),
+        trangThai: parseInt(formData.trangThai),
+        moTa: formData.moTa,
+        giaBanGoc: parseFloat(formData.giaBanGoc || formData.giaBan), 
+      };
+
+      // Gọi API cập nhật
+      await updateSanPhamCtAdmin(formData.id, requestData);
+
+      // Hiển thị thông báo thành công
+      toast.success("Cập nhật sản phẩm thành công!");
+      setEditMode(false);
+
+      // Load lại dữ liệu nếu cần
+      const updatedData = await getByIdSanPhamCtAdmin(id);
+      setProductDetail(updatedData);
+    } catch (error) {
+      // Xử lý lỗi từ backend
+      const errorMessage = error.response?.data?.result || "Lỗi khi cập nhật sản phẩm!";
+      toast.error(errorMessage); // Hiển thị thông báo lỗi bằng toast
+      console.error("Lỗi khi cập nhật sản phẩm:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectImage = (imageId) => {
     setFormData(prev => ({
@@ -201,6 +239,191 @@ const UpdateSpCtPage = () => {
       idHinhAnhSp: imageId
     }));
   };
+
+  // --- Bắt đầu phần xử lý cho các modal thêm nhanh ---
+
+  // Sản phẩm
+  const handleOpenModalSanPham = () => setOpenModalSanPham(true);
+  const handleCloseModalSanPham = () => {
+    setOpenModalSanPham(false);
+    setTenSanPhamMoi("");
+    setErrorMessage("");
+  };
+  const handleAddSanPhamMoi = async () => {
+    if (!tenSanPhamMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên sản phẩm.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await createSanPham({ ten: tenSanPhamMoi });
+      handleCloseModalSanPham();
+      setSanPhamList(await listSanPham());
+      toast.success("Thêm sản phẩm thành công!");
+    } catch (error) {
+      setErrorMessage(error.message || "Lỗi khi thêm sản phẩm.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Xuất xứ
+  const handleOpenModalXuatXu = () => setOpenModalXuatXu(true);
+  const handleCloseModalXuatXu = () => {
+    setOpenModalXuatXu(false);
+    setTenXuatXuMoi("");
+    setErrorMessage("");
+  };
+  const handleAddXuatXuMoi = async () => {
+    if (!tenXuatXuMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên xuất xứ.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await createXuatXu({ ten: tenXuatXuMoi });
+      handleCloseModalXuatXu();
+      setXuatXuList(await listXuatXu());
+      toast.success("Thêm xuất xứ thành công!");
+    } catch (error) {
+      setErrorMessage(error.message || "Lỗi khi thêm xuất xứ.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Thương hiệu
+  const handleOpenModalThuongHieu = () => setOpenModalThuongHieu(true);
+  const handleCloseModalThuongHieu = () => {
+    setOpenModalThuongHieu(false);
+    setTenThuongHieuMoi("");
+    setErrorMessage("");
+  };
+  const handleAddThuongHieuMoi = async () => {
+    if (!tenThuongHieuMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên thương hiệu.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await createThuongHieu({ ten: tenThuongHieuMoi });
+      handleCloseModalThuongHieu();
+      setThuongHieuList(await listThuongHieu());
+      toast.success("Thêm thương hiệu thành công!");
+    } catch (error) {
+      setErrorMessage(error.message || "Lỗi khi thêm thương hiệu.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Chất liệu
+  const handleOpenModalChatLieu = () => setOpenModalChatLieu(true);
+  const handleCloseModalChatLieu = () => {
+    setOpenModalChatLieu(false);
+    setTenChatLieuMoi("");
+    setErrorMessage("");
+  };
+  const handleAddChatLieuMoi = async () => {
+    if (!tenChatLieuMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên chất liệu.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await addChatLieu({
+        ma: `CL-${crypto.randomUUID().substring(0, 8)}`,
+        ten: tenChatLieuMoi.trim(),
+        moTa: "",
+        trangThai: 1,
+        ngayTao: new Date().toISOString(),
+        ngaySua: new Date().toISOString(),
+        ngayXoa: null,
+      });
+      handleCloseModalChatLieu();
+      setChatLieuList(await listChatLieu());
+      toast.success("Thêm chất liệu thành công!");
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || error.message || "Lỗi khi thêm chất liệu.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Màu sắc
+  const handleOpenModalMauSac = () => setOpenModalMauSac(true);
+  const handleCloseModalMauSac = () => {
+    setOpenModalMauSac(false);
+    setTenMauSacMoi("");
+    setMaMauSacMoi("#000000");
+    setErrorMessage("");
+  };
+  const handleAddMauSacMoi = async () => {
+    if (!tenMauSacMoi.trim() || !maMauSacMoi.trim()) {
+      setErrorMessage("Vui lòng nhập đầy đủ thông tin.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await addMauSac({
+        ma: maMauSacMoi,
+        ten: tenMauSacMoi.trim(),
+        moTa: "",
+        trangThai: 1,
+        ngayTao: new Date().toISOString(),
+        ngaySua: new Date().toISOString(),
+        ngayXoa: null,
+      });
+      handleCloseModalMauSac();
+      setMauSacList(await listMauSac());
+      toast.success("Thêm màu sắc thành công!");
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || error.message || "Lỗi khi thêm màu sắc.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Kích cỡ
+  const handleOpenModalKichCo = () => setOpenModalKichCo(true);
+  const handleCloseModalKichCo = () => {
+    setOpenModalKichCo(false);
+    setTenKichCoMoi("");
+    setErrorMessage("");
+  };
+  const handleAddKichCoMoi = async () => {
+    if (!tenKichCoMoi.trim()) {
+      setErrorMessage("Vui lòng nhập tên kích cỡ.");
+      return;
+    }
+    setModalLoading(true);
+    setErrorMessage("");
+    try {
+      await addKichThuoc({
+        ma: `KC-${crypto.randomUUID().substring(0, 8)}`,
+        ten: tenKichCoMoi.trim(),
+        moTa: "",
+        trangThai: 1,
+        ngayTao: new Date().toISOString(),
+        ngaySua: new Date().toISOString(),
+        ngayXoa: null,
+      });
+      handleCloseModalKichCo();
+      setKichCoList(await listKichCo());
+      toast.success("Thêm kích cỡ thành công!");
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || error.message || "Lỗi khi thêm kích cỡ.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // --- Kết thúc phần xử lý cho các modal thêm nhanh ---
 
   if (loading && !productDetail) {
     return (
@@ -247,8 +470,6 @@ const UpdateSpCtPage = () => {
             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
               Thông tin cơ bản
             </Typography>
-
-            
 
             <Grid container spacing={2}>
               <Grid item xs={6}>
@@ -383,7 +604,7 @@ const UpdateSpCtPage = () => {
                     </Select>
                   </FormControl>
                   <Tooltip title="Thêm nhanh sản phẩm">
-                    <IconButton color="primary" disabled={!editMode}>
+                    <IconButton color="primary" disabled={!editMode} onClick={handleOpenModalSanPham}>
                       <AddIcon />
                     </IconButton>
                   </Tooltip>
@@ -407,7 +628,7 @@ const UpdateSpCtPage = () => {
                     </Select>
                   </FormControl>
                   <Tooltip title="Thêm nhanh thương hiệu">
-                    <IconButton color="primary" disabled={!editMode}>
+                    <IconButton color="primary" disabled={!editMode} onClick={handleOpenModalThuongHieu}>
                       <AddIcon />
                     </IconButton>
                   </Tooltip>
@@ -434,7 +655,7 @@ const UpdateSpCtPage = () => {
                     </Select>
                   </FormControl>
                   <Tooltip title="Thêm nhanh xuất xứ">
-                    <IconButton color="primary" disabled={!editMode}>
+                    <IconButton color="primary" disabled={!editMode} onClick={handleOpenModalXuatXu}>
                       <AddIcon />
                     </IconButton>
                   </Tooltip>
@@ -461,7 +682,7 @@ const UpdateSpCtPage = () => {
                     </Select>
                   </FormControl>
                   <Tooltip title="Thêm nhanh chất liệu">
-                    <IconButton color="primary" disabled={!editMode}>
+                    <IconButton color="primary" disabled={!editMode} onClick={handleOpenModalChatLieu}>
                       <AddIcon />
                     </IconButton>
                   </Tooltip>
@@ -499,7 +720,7 @@ const UpdateSpCtPage = () => {
                     </Select>
                   </FormControl>
                   <Tooltip title="Thêm nhanh màu sắc">
-                    <IconButton color="primary" disabled={!editMode}>
+                    <IconButton color="primary" disabled={!editMode} onClick={handleOpenModalMauSac}>
                       <AddIcon />
                     </IconButton>
                   </Tooltip>
@@ -526,7 +747,7 @@ const UpdateSpCtPage = () => {
                     </Select>
                   </FormControl>
                   <Tooltip title="Thêm nhanh kích thước">
-                    <IconButton color="primary" disabled={!editMode}>
+                    <IconButton color="primary" disabled={!editMode} onClick={handleOpenModalKichCo}>
                       <AddIcon />
                     </IconButton>
                   </Tooltip>
@@ -616,6 +837,252 @@ const UpdateSpCtPage = () => {
             </Button>
         )}
       </Box>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
+
+      {/* --- PHẦN MODALS --- */}
+
+      {/* Modal thêm nhanh sản phẩm */}
+      <Dialog
+        open={openModalSanPham}
+        onClose={handleCloseModalSanPham}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm sản phẩm nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên sản phẩm"
+            fullWidth
+            variant="outlined"
+            value={tenSanPhamMoi}
+            onChange={(e) => setTenSanPhamMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalSanPham}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddSanPhamMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh Xuất xứ */}
+      <Dialog
+        open={openModalXuatXu}
+        onClose={handleCloseModalXuatXu}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm xuất xứ nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên xuất xứ"
+            fullWidth
+            variant="outlined"
+            value={tenXuatXuMoi}
+            onChange={(e) => setTenXuatXuMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalXuatXu}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddXuatXuMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh Thương hiệu */}
+      <Dialog
+        open={openModalThuongHieu}
+        onClose={handleCloseModalThuongHieu}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm thương hiệu nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên thương hiệu"
+            fullWidth
+            variant="outlined"
+            value={tenThuongHieuMoi}
+            onChange={(e) => setTenThuongHieuMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalThuongHieu}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddThuongHieuMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh Chất liệu */}
+      <Dialog
+        open={openModalChatLieu}
+        onClose={handleCloseModalChatLieu}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm chất liệu nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên chất liệu"
+            fullWidth
+            variant="outlined"
+            value={tenChatLieuMoi}
+            onChange={(e) => setTenChatLieuMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalChatLieu}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddChatLieuMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh Màu sắc */}
+      <Dialog
+        open={openModalMauSac}
+        onClose={handleCloseModalMauSac}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm màu sắc nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên màu sắc"
+            fullWidth
+            variant="outlined"
+            value={tenMauSacMoi}
+            onChange={(e) => setTenMauSacMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+          <TextField
+            margin="dense"
+            label="Mã màu"
+            type="color"
+            fullWidth
+            variant="outlined"
+            value={maMauSacMoi}
+            onChange={(e) => setMaMauSacMoi(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalMauSac}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddMauSacMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal thêm nhanh Kích cỡ */}
+      <Dialog
+        open={openModalKichCo}
+        onClose={handleCloseModalKichCo}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm kích cỡ nhanh</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tên kích cỡ"
+            fullWidth
+            variant="outlined"
+            value={tenKichCoMoi}
+            onChange={(e) => setTenKichCoMoi(e.target.value)}
+            error={!!errorMessage}
+            helperText={errorMessage}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseModalKichCo}
+            color="secondary"
+            disabled={modalLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAddKichCoMoi}
+            color="primary"
+            disabled={modalLoading}
+          >
+            {modalLoading ? <CircularProgress size={20} /> : "Thêm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

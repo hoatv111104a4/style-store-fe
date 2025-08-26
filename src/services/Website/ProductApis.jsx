@@ -1,5 +1,8 @@
 import axios from "axios";
 
+import Cookies from "js-cookie";
+
+
 /**
  * Lấy danh sách sản phẩm với các bộ lọc và phân trang.
  * @param {Object} params - Các tham số lọc và phân trang.
@@ -259,6 +262,28 @@ export const chuyenTrangThaiSP = async (id) => {
     return response.data;
   } catch (error) {
     console.error("Lỗi khi chuyển trạng thái sản phẩm :", error);
+    throw error;
+  }
+};
+
+export const uploadHinhAnh = async (file, moTa = "") => {
+  try {
+    const token = Cookies.get("adminToken");
+    if (!token) throw new Error("Token không tồn tại, vui lòng đăng nhập lại.");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("moTa", moTa);
+
+    const response = await apiClient.post("/upload-hinh-anh", formData, {
+      headers: {
+        "Authorization": `Bearer ${token}`, // chỉ để Authorization thôi
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi upload hình ảnh:", error.response?.data || error.message);
     throw error;
   }
 };

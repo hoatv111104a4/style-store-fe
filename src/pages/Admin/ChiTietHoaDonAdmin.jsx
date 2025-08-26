@@ -33,6 +33,7 @@ import TimelineSeparator from "@mui/lab/TimelineSeparator";
 import TimelineConnector from "@mui/lab/TimelineConnector";
 import TimelineContent from "@mui/lab/TimelineContent";
 import TimelineDot from "@mui/lab/TimelineDot";
+import { huyDonHang } from "../../services/Admin/HoaDonAdminServiceNew";
 
 const HoaDonDetailPage = () => {
   const { id } = useParams();
@@ -94,6 +95,23 @@ const HoaDonDetailPage = () => {
       setLoading(false);
     }
   };
+
+  const handleHuyDonHang = async () => {
+  if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
+  try {
+    await huyDonHang(id);
+    await fetchData();
+    await fetchLichSu();
+    toast.success("Hủy đơn hàng thành công");
+  } catch (error) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      navigate("/access-denied");
+    } else {
+      console.error("Lỗi khi hủy đơn hàng:", error);
+      toast.error("Hủy đơn hàng thất bại, vui lòng thử lại.");
+    }
+  }
+};
 
   const fetchLichSu = async () => {
     try {
@@ -211,6 +229,11 @@ const HoaDonDetailPage = () => {
   const isEditableStatus = () => {
     return hoaDon?.trangThai !== undefined && hoaDon.trangThai <= 2;
   };
+
+  const isEditableStatus2 = () => {
+  return hoaDon?.trangThai === 0;
+};
+
 
   const getNextStatus = () => {
     if (!hoaDon) return 0;
@@ -492,15 +515,27 @@ const HoaDonDetailPage = () => {
             </Typography>
             <Chip label={statusInfo.label} color={statusInfo.color} variant="outlined" />
           </Box>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleOpenUpdateModal}
-            disabled={!isEditableStatus()}
-          >
-            Cập nhật đơn hàng
-          </Button>
+          <Box display="flex" gap={2}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleOpenUpdateModal}
+              disabled={!isEditableStatus()}
+            >
+              Cập nhật đơn hàng
+            </Button>
+            {hoaDon.trangThai === 0 || hoaDon.trangThai === 1 ? (
+              <Button
+                variant="contained"
+                color="error"
+                onClick={handleHuyDonHang}
+              >
+                Hủy đơn hàng
+              </Button>
+            ) : null}
+          </Box>
         </Box>
+
         <Divider sx={{ my: 2 }} />
         <Box display="flex" flexWrap="wrap" gap={3}>
           <Box flex={1} minWidth={300}>
@@ -591,7 +626,7 @@ const HoaDonDetailPage = () => {
                     variant="outlined"
                     color="error"
                     size="small"
-                    disabled={deletingId === sp.idHoaDonCt || !isEditableStatus()}
+                    disabled={deletingId === sp.idHoaDonCt || !isEditableStatus2()}
                     onClick={() => handleDeleteProduct(sp.idHoaDonCt)}
                   >
                     {deletingId === sp.idHoaDonCt ? "Đang xóa..." : "Xóa"}
@@ -606,7 +641,7 @@ const HoaDonDetailPage = () => {
             variant="contained"
             color="primary"
             onClick={() => setOpenProductModal(true)}
-            disabled={!isEditableStatus()}
+            disabled={!isEditableStatus2()}
           >
             Thêm sản phẩm
           </Button>
