@@ -226,6 +226,30 @@ export const getHoaDonByNgayBatDauVaKetThucT = async (startDate, endDate) => {
     }
 };
 
+// Hàm gọi API tìm kiếm hóa đơn theo ngày bắt đầu và kết thúc của đơn hoàn thành
+export const getHoaDonByNgayBatDauVaKetThucN = async (startDate, endDate) => {
+    try {
+        const token = Cookies.get("adminToken");
+        if (!token) {
+            throw new Error("Token không tồn tại trong cookie. Vui lòng đăng nhập lại.");
+        }
+        const response = await apiClient.get('/theo-ngayn', {
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+            },
+            params: {
+                start: startDate,
+                end: endDate,
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.log('Lỗi khi lấy hóa đơn theo khoảng ngày:', error);
+        throw error;
+    }
+};
+
 //Hàm gọi API xoas hóa đơn theo id
 export const deleteHD = async (id) => {
     try {
