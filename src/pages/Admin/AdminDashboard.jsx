@@ -11,7 +11,7 @@ import {
 } from 'chart.js';
 import dayjs from 'dayjs';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
-import { getHoaDonByNgayBatDauVaKetThuc, getHoaDonByNgayBatDauVaKetThucT, getAllHDC } from '../../services/Admin/CounterSales/HoaDonSAdmService';
+import { getHoaDonByNgayBatDauVaKetThucN, getHoaDonByNgayBatDauVaKetThucT, getAllHDC } from '../../services/Admin/CounterSales/HoaDonSAdmService';
 import { thongKeTheoThang, thongKeTheoNam, thongKeTheoTuan } from '../../services/Admin/ThongKe/ThongKeService';
 import { useNavigate } from "react-router-dom";
 dayjs.extend(weekOfYear);
@@ -114,10 +114,11 @@ const dashboardStyle = `
 }
 `;
 
-const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false }) => {
+const DashboardDoanhSo = ({ hoaDons = [], hoaDonsHT = [], isCustomRange = false }) => {
     const [doanhSoHomNay, setDoanhSoHomNay] = useState(0);
     const [doanhSoTuanNay, setDoanhSoTuanNay] = useState(0);
     const [doanhSoThangNay, setDoanhSoThangNay] = useState(0);
+    const [doanhSoTuyChon, setDoanhSoTuyChon] = useState(0);
     const [tongDonTheoTrangThai, setTongDonTheoTrangThai] = useState({});
     const [thongKeData, setThongKeData] = useState([]);
     const [thongKeType, setThongKeType] = useState('month');
@@ -131,7 +132,7 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
         const startOfMonth = today.startOf('month');
         const endOfMonth = today.endOf('month');
 
-        const stats = (hoaDons || []).reduce(
+        const stats = (hoaDonsHT || []).reduce(
             (acc, hd) => {
                 if (!hd.ngayNhan || hd.trangThai !== 3) return acc;
                 const ngayNhan = dayjs(hd.ngayNhan);
@@ -152,13 +153,12 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
             { doanhSoNgay: 0, doanhSoTuan: 0, doanhSoThang: 0 }
         );
 
-        const doanhSoHomNay = (hoaDonsAll || []).reduce((sum, hd) => {
+        const tongTuyChon = (hoaDonsHT || []).reduce((sum, hd) => {
             if (!hd.ngayNhan || hd.trangThai !== 3) return sum;
-            const ngayNhan = dayjs(hd.ngayNhan);
-            return ngayNhan.isSame(today, "day")
-                ? sum + (Number(hd.tongTien) || 0)
-                : sum;
+            return sum + (Number(hd.tongTien) || 0);
         }, 0);
+
+        setDoanhSoTuyChon(tongTuyChon);  
 
         setDoanhSoHomNay(stats.doanhSoNgay);
         setDoanhSoTuanNay(stats.doanhSoTuan);
@@ -166,7 +166,7 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
 
 
 
-    }, [hoaDons]);
+    }, [hoaDonsHT]);
 
     // Thay fetchTrangThaiData bằng xử lý trực tiếp trên hoaDons:
     useEffect(() => {
@@ -234,7 +234,7 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
 
     const groupDoanhThuByDate = () => {
         const grouped = {};
-        (hoaDons || []).forEach(hd => {
+        (hoaDonsHT || []).forEach(hd => {
             if (hd.ngayNhan && hd.trangThai === 3) {
                 const date = dayjs(hd.ngayNhan).format('DD/MM');
                 grouped[date] = (grouped[date] || 0) + (Number(hd.tongTien) || 0);
@@ -247,7 +247,7 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
         const grouped = {};
         const today = dayjs().format("DD/MM");
 
-        (hoaDons || []).forEach(hd => {
+        (hoaDonsHT || []).forEach(hd => {
             if (hd.ngayNhan && hd.trangThai === 3) {
                 const date = dayjs(hd.ngayNhan).format("DD/MM");
                 grouped[date] = (grouped[date] || 0) + 1;
@@ -262,16 +262,18 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
     const soLuongTheoNgay = groupSoLuongByDate();
 
     // Biểu đồ tích lũy dựa trên loại (doanh số hoặc số lượng)
+    const labels = Object.keys(chartType === 'doanhSo' ? doanhThuTheoNgay : soLuongTheoNgay)
+        .sort((a, b) => dayjs(a, "DD/MM").toDate() - dayjs(b, "DD/MM").toDate());
+
     const barData = {
-        labels: Object.keys(chartType === 'doanhSo' ? doanhThuTheoNgay : soLuongTheoNgay).sort(),
+        labels,
         datasets: [{
             label: chartType === 'doanhSo' ? 'Doanh số (VND)' : 'Số lượng (đơn hàng)',
-            data: Object.keys(chartType === 'doanhSo' ? doanhThuTheoNgay : soLuongTheoNgay)
-                .sort()
-                .map(date => chartType === 'doanhSo'
+            data: labels.map(date =>
+                chartType === 'doanhSo'
                     ? (doanhThuTheoNgay[date] || 0)
                     : (soLuongTheoNgay[date] || 0)
-                ),
+            ),
             backgroundColor: chartType === 'doanhSo' ? '#3b82f6' : '#ffca28',
             barPercentage: 0.5,
             categoryPercentage: 0.6
@@ -312,7 +314,7 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
                                 Doanh số tuỳ chọn
                             </h5>
                             <p className="mb-0" style={{ fontSize: "26px", fontWeight: "700", color: "#212529" }}>
-                                {doanhSoThangNay.toLocaleString()} VND
+                                {doanhSoTuyChon.toLocaleString()} VND
                             </p>
                         </div>
                     </div>
@@ -445,7 +447,7 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
 
 const AdminDashboard = () => {
     const [hoaDons, setHoaDons] = useState([]);
-    const [hoaDonsAll, setHoaDonSAll] = useState([]);
+    const [hoaDonsHT, setHoaDonsHT] = useState([]);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [loading, setLoading] = useState(true);
@@ -476,26 +478,29 @@ const AdminDashboard = () => {
         }
     };
 
-    const fetchHoaDonsAll = async () => {
-        const today = dayjs().format('YYYY-MM-DD');
+    const fetchHoaDonsHT = async () => {
+        if (!startDate || !endDate) {
+            setLoading(false);
+            return;
+        }
 
         try {
             setLoading(true);
             setError(null);
             // Đổi hàm gọi API ở đây:
-            const result = await getHoaDonByNgayBatDauVaKetThucT(
-                `${today}T00:00:00`,
-                `${today}T23:59:59`
+            const result = await getHoaDonByNgayBatDauVaKetThucN(
+                `${startDate}T00:00:00`,
+                `${endDate}T23:59:59`
             );
-            setHoaDonSAll(result || []);
-        } catch (err) {
-            console.error("Lỗi khi lấy hóa đơn:", err);
-            setError("Không thể tải dữ liệu hóa đơn.");
-            setHoaDonSAll([]);
-        } finally {
-            setLoading(false);
-        }
-    };
+                setHoaDonsHT(result || []);
+            } catch (err) {
+                console.error("Lỗi khi lấy hóa đơn:", err);
+                setError("Không thể tải dữ liệu hóa đơn.");
+                setHoaDonsHT([]);
+            } finally {
+                setLoading(false);
+            }
+        };
 
     useEffect(() => {
         const startOfMonth = dayjs().startOf('month').format('YYYY-MM-DD');
@@ -519,8 +524,8 @@ const AdminDashboard = () => {
     }, [startDate, endDate]);
 
     useEffect(() => {
-        fetchHoaDonsAll();
-    }, []);
+        fetchHoaDonsHT();
+    }, [startDate, endDate]);
 
     if (typeof document !== "undefined" && !document.getElementById("dashboard-style")) {
         const style = document.createElement("style");
@@ -564,7 +569,7 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            <DashboardDoanhSo hoaDons={hoaDons} hoaDonsAll={hoaDonsAll} isCustomRange={isCustomRange} />
+            <DashboardDoanhSo hoaDons={hoaDons} hoaDonsHT={hoaDonsHT} isCustomRange={isCustomRange} />
         </div>
     );
 };
