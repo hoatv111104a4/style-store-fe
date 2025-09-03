@@ -325,6 +325,68 @@ const Client = forwardRef(({
             setLoading(false);
         }
     };
+
+    const handleKhachLe = async () => {
+        try {
+            const customerInfo = await getKHBySdt("Không xác định");
+
+            if (!customerInfo || !customerInfo.id) {
+                throw new Error("Không tìm thấy khách hàng.");
+            }
+
+            const addressList = await getDiaChiNhanByNguoiDungId(customerInfo.id);
+
+            const fullCustomerData = {
+                ...customerInfo,
+                diaChiNguoiDung: customerInfo.diaChi || "",
+                xaNguoiDung: customerInfo.xa || "",
+                huyenNguoiDung: customerInfo.huyen || "",
+                tinhNguoiDung: customerInfo.tinh || "",
+                danhSachDiaChi:
+                    Array.isArray(addressList) && addressList.length > 0
+                        ? addressList
+                        : ["Không có địa chỉ nhận"],
+            };
+
+            // Lưu vào localStorage
+            localStorage.setItem(
+                `selectedCustomer-${hoaDonId}`,
+                JSON.stringify(fullCustomerData)
+            );
+            localStorage.setItem(
+                "soDienThoaiMap",
+                JSON.stringify({
+                    ...JSON.parse(localStorage.getItem("soDienThoaiMap") || "{}"),
+                    [hoaDonId]: "Không xác định",
+                })
+            );
+
+            setKhachHang(fullCustomerData);
+            if (setKhachHangMap) {
+                setKhachHangMap((prev) => ({ ...prev, [hoaDonId]: fullCustomerData }));
+                localStorage.setItem(
+                    `khachHangMap`,
+                    JSON.stringify({
+                        ...JSON.parse(localStorage.getItem(`khachHangMap`) || "{}"),
+                        [hoaDonId]: fullCustomerData,
+                    })
+                );
+            }
+
+            // ✅ Mặc định chọn "Nhận hàng tại quầy"
+            setHinhThucNhanHang(3);
+            localStorage.setItem("hinhThucNhanHang", 3);
+
+            setShowSearchInput(false);
+            setSearchSdt("");
+            toast.success("Chọn khách lẻ, mặc định Nhận tại quầy");
+        } catch (error) {
+            toast.error(error.message || "Lỗi khi chọn khách lẻ");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleReload = (targetHoaDonId = hoaDonId) => {
         setShowSearchInput(true);
         setSearchSdt('');
@@ -559,38 +621,59 @@ const Client = forwardRef(({
             <h6 className="fw-bold">Thông tin khách hàng</h6>
             <div className="border p-3 mb-3">
                 {showSearchInput && !khachHang && (
-                    <div className="input-group mb-3">
-                        <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            placeholder="Nhập SĐT khách hàng..."
-                            value={searchSdt}
-                            maxLength={10}
-                            onChange={(e) => {
-                                const input = e.target.value;
-                                // Chỉ cho phép nhập số và tối đa 10 ký tự
-                                if (/^\d{0,10}$/.test(input)) {
-                                    setSearchSdt(input);
-                                }
-                            }}
-                            onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                    if (searchSdt.length === 10) {
-                                        handleLocalSearch();
-                                        if (setSoDienThoai) setSoDienThoai(searchSdt || "");
-                                        console.log("Số điện thoại tìm kiếm: ", searchSdt);
-                                    } else {
-                                        toast.warning("Số điện thoại phải gồm đúng 10 chữ số");
+                    <>
+                        <div className="input-group mb-2">
+                            <input
+                                type="text"
+                                className="form-control form-control-sm"
+                                placeholder="Nhập SĐT khách hàng..."
+                                value={searchSdt}
+                                maxLength={10}
+                                onChange={(e) => {
+                                    const input = e.target.value;
+                                    if (/^\d{0,10}$/.test(input)) {
+                                        setSearchSdt(input);
                                     }
-                                }
-                            }}
+                                }}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                        if (searchSdt.length === 10) {
+                                            handleLocalSearch();
+                                            if (setSoDienThoai) setSoDienThoai(searchSdt || "");
+                                            console.log("Số điện thoại tìm kiếm: ", searchSdt);
+                                        } else {
+                                            toast.warning("Số điện thoại phải gồm đúng 10 chữ số");
+                                        }
+                                    }
+                                }}
+                            />
+                            <button
+                                className="btn btn-sm btn-primary"
+                                type="button"
+                                onClick={handleLocalSearch}
+                                disabled={loading}
+                            >
+                                <FontAwesomeIcon icon={faSearch} />
+                            </button>
+                        </div>
 
-                        />
-                        <button className="btn btn-sm btn-primary" type="button" onClick={handleLocalSearch} disabled={loading}>
-                            <FontAwesomeIcon icon={faSearch} />
-                        </button>
-                    </div>
+                        {/* nút khách lẻ nằm dưới input */}
+                        <div className="text-start">
+                            <button
+                                className="btn btn-sm btn-secondary"
+                                type="button"
+                                onClick={() => {
+                                    handleKhachLe();
+                                    if (setSoDienThoai) setSoDienThoai("Không xác định");
+                                    console.log("Số điện thoại tìm kiếm: ", searchSdt);
+                                }}
+                            >
+                                Khách lẻ
+                            </button>
+                        </div>
+                    </>
                 )}
+
 
                 {khachHang && (
                     <div className="alert alert-info py-2 px-3 mb-2">
@@ -642,7 +725,7 @@ const Client = forwardRef(({
                                         setHinhThucNhanHang(1);
                                         localStorage.setItem('hinhThucNhanHang', 1);
                                     }}
-                                    disabled={daXacNhan}
+                                    disabled={daXacNhan || khachHang?.soDienThoai === "Không xác định"}
                                 />
                                 <label className="form-check-label" htmlFor="giaoHang">
                                     Giao hàng
