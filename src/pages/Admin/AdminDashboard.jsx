@@ -225,8 +225,8 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
             case 1: return 'Chờ vận chuyển';
             case 2: return 'Đang vận chuyển';
             case 3: return 'Đã hoàn thành';
-            // case 4: return 'Đã huỷ';
-            // case 5: return 'Hoàn tiền / Trả hàng';
+            case 4: return 'Đã huỷ';
+            case 5: return 'Hoàn tiền / Trả hàng';
             // case 6: return 'Hoá đơn chờ tại quầy';
             // default: return 'Không xác định';
         }
@@ -284,8 +284,8 @@ const DashboardDoanhSo = ({ hoaDons = [], hoaDonsAll = [], isCustomRange = false
         { label: 'Chờ vận chuyển', color: '#ffd54f' },       // Vàng tươi
         { label: 'Đang vận chuyển', color: '#42a5f5' },      // Xanh dương sáng
         { label: 'Đã hoàn thành', color: '#66bb6a' },        // Xanh lá cây
-        // { label: 'Đã huỷ', color: '#bdbdbd' },               // Xám nhạt
-        // { label: 'Hoàn tiền / Trả hàng', color: '#ab47bc' }, // Tím nhạt
+        { label: 'Đã huỷ', color: '#bdbdbd' },               // Xám nhạt
+        { label: 'Hoàn tiền / Trả hàng', color: '#ab47bc' }, // Tím nhạt
         // { label: 'Hoá đơn chờ tại quầy', color: '#29b6f6' }, // Xanh cyan
         // { label: 'Không xác định', color: '#ef9a9a' },       // Hồng nhạt
     ];
