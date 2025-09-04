@@ -9,6 +9,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { getChiTietDonHang } from "../../services/Website/OrderApi";
 import OrderTimeline from "../../components/OrderTimeline";
 import Swal from "sweetalert2";
+import { searchHoaDonById } from "../../services/Admin/CounterSales/HoaDonSAdmService";
 import { huyDonHang } from "../../services/Admin/HoaDonAdminServiceNew";
 
 const OrderDetail = () => {
@@ -39,24 +40,47 @@ const OrderDetail = () => {
       console.log("Phản hồi từ API:", res);
       console.log("location.state.trangThaiDonHang:", location.state?.trangThaiDonHang);
       setDetails(res.result || []);
-      // Ép kiểu trangThaiDonHang từ API thành số, ưu tiên location.state nếu API không trả về
-      const apiTrangThai = res.trangThaiDonHang || res.order?.trangThaiDonHang;
-      setTrangThaiDonHang(apiTrangThai ? Number(apiTrangThai) : Number(location.state?.trangThaiDonHang) || 0);
+      // // Ép kiểu trangThaiDonHang từ API thành số, ưu tiên location.state nếu API không trả về
+      // const apiTrangThai = res.trangThaiDonHang || res.order?.trangThaiDonHang;
+      // setTrangThaiDonHang(apiTrangThai ? Number(apiTrangThai) : Number(location.state?.trangThaiDonHang) || 0);
       setError(null);
     } catch (err) {
       console.error("Lỗi khi tải chi tiết đơn hàng:", err.response?.data || err.message);
       setError("Không thể tải chi tiết đơn hàng. Vui lòng thử lại.");
       setDetails([]);
-      setTrangThaiDonHang(Number(location.state?.trangThaiDonHang) || 0);
+      // setTrangThaiDonHang(Number(location.state?.trangThaiDonHang) || 0);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchDataHD = async (orderId) => {
+          if (!orderId) return;
+  
+          try {
+              const re = await searchHoaDonById(orderId);
+              console.log("API trả về trạng thái đơn hàng:", re);
+              const apiTrangThai = re.trangThai;
+              console.log("API trả về trạng thái đơn hàng (trangThai):", apiTrangThai);
+              if (apiTrangThai !== undefined && apiTrangThai !== null) {
+                  const newStatus = Number(apiTrangThai);
+                  if (newStatus !== trangThaiDonHang) {
+                      setTrangThaiDonHang(newStatus);
+                  }
+              }
+          } catch (err) {
+              console.error("Lỗi khi tải thông tin hóa đơn:", err);
+          }
+      };
+  
   useEffect(() => {
     fetchData();
   }, [orderId]);
 
+  useEffect(() => {
+    fetchDataHD(orderId);
+  }, [orderId]);
+  
   const handleSearch = (e) => {
     e.preventDefault();
     fetchData(tenSanPham);
