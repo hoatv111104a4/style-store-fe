@@ -34,6 +34,9 @@ import TimelineConnector from "@mui/lab/TimelineConnector";
 import TimelineContent from "@mui/lab/TimelineContent";
 import TimelineDot from "@mui/lab/TimelineDot";
 import { huyDonHang } from "../../services/Admin/HoaDonAdminServiceNew";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import "../../../Roboto-Regular-normal.js"; // Import font file
 
 const HoaDonDetailPage = () => {
   const { id } = useParams();
@@ -309,6 +312,144 @@ const HoaDonDetailPage = () => {
     }
   };
 
+  const handleExportPDF = () => {
+  const doc = new jsPDF("p", "mm", "a4");
+
+  // Define a consistent left margin and content width
+  const leftMargin = 20;
+  const contentWidth = 170;
+
+  // 🔹 Sử dụng font Roboto Regular
+  doc.setFont("Roboto-Regular", "normal");
+
+  // 🔹 Tiêu đề
+  doc.setFontSize(18);
+  doc.text("HÓA ĐƠN BÁN HÀNG", 105, 20, { align: "center" });
+  doc.setDrawColor(200);
+  doc.line(leftMargin, 25, leftMargin + contentWidth, 25);
+
+  // 🔹 Thông tin cửa hàng
+  doc.setFontSize(10);
+  doc.setTextColor(80);
+  doc.text("CỬA HÀNG THỜI TRANG Style store", 105, 32, { align: "center" });
+  doc.text("Địa chỉ: Cao đăng FPT , Phố Trịnh Văn Bô, Quận Nam Từ Liêm ,Hà Nội", 105, 37, { align: "center" });
+  doc.text("Điện thoại: 0123.456.789 - Email: hoa573898@gmail.com", 105, 42, { align: "center" });
+
+  // 🔹 Thông tin hóa đơn
+  doc.setTextColor(0);
+  doc.setFontSize(12);
+  doc.text(`Mã hóa đơn: ${hoaDon.ma}`, leftMargin, 55);
+  doc.text(
+    `Ngày đặt: ${
+      hoaDon.ngayDat ? new Date(hoaDon.ngayDat).toLocaleDateString("vi-VN") : ""
+    }`,
+    leftMargin,
+    62
+  );
+  doc.text(`Trạng thái: ${getStatusLabel(hoaDon.trangThai).label}`, leftMargin + contentWidth, 55, { align: "right" });
+  doc.text(`PT thanh toán: ${hoaDon.ptThanhToan}`, leftMargin + contentWidth, 62, { align: "right" });
+
+  // 🔹 Thông tin khách hàng
+  doc.setFont(undefined, "bold");
+  doc.text("THÔNG TIN KHÁCH HÀNG", leftMargin, 75);
+  doc.setFont("Roboto-Regular", "normal");
+
+  doc.setDrawColor(200);
+  doc.setFillColor(245);
+  doc.rect(leftMargin, 78, contentWidth, 20, "F");
+
+  // Splitting the address string to wrap it if it's too long
+  const addressLines = doc.splitTextToSize(`Địa chỉ: ${hoaDon.diaChiNhanHang}`, 80);
+
+  doc.text(`Người nhận: ${hoaDon.nguoiNhanHang}`, leftMargin + 5, 85);
+  doc.text(`SĐT: ${hoaDon.soDtNguoiNhan}`, leftMargin + 5, 92);
+  doc.text(addressLines, 105, 85);
+
+  // 🔹 Bảng sản phẩm
+  const body = hoaDon.sanPhams?.map((sp, idx) => [
+    idx + 1,
+    sp.tenSanPham,
+    `Màu: ${sp.mauSacSanPham}\nCL: ${sp.chatLieuSanPham}\nTH: ${sp.thuongHieuSanPham}\nKT: ${
+      sp.kichThuocSanPham || "N/A"
+    }`,
+    sp.soLuong,
+    formatCurrency(sp.giaBanSanPham),
+    formatCurrency(sp.soLuong * parseFloat(sp.giaBanSanPham))
+  ]);
+  const pageWidth = doc.internal.pageSize.getWidth();
+const margin = 15; // lề trái/phải
+
+  // Adjusting column widths to make the table wider
+ autoTable(doc, {
+  startY: 105,
+  head: [["STT", "San pham", "Thông tin", "SL", "Gia tien", "Thanh tien"]],
+  body,
+  styles: {
+    font: "Roboto-Regular",
+    fontSize: 9,
+    cellPadding: 2,
+    valign: "middle"
+  },
+  headStyles: {
+    fillColor: [60, 60, 60],
+    textColor: 255,
+    halign: "center"
+  },
+  // Căn lại tỉ lệ chiều rộng các cột dựa trên contentWidth
+  columnStyles: {
+    0: { halign: "center", cellWidth: 12 },                      // STT
+    1: { cellWidth: 45 },                                        // Sản phẩm
+    2: { cellWidth: 55 },                                        // Thông tin
+    3: { halign: "center", cellWidth: 12 },                      // SL
+    4: { halign: "right", cellWidth: 28 },                       // Đơn giá
+    5: { halign: "right", cellWidth: 28 }                        // Thành tiền
+  },
+  margin: { left: margin, right: margin }
+});
+
+  // 🔹 Thông tin thanh toán
+  let finalY = doc.lastAutoTable.finalY + 10;
+  doc.setFont(undefined, "bold");
+  doc.text("THÔNG TIN THANH TOÁN", leftMargin, finalY);
+  finalY += 5;
+
+  doc.setDrawColor(200);
+  doc.setFillColor(245);
+  doc.rect(leftMargin, finalY, contentWidth, 45, "F");
+
+  doc.setFont("Roboto-Regular", "normal");
+  doc.text("Tiền hàng:", leftMargin + 5, finalY + 10);
+  doc.text("Tiền ship:", leftMargin + 5, finalY + 17);
+  doc.text("Tổng cộng:", leftMargin + 5, finalY + 24);
+  doc.text("Tiền khách trả:", leftMargin + 5, finalY + 31);
+  const conLai = hoaDon.tongTien + hoaDon.tienThue - hoaDon.tienKhachTra;
+  doc.text("Còn lại:", leftMargin + 5, finalY + 38);
+
+  const rightAlignX = leftMargin + contentWidth - 5;
+  doc.text(formatCurrency(hoaDon.tongTien), rightAlignX, finalY + 10, { align: "right" });
+  doc.text(formatCurrency(hoaDon.tienThue), rightAlignX, finalY + 17, { align: "right" });
+  doc.text(formatCurrency(hoaDon.tongTien + hoaDon.tienThue), rightAlignX, finalY + 24, {
+    align: "right"
+  });
+  doc.text(formatCurrency(hoaDon.tienKhachTra), rightAlignX, finalY + 31, {
+    align: "right"
+  });
+  doc.text(formatCurrency(conLai), rightAlignX, finalY + 38, { align: "right" });
+
+  // 🔹 Footer
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  doc.text("Cảm ơn quý khách đã mua hàng!", 105, finalY + 60, { align: "center" });
+  doc.text(
+    "Hóa đơn được tạo vào: " + new Date().toLocaleString("vi-VN"),
+    105,
+    finalY + 65,
+    { align: "center" }
+  );
+
+  // 🔹 Xuất PDF
+  window.open(doc.output("bloburl"), "_blank");
+};
   const getTimelineTitle = (tieuDe) => {
     switch (tieuDe) {
       case "1":
@@ -533,6 +674,14 @@ const HoaDonDetailPage = () => {
                 Hủy đơn hàng
               </Button>
             ) : null}
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleExportPDF}
+              disabled={hoaDon.trangThai === 0}
+            >
+              Xuất PDF
+            </Button>
           </Box>
         </Box>
 

@@ -219,7 +219,7 @@ const HoaDonAdminList = () => {
             <tbody>
               {hoaDons.length > 0 ? (
                 hoaDons
-                .filter((hoaDon) => hoaDon.trangThai !== 6) 
+                .filter((hoaDon) => hoaDon.trangThai !== 6 && (hoaDon.tongSoLuongSp ?? 0) !== 0) 
                 .map((hoaDon, index) => (
                   <tr key={hoaDon.id}>
                     <td>{(page - 1) * 5 + index + 1}</td>
