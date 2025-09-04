@@ -48,6 +48,8 @@ import HoaDonDetailPage from "./pages/Admin/ChiTietHoaDonAdmin";
 import SanPhamAdminPage from "./pages/Admin/SanPhamAdminPage";
 import AddSanPhamChiTietAdmin from "./pages/Admin/AddSanPhamAdminNew";
 import UpdateSpCtPage from "./pages/Admin/UpdateSpCtModal";
+import OrderHistory from "./pages/Website/OrderHistory";
+import OrderHistoryDetail from "./pages/Website/OrderHistoryDetail";
 function App() {
   return (
     <BrowserRouter>
@@ -64,6 +66,8 @@ function App() {
           <Route path="/website/dat-hang" element={<CheckOutPage />} />
           <Route path="/website/dat-hang/lich-su-dat-hang" element={<HistoryOrder />} />
           <Route path="/website/dat-hang/lich-su-dat-hang/chi-tiet-don-hang/:orderId" element={<OrderDetail />} />
+          <Route path="/website/lich-su-dat-hang/chi-tiet-don-hang/:orderId" element={<OrderHistoryDetail />} />
+          <Route path="/website/lich-su-dat-hang" element={<OrderHistory />} />
           <Route path="/thanh-toan-thanh-cong" element={<PaymentSuccess />} />
           <Route path="/thanh-toan-that-bai" element={<PaymentSuccess />} />
           <Route path="/website/thong-tin-ca-nhan" element={<UserProfile />} />
